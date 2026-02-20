@@ -118,8 +118,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, reactive } from 'vue';
+import { computed, ref, onMounted, onUnmounted, toRef } from 'vue';
 import type { Appointment } from '../../domain/entities/Appointment';
+import { useAppointmentResize } from '../composables/useAppointmentResize';
+import { useDragAndDrop } from '../composables/useDragAndDrop';
 
 const props = defineProps<{
   currentDate: Date;
@@ -128,6 +130,11 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['update-appointment', 'edit', 'select-slot']);
+
+// Refs convertidas para composables
+const appointmentsRef = toRef(props, 'appointments');
+const { isResizing, resizeState, handleResizeStart, handleResizeMove, handleResizeEnd } = useAppointmentResize(appointmentsRef, (payload) => emit('update-appointment', payload));
+const { onDragStart, onDrop } = useDragAndDrop(isResizing, (payload) => emit('update-appointment', payload));
 
 // Lógica de Dias
 const weekDays = computed(() => {
@@ -163,47 +170,28 @@ const getDailyAppointments = (date: Date) => {
     return props.appointments.filter(a => a.date === dateStr);
 };
 
-// --- Click no Slot (Criar Agenda) ---
+// Click no Slot (Criar Agenda)
 const handleColumnClick = (event: MouseEvent, date: Date) => {
-    // Se estiver fazendo resize ou arrastando, ignora o click
     if (isResizing.value) return;
 
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const offsetY = event.clientY - rect.top; 
     
-    // Cálculo da hora: 60px = 1 hora
     const hour = Math.floor(offsetY / 60);
     const rawMinutes = Math.floor(offsetY % 60);
-    
-    // Arredonda para 00 ou 30 para facilitar a criação (Snap 30m)
     const roundedMinutes = rawMinutes < 30 ? 0 : 30;
     
     const timeStr = `${hour.toString().padStart(2,'0')}:${roundedMinutes.toString().padStart(2,'0')}`;
-    
-    // Emite evento para a View Pai
     emit('select-slot', { date, time: timeStr });
 };
 
-// --- Resize State ---
-const isResizing = ref(false);
-const resizeState = reactive({
-    id: 0,
-    startY: 0,
-    startHeight: 0,
-    currentHeight: 0,
-    startTimeMinutes: 0,
-    tempEndTime: ''
-});
-
-// --- Style Calc ---
+// Style Calc
 const getEventStyle = (apt: Appointment) => {
     const [startH = 0, startM = 0] = apt.time.split(':').map(Number);
     const [endH = 0, endM = 0] = apt.endTime.split(':').map(Number);
     
     const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-    
-    let height = endMinutes - startMinutes;
+    let height = (endH * 60 + endM) - startMinutes;
     
     if (isResizing.value && resizeState.id === apt.id) {
         height = resizeState.currentHeight;
@@ -219,84 +207,7 @@ const getEventStyle = (apt: Appointment) => {
     };
 };
 
-// --- Drag Logic ---
-const onDragStart = (event: DragEvent, apt: Appointment) => {
-    if (isResizing.value) {
-        event.preventDefault(); 
-        return;
-    }
-    if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('appt-id', apt.id.toString());
-        const ghost = document.createElement('div');
-        ghost.style.opacity = '0';
-        document.body.appendChild(ghost);
-        event.dataTransfer.setDragImage(ghost, 0, 0);
-        setTimeout(() => document.body.removeChild(ghost), 0);
-    }
-};
-
-const onDrop = (event: DragEvent, date: Date) => {
-    const apptId = event.dataTransfer?.getData('appt-id');
-    if (apptId) {
-        const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-        const offsetY = event.clientY - rect.top; 
-        const hour = Math.floor(offsetY / 60);
-        const rawMinutes = Math.floor(offsetY % 60);
-        const roundedMinutes = Math.round(rawMinutes / 15) * 15;
-        const finalHour = roundedMinutes === 60 ? hour + 1 : hour;
-        const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
-        
-        if (finalHour > 23) return;
-
-        const timeStr = `${finalHour.toString().padStart(2,'0')}:${finalMinutes.toString().padStart(2,'0')}`;
-        
-        emit('update-appointment', { id: parseInt(apptId), date: date, time: timeStr });
-    }
-};
-
-// --- Resize Logic ---
-const handleResizeStart = (event: MouseEvent, apt: Appointment) => {
-    isResizing.value = true;
-    resizeState.id = apt.id;
-    resizeState.startY = event.clientY;
-    
-    const [sH = 0, sM = 0] = apt.time.split(':').map(Number);
-    const [eH = 0, eM = 0] = apt.endTime.split(':').map(Number);
-    
-    resizeState.startTimeMinutes = sH * 60 + sM;
-    resizeState.startHeight = (eH * 60 + eM) - resizeState.startTimeMinutes;
-    resizeState.currentHeight = resizeState.startHeight;
-    resizeState.tempEndTime = apt.endTime;
-};
-
-const handleResizeMove = (event: MouseEvent) => {
-    if (!isResizing.value) return;
-    const deltaY = event.clientY - resizeState.startY;
-    let newHeight = resizeState.startHeight + deltaY;
-    newHeight = Math.round(newHeight / 15) * 15; 
-    if (newHeight < 30) newHeight = 30;
-    resizeState.currentHeight = newHeight;
-    const endTotalMinutes = resizeState.startTimeMinutes + newHeight;
-    const endH = Math.floor(endTotalMinutes / 60);
-    const endM = endTotalMinutes % 60;
-    if (endH >= 24) return; 
-    resizeState.tempEndTime = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
-};
-
-const handleResizeEnd = () => {
-    if (!isResizing.value) return;
-    const apt = props.appointments.find(a => a.id === resizeState.id);
-    if (apt) {
-        const dateParts = apt.date.split('-').map(Number);
-        const dateObj = new Date(dateParts[0] ?? 2026, (dateParts[1] ?? 1) - 1, dateParts[2] ?? 1);
-        emit('update-appointment', { id: apt.id, date: dateObj, time: apt.time, endTime: resizeState.tempEndTime });
-    }
-    isResizing.value = false;
-    resizeState.id = 0;
-};
-
-// --- Time Marker ---
+// Time Marker
 const currentTimeTop = ref(0);
 const currentHourStr = ref('');
 let timer: any;

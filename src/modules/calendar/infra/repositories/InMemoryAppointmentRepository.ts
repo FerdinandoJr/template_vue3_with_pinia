@@ -37,7 +37,6 @@ export class InMemoryAppointmentRepository implements IAppointmentRepository {
       clientId: 3,
       clientName: "Novo Cliente Ltda",
       agent: "Eu",
-      // Define para a data de hoje para facilitar teste
       date: new Date().toISOString().split("T")[0] ?? "",
       time: "10:00",
       endTime: "11:30",

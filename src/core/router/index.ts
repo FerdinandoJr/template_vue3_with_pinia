@@ -3,12 +3,12 @@ import AppLayout from "@/layouts/AppLayout.vue";
 import dashboardRoutes from "@/modules/dashboard/ui/routes";
 import ticketsRoutes from "@/modules/tickets/ui/routes";
 import chatsRoutes from "@/modules/chats/ui/routes";
-import agendaRoutes from "@/modules/agendas/ui/routes";
+import agendaRoutes from "@/modules/calendar/ui/routes";
 import clientsRoutes from "@/modules/clients/ui/routes";
 import reportsRoutes from "@/modules/reports/ui/routes";
 import kbRoutes from "@/modules/kb/ui/routes";
 import kanbanRoutes from "@/modules/kanban/ui/routes";
-import atendimentosRoutes from "@/modules/atendimentos/ui/routes";
+import atendimentosRoutes from "@/modules/service/ui/routes";
 import settingsRoutes from "@/modules/settings/ui/routes";
 
 const routes = [

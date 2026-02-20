@@ -53,6 +53,8 @@
         <router-view />
       </main>
     </div>
+
+    <ToastContainer />
   </div>
 </template>
 
@@ -60,6 +62,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from './Sidebar.vue'
+import ToastContainer from '@/core/components/ToastContainer.vue'
 
 const route = useRoute()
 const pageTitle = computed(() => route.meta.title as string || '')

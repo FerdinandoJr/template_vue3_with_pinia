@@ -46,7 +46,7 @@
             :class="store.viewType === 'week' ? 'bg-white shadow-sm text-blue-600' : 'hover:text-slate-700'" 
             class="px-3 py-1.5 rounded-md transition flex items-center gap-2"
           >
-            ⏰ Semana
+            ⏳ Semana
           </button>
           <button 
             @click="store.viewType = 'day'" 
@@ -102,14 +102,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useAgendaStore } from '../store/agenda.store';
+import { useAgendaStore } from '../store/calendar.store';
 import CalendarGrid from '../components/CalendarGrid.vue';
 import WeekGrid from '../components/WeekGrid.vue';
 import UpcomingList from '../components/UpcomingList.vue';
 import AppointmentModal from '../components/AppointmentModal.vue';
 import type { Appointment } from '../../domain/entities/Appointment';
+import { useToast } from '@/core/composables/useToast';
 
 const store = useAgendaStore();
+const { showToast } = useToast();
 const isModalOpen = ref(false);
 const editingAppointment = ref<Appointment | undefined>(undefined);
 
@@ -185,18 +187,25 @@ const handleDateClick = (date: Date) => {
 const handleSave = async (data: Appointment) => {
   const result = await store.addAppointment(data);
   if (!result.success) {
-    alert(result.message);
+    showToast(result.message || 'Erro ao salvar agendamento', 'error');
   } else {
-      closeModal();
+    showToast(data.id !== 0 ? 'Agendamento atualizado com sucesso!' : 'Agendamento criado com sucesso!', 'success');
+    closeModal();
   }
 };
 
 const handleDelete = async (id: number) => {
-    await store.deleteAppointment(id);
+    const result = await store.deleteAppointment(id);
+    if (result.success) {
+      showToast('Agendamento excluído com sucesso!', 'success');
+    } else {
+      showToast('Erro ao excluir agendamento.', 'error');
+    }
 };
 
 const handleUpdateAppointment = async (payload: { id: number, date: Date, time: string, endTime?: string }) => {
     await store.updateAppointmentTime(payload.id, payload.date, payload.time, payload.endTime);
+    showToast('Horário atualizado', 'info');
 };
 
 onMounted(() => {

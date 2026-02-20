@@ -1,4 +1,4 @@
-import AgendaView from "./views/AgendaView.vue";
+import AgendaView from "./views/CalendarView.vue";
 
 export default [
     {
