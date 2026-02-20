@@ -8,8 +8,8 @@
       <span 
         v-for="tag in task.tags" 
         :key="tag" 
-        class="text-[10px] font-bold px-2.5 py-1 rounded-md border"
-        :class="getTagStyle(tag)"
+        class="text-[10px] font-bold px-2.5 py-1 rounded-md border text-slate-700 bg-slate-50 border-slate-200"
+        :style="generateColorFromTag(tag)"
       >
         {{ tag }}
       </span>
@@ -23,8 +23,7 @@
         <div 
           v-for="(avatar, index) in task.assigneeAvatar" 
           :key="index"
-          class="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-[2px] border-white shadow-sm ring-1 ring-slate-100"
-          :class="getAvatarColor(avatar)"
+          class="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-[2px] border-white shadow-sm ring-1 ring-slate-100 bg-blue-600"
         >
           {{ avatar }}
         </div>
@@ -47,25 +46,16 @@ const onDragStart = (event: DragEvent) => {
   }
 };
 
-const getAvatarColor = (initials: string) => {
-    if (initials === 'US') return 'bg-blue-600';
-    if (initials === 'AD') return 'bg-amber-500';
-    return 'bg-slate-400';
-};
-
-const getTagStyle = (tag: string) => {
-  const map: Record<string, string> = {
-    'Login': 'bg-green-50 text-green-700 border-green-100',
-    'Dev': 'bg-blue-50 text-blue-700 border-blue-100',
-    'Bug': 'bg-red-50 text-red-700 border-red-100',
-    'Critical': 'bg-red-50 text-red-800 border-red-100',
-    'Design': 'bg-purple-50 text-purple-700 border-purple-100',
-    'UI': 'bg-purple-50 text-purple-700 border-purple-100',
-    'API': 'bg-orange-50 text-orange-700 border-orange-100',
-    'Infra': 'bg-slate-50 text-slate-600 border-slate-200',
-    'Deploy': 'bg-slate-50 text-slate-600 border-slate-200',
-    'Docs': 'bg-slate-50 text-slate-600 border-slate-200'
+const generateColorFromTag = (tag: string) => {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return {
+    backgroundColor: `hsl(${hue}, 85%, 96%)`,
+    color: `hsl(${hue}, 80%, 35%)`,
+    borderColor: `hsl(${hue}, 85%, 85%)`
   };
-  return map[tag] || 'bg-slate-50 text-slate-600 border-slate-100';
 };
 </script>

@@ -13,8 +13,8 @@ export class CheckAppointmentConflict {
         const appointments = await this.repository.getAll();
         
         const toMin = (t: string) => {
-            const parts = t.split(":").map(Number);
-            return (parts[0] ?? 0) * 60 + (parts[1] ?? 0);
+            const [hours = 0, minutes = 0] = t.split(":").map(Number);
+            return hours * 60 + minutes;
         };
 
         const newStart = toMin(startTime);

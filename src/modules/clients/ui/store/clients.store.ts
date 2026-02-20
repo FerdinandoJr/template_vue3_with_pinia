@@ -1,33 +1,27 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, inject } from "vue";
 import type { Client } from "../../domain/entities/Client";
-import { getClientsUseCase } from "../../di";
+import { ClientsDI } from "../../di";
+import { useToast } from "@/core/composables/useToast";
 
 export const useClientsStore = defineStore('clients', () => {
+    const getClientsUseCase = inject(ClientsDI.GetClients)!;
+    const { showToast } = useToast();
+
     const clients = ref<Client[]>([]);
     const loading = ref(false);
     const searchQuery = ref('');
-    const selectedClientId = ref<number | null>(null);
-    const isDrawerOpen = ref(false);
-    const selectedTab = ref('historico'); 
 
     const loadClients = async () => {
         loading.value = true;
         try {
             clients.value = await getClientsUseCase.execute();
+        } catch (error) {
+            console.error(error);
+            showToast("Falha ao carregar a lista de clientes.", "error");
         } finally {
             loading.value = false;
         }
-    };
-
-    const openClientDrawer = (id: number) => { 
-        selectedClientId.value = id; 
-        isDrawerOpen.value = true; 
-    };
-
-    const closeDrawer = () => { 
-        isDrawerOpen.value = false; 
-        setTimeout(() => selectedClientId.value = null, 300); 
     };
 
     const filteredClients = computed(() => {
@@ -39,7 +33,7 @@ export const useClientsStore = defineStore('clients', () => {
         );
     });
 
-    const activeClient = computed(() => clients.value.find(c => c.id === selectedClientId.value));
+    const getClientById = (id: number) => clients.value.find(c => c.id === id);
 
     const totalClients = computed(() => clients.value.length);
     const clientsWithTickets = computed(() => clients.value.filter(c => c.openTickets > 0).length);
@@ -50,14 +44,10 @@ export const useClientsStore = defineStore('clients', () => {
         loading,
         searchQuery, 
         filteredClients, 
-        activeClient, 
-        isDrawerOpen, 
-        selectedTab, 
         totalClients, 
         clientsWithTickets, 
         criticalClients, 
         loadClients,
-        openClientDrawer, 
-        closeDrawer 
+        getClientById
     };
 });

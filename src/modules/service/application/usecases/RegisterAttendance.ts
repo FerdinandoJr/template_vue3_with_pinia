@@ -8,7 +8,7 @@ export class RegisterAttendance {
         const newRecord: ServiceRecord = {
             ...data,
             id: Math.floor(100000 + Math.random() * 900000).toString(),
-            dateTime: new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+            dateTime: new Date().toISOString()
         };
         await this.repository.create(newRecord);
     }

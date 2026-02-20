@@ -21,27 +21,36 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useClientsStore } from '../store/clients.store';
+import type { Client } from '../../domain/entities/Client';
 import ClientStats from '../components/ClientStats.vue';
 import ClientTable from '../components/ClientTable.vue';
 import ClientDrawer from '../components/ClientDrawer.vue';
 
 const store = useClientsStore();
-const { 
-  filteredClients, 
-  activeClient, 
-  isDrawerOpen, 
-  totalClients, 
-  clientsWithTickets, 
-  criticalClients, 
-  searchQuery 
-} = storeToRefs(store);
+const { filteredClients, totalClients, clientsWithTickets, criticalClients, searchQuery } = storeToRefs(store);
 
-const { loadClients, openClientDrawer, closeDrawer } = store;
+// Controle de UI local
+const isDrawerOpen = ref(false);
+const selectedClientId = ref<number | null>(null);
+
+const activeClient = computed<Client | undefined>(() => {
+    return selectedClientId.value ? store.getClientById(selectedClientId.value) : undefined;
+});
+
+const openClientDrawer = (id: number) => {
+    selectedClientId.value = id;
+    isDrawerOpen.value = true;
+};
+
+const closeDrawer = () => {
+    isDrawerOpen.value = false;
+    setTimeout(() => selectedClientId.value = null, 300);
+};
 
 onMounted(() => {
-  loadClients();
+  store.loadClients();
 });
 </script>

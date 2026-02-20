@@ -7,7 +7,6 @@ export const useAtendimentosStore = defineStore("atendimentos", () => {
   const records = ref<ServiceRecord[]>([]);
   const loading = ref(false);
   const searchQuery = ref("");
-  const isRegisterModalOpen = ref(false);
 
   const filteredRecords = computed(() => {
     if (!searchQuery.value) return records.value;
@@ -30,28 +29,21 @@ export const useAtendimentosStore = defineStore("atendimentos", () => {
     await registerAttendanceUseCase.execute({
       companyName: data.companyName,
       cnpj: data.cnpj,
-      agentName: "Eu (Admin)",
+      agentName: "Usuário Logado",
       status: "active",
       reason: data.reason,
       description: data.description,
       duration: data.duration,
     });
     await loadRecords();
-    isRegisterModalOpen.value = false;
   };
-
-  const openModal = () => (isRegisterModalOpen.value = true);
-  const closeModal = () => (isRegisterModalOpen.value = false);
 
   return {
     records,
     loading,
     searchQuery,
     filteredRecords,
-    isRegisterModalOpen,
     loadRecords,
     registerFinish,
-    openModal,
-    closeModal,
   };
 });

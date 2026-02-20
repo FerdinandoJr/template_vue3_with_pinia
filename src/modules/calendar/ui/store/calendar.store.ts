@@ -5,11 +5,10 @@ import {
   getAgendaUseCase,
   createAppointmentUseCase,
   manageBlockedDatesUseCase,
-  checkAppointmentConflictUseCase
+  checkAppointmentConflictUseCase,
+  updateAppointmentUseCase,
+  deleteAppointmentUseCase
 } from "../../di";
-import { InMemoryAppointmentRepository } from "../../infra/repositories/InMemoryAppointmentRepository";
-
-const repo = new InMemoryAppointmentRepository();
 
 export const useAgendaStore = defineStore("agenda", () => {
   const currentMonth = ref(new Date());
@@ -61,22 +60,17 @@ export const useAgendaStore = defineStore("agenda", () => {
   };
 
   const addAppointment = async (appt: Appointment) => {
-    const hasConflict = await checkAppointmentConflictUseCase.execute(
-        appt.date, appt.time, appt.endTime, appt.agent, appt.id !== 0 ? appt.id : undefined
-    );
-
-    if (hasConflict) {
-      return { success: false, message: "⚠️ Conflito de horário detectado para este agente." };
-    }
-
     try {
       if (appt.id !== 0) {
-        const index = appointments.value.findIndex((a) => a.id === appt.id);
-        if (index !== -1) {
-          appointments.value[index] = appt;
-          await repo.update(appt);
-        }
+        await updateAppointmentUseCase.execute(appt.id, appt.date, appt.time, appt.endTime);
       } else {
+        const hasConflict = await checkAppointmentConflictUseCase.execute(
+            appt.date, appt.time, appt.endTime, appt.agent
+        );
+
+        if (hasConflict) {
+          return { success: false, message: "⚠️ Conflito de horário detectado para este agente." };
+        }
         await createAppointmentUseCase.execute(appt);
       }
 
@@ -89,7 +83,7 @@ export const useAgendaStore = defineStore("agenda", () => {
 
   const deleteAppointment = async (id: number) => {
     try {
-      await repo.delete(id);
+      await deleteAppointmentUseCase.execute(id);
       await loadAgenda();
       return { success: true };
     } catch (error: any) {
@@ -98,37 +92,14 @@ export const useAgendaStore = defineStore("agenda", () => {
   };
 
   const updateAppointmentTime = async (id: number, newDate: Date, newTime: string, newEndTime?: string) => {
-    const appt = appointments.value.find((a) => a.id === id);
-    if (!appt) return;
-
-    const dateStr = formatDateKey(newDate);
-    let finalEndTime = newEndTime;
-
-    if (!finalEndTime) {
-      const startParts = appt.time.split(":").map(Number);
-      const endParts = appt.endTime.split(":").map(Number);
-      const durationMin = (endParts[0] ?? 0) * 60 + (endParts[1] ?? 0) - ((startParts[0] ?? 0) * 60 + (startParts[1] ?? 0));
-
-      const newStartParts = newTime.split(":").map(Number);
-      const newEndTotal = (newStartParts[0] ?? 0) * 60 + (newStartParts[1] ?? 0) + durationMin;
-
-      const fEndH = Math.floor(newEndTotal / 60);
-      const fEndM = newEndTotal % 60;
-      finalEndTime = `${fEndH.toString().padStart(2, "0")}:${fEndM.toString().padStart(2, "0")}`;
+    try {
+      const dateStr = formatDateKey(newDate);
+      await updateAppointmentUseCase.execute(id, dateStr, newTime, newEndTime);
+      await loadAgenda();
+    } catch (error: any) {
+      console.warn("Horário não atualizado:", error.message);
+      await loadAgenda();
     }
-
-    const hasConflict = await checkAppointmentConflictUseCase.execute(dateStr, newTime, finalEndTime, appt.agent, id);
-
-    if (hasConflict) {
-      await loadAgenda(); 
-      return;
-    }
-
-    const updatedAppt = { ...appt, date: dateStr, time: newTime, endTime: finalEndTime };
-    const index = appointments.value.findIndex((a) => a.id === id);
-    if (index !== -1) appointments.value[index] = updatedAppt;
-
-    await repo.update(updatedAppt);
   };
 
   const nextPeriod = () => {

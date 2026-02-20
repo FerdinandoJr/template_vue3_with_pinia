@@ -1,6 +1,12 @@
-import { GetTickets } from "./application/usecases/GetTickets";
+import type { App, InjectionKey } from 'vue';
 import { InMemoryTicketRepository } from "./infra/repositories/InMemoryTicketRepository";
+import { GetTickets } from "./application/usecases/GetTickets";
 
-const ticketRepository = new InMemoryTicketRepository();
+export const TicketsDI = {
+    GetTickets: Symbol() as InjectionKey<GetTickets>
+};
 
-export const getTicketsUseCase = new GetTickets(ticketRepository);
+export function setupTicketsDI(app: App) {
+    const repository = new InMemoryTicketRepository();
+    app.provide(TicketsDI.GetTickets, new GetTickets(repository));
+}

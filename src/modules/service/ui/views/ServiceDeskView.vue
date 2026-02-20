@@ -1,6 +1,5 @@
 <template>
   <div class="h-full space-y-6">
-    
     <div class="flex justify-between items-center bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
       <div class="relative flex-1 max-w-md">
         <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
@@ -13,7 +12,7 @@
       </div>
 
       <button 
-        @click="store.openModal"
+        @click="isRegisterModalOpen = true"
         class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-900 transition flex items-center gap-2"
       >
         <span>+</span> Simular Fim de Chat
@@ -23,20 +22,27 @@
     <ServiceTable :records="store.filteredRecords" />
 
     <FinishServiceModal 
-        :is-open="store.isRegisterModalOpen"
-        @close="store.closeModal"
-        @save="store.registerFinish"
+        :is-open="isRegisterModalOpen"
+        @close="isRegisterModalOpen = false"
+        @save="handleSave"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAtendimentosStore } from '../store/atendimentos.store';
 import ServiceTable from '../components/ServiceTable.vue';
 import FinishServiceModal from '../components/FinishServiceModal.vue';
 
 const store = useAtendimentosStore();
+
+const isRegisterModalOpen = ref(false);
+
+const handleSave = async (data: any) => {
+    await store.registerFinish(data);
+    isRegisterModalOpen.value = false;
+};
 
 onMounted(() => {
     store.loadRecords();
