@@ -1,9 +1,13 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, inject } from "vue";
 import type { Article } from "../../domain/entities/Article";
-import { getArticlesUseCase, getCategoriesUseCase } from "../../di";
+import { KbDI } from "../../di";
+import { useToast } from "@/core/composables/useToast";
 
 export const useKbStore = defineStore('kb', () => {
+    const getArticlesUseCase = inject(KbDI.GetArticles)!;
+    const getCategoriesUseCase = inject(KbDI.GetCategories)!;    
+    const { showToast } = useToast();
     const categories = ref<string[]>([]);
     const articles = ref<Article[]>([]);
     const activeCategory = ref('FAQ');
@@ -40,6 +44,9 @@ export const useKbStore = defineStore('kb', () => {
             if (!activeCategory.value && cats.length > 0) {
                 activeCategory.value = cats[0] as string;
             }
+        } catch (error) {
+            console.error("[KbStore] Erro ao carregar Base de Conhecimento:", error);
+            showToast("Falha ao carregar artigos. Verifique sua conexão.", "error");
         } finally {
             loading.value = false;
         }

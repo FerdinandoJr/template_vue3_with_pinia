@@ -147,6 +147,7 @@ import type { Appointment } from '../../domain/entities/Appointment';
 import { useClientsStore } from '../../../clients/ui/store/clients.store';
 import type { Client } from '../../../clients/domain/entities/Client';
 import { useToast } from '@/core/composables/useToast';
+import { AppointmentService } from '../../domain/services/AppointmentService';
 
 const props = defineProps<{ 
     isOpen: boolean;
@@ -187,7 +188,6 @@ const form = reactive<Appointment>({
   description: ''
 });
 
-// Listener para fechar com a tecla ESC
 const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && props.isOpen) {
         close();
@@ -218,9 +218,7 @@ const clearClient = () => {
 
 watch(() => form.time, (newTime) => {
     if (newTime && form.id === 0) { 
-        const [h = 0, m = 0] = newTime.split(':').map(Number);
-        const endH = (h + 1) % 24; 
-        form.endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        form.endTime = AppointmentService.getDefaultEndTime(newTime, 60);
     }
 });
 
@@ -242,7 +240,6 @@ watch(() => props.isOpen, async (newVal) => {
         form.endTime = '10:00';
         clientSearch.value = '';
     }
-    // Acessibilidade: Garante que o input principal ganhe foco assim que o DOM for atualizado
     await nextTick();
     titleInput.value?.focus();
   } else {

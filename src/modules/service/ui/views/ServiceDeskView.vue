@@ -31,7 +31,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useAtendimentosStore } from '../store/atendimentos.store';
+import { useAtendimentosStore, type FinishServicePayload } from '../store/atendimentos.store';
 import ServiceTable from '../components/ServiceTable.vue';
 import FinishServiceModal from '../components/FinishServiceModal.vue';
 
@@ -39,7 +39,7 @@ const store = useAtendimentosStore();
 
 const isRegisterModalOpen = ref(false);
 
-const handleSave = async (data: any) => {
+const handleSave = async (data: FinishServicePayload) => {
     await store.registerFinish(data);
     isRegisterModalOpen.value = false;
 };

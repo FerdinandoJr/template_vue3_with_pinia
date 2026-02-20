@@ -1,6 +1,13 @@
+import type { App, InjectionKey } from 'vue';
 import { InMemoryDashboardRepository } from "./infra/repositories/InMemoryDashboardRepository";
 import { GetDashboardMetrics } from "./application/usecases/GetDashboardMetrics";
 
-const repository = new InMemoryDashboardRepository();
+export const DashboardDI = {
+    GetDashboardMetrics: Symbol('GetDashboardMetrics') as InjectionKey<GetDashboardMetrics>
+};
 
-export const getDashboardMetricsUseCase = new GetDashboardMetrics(repository);
+export function setupDashboardDI(app: App) {
+    const repository = new InMemoryDashboardRepository();
+    
+    app.provide(DashboardDI.GetDashboardMetrics, new GetDashboardMetrics(repository));
+}

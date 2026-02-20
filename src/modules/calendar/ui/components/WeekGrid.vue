@@ -207,10 +207,9 @@ const getEventStyle = (apt: Appointment) => {
     };
 };
 
-// Time Marker
 const currentTimeTop = ref(0);
 const currentHourStr = ref('');
-let timer: any;
+let timer: ReturnType<typeof setInterval>;
 
 const updateTimePosition = () => {
     const now = new Date();

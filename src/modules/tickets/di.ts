@@ -3,7 +3,7 @@ import { InMemoryTicketRepository } from "./infra/repositories/InMemoryTicketRep
 import { GetTickets } from "./application/usecases/GetTickets";
 
 export const TicketsDI = {
-    GetTickets: Symbol() as InjectionKey<GetTickets>
+    GetTickets: Symbol('GetTickets') as InjectionKey<GetTickets>
 };
 
 export function setupTicketsDI(app: App) {

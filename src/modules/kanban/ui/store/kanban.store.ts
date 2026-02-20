@@ -1,9 +1,15 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, inject } from "vue";
 import type { KanbanColumn } from "../../domain/entities/KanbanColumn";
-import { getBoardUseCase, moveTaskUseCase } from "../../di";
+import { KanbanDI } from "../../di";
+import { useToast } from "@/core/composables/useToast";
 
 export const useKanbanStore = defineStore('kanban', () => {
+    const getBoardUseCase = inject(KanbanDI.GetBoard)!;
+    const moveTaskUseCase = inject(KanbanDI.MoveTask)!;
+    
+    const { showToast } = useToast();
+
     const columns = ref<KanbanColumn[]>([]);
     const loading = ref(false);
 
@@ -11,6 +17,9 @@ export const useKanbanStore = defineStore('kanban', () => {
         loading.value = true;
         try {
             columns.value = await getBoardUseCase.execute();
+        } catch (error) {
+            console.error("[KanbanStore] Erro ao carregar o quadro:", error);
+            showToast("Falha ao carregar o Kanban. Tente novamente.", "error");
         } finally {
             loading.value = false;
         }
@@ -32,9 +41,12 @@ export const useKanbanStore = defineStore('kanban', () => {
                     try {
                         await moveTaskUseCase.execute(taskId, fromColId, toColId);
                     } catch (error) {
-                        console.error("Erro ao mover card", error);
+                        console.error("[KanbanStore] Erro ao mover card:", error);
+                        
                         targetCol.tasks.pop();
                         sourceCol.tasks.splice(taskIndex, 0, task);
+                        
+                        showToast("Erro de conexão. A movimentação da tarefa foi desfeita.", "error");
                     }
                 }
             }

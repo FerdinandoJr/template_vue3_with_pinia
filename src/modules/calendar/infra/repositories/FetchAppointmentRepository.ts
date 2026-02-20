@@ -2,8 +2,7 @@ import type { Appointment } from "../../domain/entities/Appointment";
 import type { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
 
 export class FetchAppointmentRepository implements IAppointmentRepository {
-  // O ideal é usar import.meta.env.VITE_API_URL, mas deixei um fallback para testes locais.
-  private baseUrl = "http://localhost:3000/api/appointments";
+  private baseUrl = `${import.meta.env.VITE_API_URL}/appointments`;
 
   async getAll(): Promise<Appointment[]> {
     const response = await fetch(this.baseUrl);

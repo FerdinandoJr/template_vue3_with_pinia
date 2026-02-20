@@ -1,16 +1,17 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, inject } from "vue";
 import type { Appointment } from "../../domain/entities/Appointment";
-import {
-  getAgendaUseCase,
-  createAppointmentUseCase,
-  manageBlockedDatesUseCase,
-  checkAppointmentConflictUseCase,
-  updateAppointmentUseCase,
-  deleteAppointmentUseCase
-} from "../../di";
+import { CalendarDI } from "../../di";
+import { useToast } from "@/core/composables/useToast";
 
 export const useAgendaStore = defineStore("agenda", () => {
+  const getAgendaUseCase = inject(CalendarDI.GetAgenda)!;
+  const createAppointmentUseCase = inject(CalendarDI.CreateAppointment)!;
+  const manageBlockedDatesUseCase = inject(CalendarDI.ManageBlockedDates)!;
+  const checkAppointmentConflictUseCase = inject(CalendarDI.CheckAppointmentConflict)!;
+  const updateAppointmentUseCase = inject(CalendarDI.UpdateAppointment)!;
+  const deleteAppointmentUseCase = inject(CalendarDI.DeleteAppointment)!;
+  const { showToast } = useToast();
   const currentMonth = ref(new Date());
   const appointments = ref<Appointment[]>([]);
   const blockedDates = ref<string[]>([]);
@@ -52,8 +53,9 @@ export const useAgendaStore = defineStore("agenda", () => {
       const data = await getAgendaUseCase.execute();
       appointments.value = data.appointments;
       blockedDates.value = data.blockedDates;
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("[AgendaStore] Erro ao carregar agenda:", e);
+      showToast("Erro ao carregar a agenda. Tente novamente.", "error");
     } finally {
       loading.value = false;
     }
@@ -63,20 +65,25 @@ export const useAgendaStore = defineStore("agenda", () => {
     try {
       if (appt.id !== 0) {
         await updateAppointmentUseCase.execute(appt.id, appt.date, appt.time, appt.endTime);
+        showToast("Agendamento atualizado com sucesso!", "success");
       } else {
         const hasConflict = await checkAppointmentConflictUseCase.execute(
             appt.date, appt.time, appt.endTime, appt.agent
         );
 
         if (hasConflict) {
+          showToast("Conflito de horário detectado para este agente.", "error");
           return { success: false, message: "⚠️ Conflito de horário detectado para este agente." };
         }
+        
         await createAppointmentUseCase.execute(appt);
+        showToast("Agendamento criado com sucesso!", "success");
       }
 
       await loadAgenda();
       return { success: true };
     } catch (error: any) {
+      showToast(error.message || "Erro ao salvar o agendamento.", "error");
       return { success: false, message: error.message };
     }
   };
@@ -84,9 +91,11 @@ export const useAgendaStore = defineStore("agenda", () => {
   const deleteAppointment = async (id: number) => {
     try {
       await deleteAppointmentUseCase.execute(id);
+      showToast("Agendamento excluído com sucesso!", "success");
       await loadAgenda();
       return { success: true };
     } catch (error: any) {
+      showToast(error.message || "Erro ao excluir o agendamento.", "error");
       return { success: false, message: error.message };
     }
   };
@@ -96,8 +105,10 @@ export const useAgendaStore = defineStore("agenda", () => {
       const dateStr = formatDateKey(newDate);
       await updateAppointmentUseCase.execute(id, dateStr, newTime, newEndTime);
       await loadAgenda();
+      showToast("Horário atualizado com sucesso!", "success");
     } catch (error: any) {
       console.warn("Horário não atualizado:", error.message);
+      showToast(error.message || "Erro ao atualizar horário.", "error");
       await loadAgenda();
     }
   };
@@ -123,11 +134,26 @@ export const useAgendaStore = defineStore("agenda", () => {
   const isDateBlocked = (date: Date) => blockedDates.value.includes(formatDateKey(date));
 
   const toggleBlockDate = async (date: Date) => {
-    const key = formatDateKey(date);
-    blockedDates.value = await manageBlockedDatesUseCase.toggle(key);
+    try {
+      const key = formatDateKey(date);
+      blockedDates.value = await manageBlockedDatesUseCase.toggle(key);
+      showToast(
+        blockedDates.value.includes(key) ? "Data bloqueada na agenda." : "Data desbloqueada com sucesso.", 
+        "success"
+      );
+    } catch (error: any) {
+      showToast("Erro ao alterar bloqueio da data.", "error");
+    }
   };
 
-  const toggleGoogleSync = () => isGoogleConnected.value = !isGoogleConnected.value;
+  const toggleGoogleSync = () => {
+    isGoogleConnected.value = !isGoogleConnected.value;
+    if (isGoogleConnected.value) {
+        showToast("Sincronização com Google Calendar ativada.", "success");
+    } else {
+        showToast("Sincronização com Google Calendar desativada.", "info");
+    }
+  };
 
   return {
     currentMonth, appointments: filteredAppointments, allAppointments: appointments,

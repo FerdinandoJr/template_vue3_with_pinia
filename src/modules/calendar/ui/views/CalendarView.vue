@@ -108,10 +108,8 @@ import WeekGrid from '../components/WeekGrid.vue';
 import UpcomingList from '../components/UpcomingList.vue';
 import AppointmentModal from '../components/AppointmentModal.vue';
 import type { Appointment } from '../../domain/entities/Appointment';
-import { useToast } from '@/core/composables/useToast';
 
 const store = useAgendaStore();
-const { showToast } = useToast();
 const isModalOpen = ref(false);
 const editingAppointment = ref<Appointment | undefined>(undefined);
 
@@ -186,26 +184,17 @@ const handleDateClick = (date: Date) => {
 
 const handleSave = async (data: Appointment) => {
   const result = await store.addAppointment(data);
-  if (!result.success) {
-    showToast(result.message || 'Erro ao salvar agendamento', 'error');
-  } else {
-    showToast(data.id !== 0 ? 'Agendamento atualizado com sucesso!' : 'Agendamento criado com sucesso!', 'success');
+  if (result.success) {
     closeModal();
   }
 };
 
 const handleDelete = async (id: number) => {
-    const result = await store.deleteAppointment(id);
-    if (result.success) {
-      showToast('Agendamento excluído com sucesso!', 'success');
-    } else {
-      showToast('Erro ao excluir agendamento.', 'error');
-    }
+    await store.deleteAppointment(id);
 };
 
 const handleUpdateAppointment = async (payload: { id: number, date: Date, time: string, endTime?: string }) => {
     await store.updateAppointmentTime(payload.id, payload.date, payload.time, payload.endTime);
-    showToast('Horário atualizado', 'info');
 };
 
 onMounted(() => {
