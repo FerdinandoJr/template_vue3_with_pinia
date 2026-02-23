@@ -14,7 +14,7 @@
         <h3 id="modal-title" class="text-lg font-bold text-slate-800">
             {{ form.id !== 0 ? 'Editar Agendamento' : 'Novo Agendamento' }}
         </h3>
-        <button @click="close" aria-label="Fechar janela" class="text-slate-400 hover:text-slate-600 transition-colors focus:ring-2 focus:ring-blue-500 rounded-lg p-1">&times;</button>
+        <button @click="close" aria-label="Fechar janela" class="text-slate-400 hover:text-slate-600 transition-colors focus:ring-2 focus:ring-blue-500 rounded-lg p-1">&times</button>
       </div>
 
       <div class="p-6 space-y-5 overflow-y-auto custom-scrollbar">
@@ -66,14 +66,14 @@
             <div v-if="showClientList && filteredClients.length > 0" class="absolute z-50 w-full bg-white border border-slate-100 shadow-xl rounded-lg mt-1 max-h-48 overflow-y-auto">
                 <div 
                     v-for="client in filteredClients" 
-                    :key="client.id"
+                    :key="client.uuid"
                     @click="selectClient(client)"
                     class="px-3 py-2.5 hover:bg-blue-50 cursor-pointer text-sm flex items-center gap-3 border-b border-slate-50 last:border-0"
                 >
                     <div class="w-8 h-8 rounded bg-slate-100 text-xs font-bold flex items-center justify-center text-slate-600" aria-hidden="true">{{ client.avatar }}</div>
                     <div>
                         <div class="font-bold text-slate-800">{{ client.name }}</div>
-                        <div class="text-xs text-slate-500">{{ client.company }}</div>
+                        <div class="text-xs text-slate-500">{{ client.companyName }}</div>
                     </div>
                 </div>
             </div>
@@ -97,7 +97,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label for="type" class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
-            <select id="type" v-model="form.type" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+            <select id="type" v-model="form.type" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
               <option value="meeting">🤝 Reunião</option>
               <option value="support">🛠️ Suporte</option>
               <option value="installation">⚙️ Instalação</option>
@@ -105,7 +105,7 @@
           </div>
           <div>
             <label for="agent" class="block text-xs font-bold text-slate-500 uppercase mb-1">Responsável</label>
-            <select id="agent" v-model="form.agent" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+            <select id="agent" v-model="form.agent" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                 <option value="Eu">Eu</option>
                 <option value="Ana Silva">Ana Silva</option>
                 <option value="Carlos Mendes">Carlos Mendes</option>
@@ -142,41 +142,41 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, ref, computed, nextTick } from 'vue';
-import type { Appointment } from '../../domain/entities/Appointment';
-import { useClientsStore } from '../../../clients/ui/store/clients.store';
-import type { Client } from '../../../clients/domain/entities/Client';
-import { useToast } from '@/core/composables/useToast';
-import { AppointmentService } from '../../domain/services/AppointmentService';
+import { reactive, watch, ref, computed, nextTick } from 'vue'
+import type { Appointment } from '../../domain/entities/Appointment'
+import { useToast } from '@/core/composables/useToast'
+import { AppointmentService } from '../../domain/services/AppointmentService'
+import { useCustomerStore } from '@/modules/customer/ui/store/customer.store'
+import type { ICustomer } from '@/modules/customer/domain/entities/customer'
 
 const props = defineProps<{ 
-    isOpen: boolean;
-    editData?: Appointment;
-}>();
-const emit = defineEmits(['close', 'save', 'delete']);
+    isOpen: boolean
+    editData?: Appointment
+}>()
+const emit = defineEmits(['close', 'save', 'delete'])
 
-const clientsStore = useClientsStore();
-const { showToast } = useToast();
+const customersStore = useCustomerStore()
+const { showToast } = useToast()
 
-if (clientsStore.clients.length === 0) clientsStore.loadClients();
+if (customersStore.items.length === 0) customersStore.fetch()
 
-const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-const clientSearch = ref('');
-const showClientList = ref(false);
-const titleInput = ref<HTMLInputElement | null>(null);
+const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+const clientSearch = ref('')
+const showClientList = ref(false)
+const titleInput = ref<HTMLInputElement | null>(null)
 
 const filteredClients = computed(() => {
-    if (!clientSearch.value) return clientsStore.clients.slice(0, 5);
-    return clientsStore.clients.filter(c => 
+    if (!clientSearch.value) return customersStore.items.slice(0, 5)
+    return customersStore.items.filter(c => 
         c.name.toLowerCase().includes(clientSearch.value.toLowerCase()) || 
-        c.company.toLowerCase().includes(clientSearch.value.toLowerCase())
-    ).slice(0, 5);
-});
+        c.companyName.toLowerCase().includes(clientSearch.value.toLowerCase())
+    ).slice(0, 5)
+})
 
 const form = reactive<Appointment>({
   id: 0,
   title: '',
-  clientId: 0,
+  clientId: '',
   clientName: '',
   agent: 'Eu',
   date: new Date().toISOString().split('T')[0] ?? '',
@@ -186,89 +186,85 @@ const form = reactive<Appointment>({
   status: 'confirmed',
   color: '#3b82f6',
   description: ''
-});
+})
 
 const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && props.isOpen) {
-        close();
+        close()
     }
-};
+}
 
 watch(showClientList, (val) => {
     if (val) {
-        setTimeout(() => window.addEventListener('click', closeDropdown), 0);
+        setTimeout(() => window.addEventListener('click', closeDropdown), 0)
     } else {
-        window.removeEventListener('click', closeDropdown);
+        window.removeEventListener('click', closeDropdown)
     }
-});
-const closeDropdown = () => showClientList.value = false;
+})
+const closeDropdown = () => showClientList.value = false
 
-const selectClient = (client: Client) => {
-    form.clientId = client.id;
-    form.clientName = client.name;
-    clientSearch.value = client.name;
-    showClientList.value = false;
-};
+const selectClient = (customer: ICustomer) => {
+    form.clientId = customer.uuid
+    form.clientName = customer.name
+    clientSearch.value = customer.name
+    showClientList.value = false
+}
 
 const clearClient = () => {
-    form.clientId = 0;
-    form.clientName = '';
-    clientSearch.value = '';
-};
+    form.clientId = ""
+    form.clientName = ''
+    clientSearch.value = ''
+}
 
 watch(() => form.time, (newTime) => {
     if (newTime && form.id === 0) { 
-        form.endTime = AppointmentService.getDefaultEndTime(newTime, 60);
+        form.endTime = AppointmentService.getDefaultEndTime(newTime, 60)
     }
-});
+})
 
 watch(() => props.isOpen, async (newVal) => {
   if (newVal) {
-    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('keydown', handleKeydown)
     if (props.editData) {
-        Object.assign(form, props.editData);
-        clientSearch.value = props.editData.clientName;
+        Object.assign(form, props.editData)
+        clientSearch.value = props.editData.clientName
     } else {
-        form.id = 0;
-        form.title = '';
-        form.clientId = 0;
-        form.clientName = '';
-        form.agent = 'Eu';
-        form.description = '';
-        form.color = '#3b82f6';
-        form.time = '09:00';
-        form.endTime = '10:00';
-        clientSearch.value = '';
+        form.id = 0
+        form.title = ''
+        form.clientId = ''
+        form.clientName = ''
+        form.agent = 'Eu'
+        form.description = ''
+        form.color = '#3b82f6'
+        form.time = '09:00'
+        form.endTime = '10:00'
+        clientSearch.value = ''
     }
-    await nextTick();
-    titleInput.value?.focus();
+    await nextTick()
+    titleInput.value?.focus()
   } else {
-    window.removeEventListener('keydown', handleKeydown);
+    window.removeEventListener('keydown', handleKeydown)
   }
-});
+})
 
-const close = () => emit('close');
+const close = () => emit('close')
 
 const save = () => {
   if (!form.title) {
-    showToast("O título do agendamento é obrigatório.", "error");
-    titleInput.value?.focus();
-    return;
+    showToast("O título do agendamento é obrigatório.", "error")
+    titleInput.value?.focus()
+    return
   }
-  if (!form.clientName) form.clientName = clientSearch.value || 'Cliente não cadastrado';
+  if (!form.clientName) form.clientName = clientSearch.value || 'Cliente não cadastrado'
   
-  emit('save', { ...form });
-};
+  emit('save', { ...form })
+}
 
 const remove = () => {
     if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-        emit('delete', form.id);
-        close();
+        emit('delete', form.id)
+        close()
     }
-};
+}
 </script>
 
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-</style>

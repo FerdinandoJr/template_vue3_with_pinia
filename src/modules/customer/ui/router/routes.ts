@@ -1,10 +1,10 @@
-import ClientsView from "./views/ClientsView.vue";
+import CustomerPage from "../views/CustomerPage.vue";
 
-export default [
+export const customerRouter = [
     {
         path: '/clientes',
         name: 'Clientes',
-        component: ClientsView,
+        component: CustomerPage,
         meta: { 
             title: 'Meus Clientes', 
             subtitle: 'Gerencie sua base de contatos' 

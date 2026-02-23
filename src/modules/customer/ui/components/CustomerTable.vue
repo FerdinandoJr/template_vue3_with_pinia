@@ -4,8 +4,6 @@
       <div class="relative flex-1 w-full">
         <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
         <input 
-          :value="searchQuery" 
-          @input="$emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
           type="text" 
           placeholder="Buscar por nome, empresa ou tag..." 
           class="w-full pl-9 pr-4 py-2 bg-slate-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-100 transition outline-none"
@@ -29,13 +27,13 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          <tr v-for="client in clients" :key="client.id" @click="$emit('select', client.id)" class="group hover:bg-slate-50 transition-colors cursor-pointer">
+          <tr v-for="client in clients" :key="client.uuid" @click="$emit('select', client.uuid)" class="group hover:bg-slate-50 transition-colors cursor-pointer">
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded bg-slate-200 flex items-center justify-center font-bold text-slate-600 text-xs">{{ client.avatar }}</div>
                 <div>
                   <div class="font-semibold text-slate-800 text-sm group-hover:text-blue-600 transition">{{ client.name }}</div>
-                  <div class="text-xs text-slate-500">{{ client.company }}</div>
+                  <div class="text-xs text-slate-500">{{ client.companyName }}</div>
                 </div>
               </div>
             </td>
@@ -64,7 +62,7 @@
               </div>
             </td>
             <td class="px-6 py-4 text-right">
-              <span class="text-sm font-medium text-slate-700">{{ client.lastInteraction }}</span>
+              <span class="text-sm font-medium text-slate-700">{{ formatDate(client.lastInteraction) }}</span>
               <div class="text-[10px] text-slate-400 flex items-center justify-end gap-1 mt-0.5">via <span class="capitalize">{{ client.source }}</span></div>
             </td>
           </tr>
@@ -75,21 +73,25 @@
 </template>
 
 <script setup lang="ts">
-import type { Client } from '../../domain/entities/Client';
+import type { ICustomer } from '../../domain/entities/customer'
 
 defineProps<{
-  clients: Client[];
-  searchQuery: string;
-}>();
+  clients: ICustomer[]
+}>()
 
-defineEmits(['select', 'update:searchQuery']);
+defineEmits(['select', 'update:searchQuery'])
 
 const getStatusBadge = (status: string) => { 
   const styles: Record<string, string> = { 
     active: 'text-green-600 bg-green-50 border-green-100', 
     blocked: 'text-red-600 bg-red-50 border-red-100', 
     onboarding: 'text-blue-600 bg-blue-50 border-blue-100' 
-  }; 
-  return `px-2 py-0.5 rounded text-xs font-bold border ${styles[status] || 'text-slate-500'}`; 
-};
+  } 
+  return `px-2 py-0.5 rounded text-xs font-bold border ${styles[status] || 'text-slate-500'}` 
+}
+
+const formatDate = (date: Date) => {
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' })
+}
+
 </script>

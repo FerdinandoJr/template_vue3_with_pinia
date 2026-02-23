@@ -25,9 +25,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 defineProps<{
-  total: number;
-  withTickets: number;
-  critical: number;
+  total: number
 }>();
+
+
+const withTickets = computed(() => {
+    return 2
+})
+
+const critical = computed(() => {
+    return 4
+})
 </script>
