@@ -37,15 +37,14 @@
 </template>
 
 <script setup lang="ts">
-import type { Ticket } from '../../domain/entities/Ticket';
+import type { ITicket } from '../../domain/entities/ticket';
 
 defineProps<{
-  tickets: Ticket[];
+  tickets: ITicket[];
 }>();
 
 defineEmits(['view', 'edit']);
 
-// Helpers de UI
 const formatDate = (date: Date) => new Date(date).toLocaleDateString('pt-BR');
 
 const getStatusClass = (status: string) => {

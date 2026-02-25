@@ -1,35 +1,20 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-    <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-slate-600 text-sm font-medium">Total</span>
-        <span class="text-2xl">🎫</span>
-      </div>
-      <h3 class="text-3xl font-bold text-slate-800">{{ total }}</h3>
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+      <p class="text-sm font-medium text-slate-500">Total de Tickets</p>
+      <p class="text-2xl font-bold text-slate-800">{{ total }}</p>
     </div>
-
-    <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-slate-600 text-sm font-medium">Abertos</span>
-        <span class="text-2xl">📂</span>
-      </div>
-      <h3 class="text-3xl font-bold text-amber-600">{{ open }}</h3>
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-amber-100">
+      <p class="text-sm font-medium text-amber-600">Abertos</p>
+      <p class="text-2xl font-bold text-amber-700">{{ open }}</p>
     </div>
-
-    <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-slate-600 text-sm font-medium">Em Andamento</span>
-        <span class="text-2xl">⏳</span>
-      </div>
-      <h3 class="text-3xl font-bold text-blue-600">{{ inProgress }}</h3>
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-blue-100">
+      <p class="text-sm font-medium text-blue-600">Em Andamento</p>
+      <p class="text-2xl font-bold text-blue-700">{{ inProgress }}</p>
     </div>
-
-    <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-slate-600 text-sm font-medium">Resolvidos</span>
-        <span class="text-2xl">✅</span>
-      </div>
-      <h3 class="text-3xl font-bold text-green-600">{{ resolved }}</h3>
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-green-100">
+      <p class="text-sm font-medium text-green-600">Resolvidos</p>
+      <p class="text-2xl font-bold text-green-700">{{ resolved }}</p>
     </div>
   </div>
 </template>

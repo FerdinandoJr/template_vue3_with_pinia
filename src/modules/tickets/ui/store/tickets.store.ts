@@ -1,48 +1,54 @@
 import { defineStore } from "pinia";
-import { ref, computed, inject } from "vue";
-import type { Ticket, TicketStatus } from "../../domain/entities/Ticket";
-import { TicketsDI } from "../../di";
-import { useToast } from "@/core/composables/useToast";
+import type { ITicket } from "../../domain/entities/ticket";
+import { ticketServices, type TicketFilter } from "../../data/ticket.services";
+import { TicketStatus } from "../../domain/valueObjects/ticket-status.enum";
 
-export const useTicketsStore = defineStore('tickets', () => {
-    const getTicketsUseCase = inject(TicketsDI.GetTickets)!;
-    const { showToast } = useToast();
+interface TicketsState {
+  total: number;
+  filteredTotal: number;
+  items: ITicket[];
+  filter: TicketFilter;
+  loading: boolean;
+  _fetchPromise: Promise<void> | null;
+}
 
-    const tickets = ref<Ticket[]>([]);
-    const loading = ref(false);
-    const filter = ref<TicketStatus | 'all'>('all');
+export const useTicketsStore = defineStore('tickets', {
+  state: (): TicketsState => ({
+    items: [],
+    total: 0,
+    filteredTotal: 0,
+    loading: false,
+    _fetchPromise: null,
+    filter: { status: 'all' }
+  }),
+  getters: {
+    openTickets: (state) => state.items.filter(t => t.status === TicketStatus.OPEN).length,
+    inProgressTickets: (state) => state.items.filter(t => t.status === TicketStatus.IN_PROGRESS).length,
+    resolvedTickets: (state) => state.items.filter(t => t.status === TicketStatus.RESOLVED).length,
+  },
+  actions: {
+    async fetch() {
+      this.loading = true;
 
-    const totalTickets = computed(() => tickets.value.length);
-    const openTickets = computed(() => tickets.value.filter(t => t.status === 'open').length);
-    const inProgressTickets = computed(() => tickets.value.filter(t => t.status === 'in-progress').length);
-    const resolvedTickets = computed(() => tickets.value.filter(t => t.status === 'resolved').length);
-
-    const filteredTickets = computed(() => {
-        if (filter.value === 'all') return tickets.value;
-        return tickets.value.filter(t => t.status === filter.value);
-    });
-
-    const setFilter = (newFilter: string) => {
-        if (['all', 'open', 'in-progress', 'resolved'].includes(newFilter)) {
-            filter.value = newFilter as TicketStatus | 'all';
-        }
-    };
-
-    const loadTickets = async () => {
-        loading.value = true;
+      this._fetchPromise = (async () => {
         try {
-            tickets.value = await getTicketsUseCase.execute();
+          const { total, filteredTotal, items } = await ticketServices.list(this.filter);
+          this.total = total;
+          this.filteredTotal = filteredTotal;
+          this.items = items;
         } catch (error) {
-            console.error(error);
-            showToast("Falha ao carregar a lista de tickets.", "error");
+          console.error(error);
         } finally {
-            loading.value = false;
+          this.loading = false;
         }
-    };
+      })();
 
-    return {
-        tickets, loading, filter, totalTickets, openTickets,
-        inProgressTickets, resolvedTickets, filteredTickets,
-        setFilter, loadTickets
-    };
+      return this._fetchPromise;
+    },
+    
+    async setFilterStatus(status: TicketStatus | 'all') {
+      this.filter.status = status;
+      await this.fetch();
+    }
+  }
 });

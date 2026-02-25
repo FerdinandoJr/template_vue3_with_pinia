@@ -1,61 +1,71 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useKanbanStore } from '../store/kanban.store';
+import { KanbanStatus } from '../../domain/valueObjects/kanban-status.enum';
+import KanbanCard from './KanbanCard.vue';
+
+const props = defineProps<{ 
+  title: string;
+  status: KanbanStatus;
+  cards: any[]; 
+}>();
+
+const store = useKanbanStore();
+const isOver = ref(false);
+
+const onDragOver = () => {
+  isOver.value = true;
+};
+
+const onDragLeave = () => {
+  isOver.value = false;
+};
+
+const onDrop = (event: DragEvent) => {
+  isOver.value = false;
+  const cardId = event.dataTransfer?.getData('cardId');
+  if (cardId) {
+    store.moveCard(cardId, props.status);
+  }
+};
+</script>
+
 <template>
   <div 
-    class="flex flex-col w-[340px] shrink-0 h-full bg-slate-100 rounded-2xl border border-slate-200"
-    @dragover.prevent
+    class="flex-shrink-0 w-[320px] bg-[#f8fafd] rounded-[24px] flex flex-col border border-slate-50 transition-all duration-200 shadow-sm h-full"
+    :class="{ 'bg-blue-50/80 border-blue-200 ring-4 ring-blue-100/30 scale-[1.01]': isOver }"
+    @dragover.prevent="onDragOver"
+    @dragleave="onDragLeave"
     @drop="onDrop"
   >
-    <div class="p-5 flex items-center justify-between">
-      <h3 class="font-bold text-slate-700 text-sm">{{ column.title }}</h3>
-      <span class="text-xs font-bold bg-white text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded-full shadow-sm">
-        {{ column.tasks.length }}
-      </span>
+    <div class="p-6 flex justify-between items-center sticky top-0 bg-[#f8fafd] rounded-t-[24px] z-10">
+      <h3 class="font-extrabold text-slate-800 text-[16px]">{{ title }}</h3>
+      <div class="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center">
+        <span class="text-slate-600 text-[12px] font-black">{{ cards.length }}</span>
+      </div>
     </div>
 
-    <div class="flex-1 px-3 pb-3 space-y-3 overflow-y-auto custom-scrollbar transition-colors"
-         :class="{ 'bg-slate-200/50': isDraggingOver }"
-         @dragenter="isDraggingOver = true"
-         @dragleave="isDraggingOver = false"
+    <div 
+      class="flex-1 overflow-y-auto px-4 pb-10 custom-scrollbar min-h-[500px]"
     >
-        <KanbanCard 
-            v-for="task in column.tasks" 
-            :key="task.id" 
-            :task="task" 
-            @dragstart="onDragStart($event, column.id)"
-        />
+      <KanbanCard 
+        v-for="card in cards" 
+        :key="card.id" 
+        :card="card" 
+      />
+      
+      <div 
+        v-if="cards.length === 0" 
+        class="h-32 border-2 border-dashed border-slate-200 rounded-[20px] flex items-center justify-center text-slate-400 text-xs font-bold uppercase tracking-widest pointer-events-none"
+      >
+        Solte Aqui
+      </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue';
-import type { KanbanColumn } from '../../domain/entities/KanbanColumn';
-import KanbanCard from './KanbanCard.vue';
-
-const props = defineProps<{ column: KanbanColumn }>();
-const emit = defineEmits(['move-task']);
-
-const isDraggingOver = ref(false);
-
-const onDragStart = (event: DragEvent, colId: string) => {
-    if (event.dataTransfer) {
-        event.dataTransfer.setData('source-col-id', colId);
-    }
-};
-
-const onDrop = (event: DragEvent) => {
-    isDraggingOver.value = false;
-    if (event.dataTransfer) {
-        const taskId = parseInt(event.dataTransfer.getData('task-id'));
-        const sourceColId = event.dataTransfer.getData('source-col-id');
-        
-        if (taskId && sourceColId && sourceColId !== props.column.id) {
-            emit('move-task', { taskId, from: sourceColId, to: props.column.id });
-        }
-    }
-};
-</script>
-
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar {
+  width: 0px;
+}
 </style>

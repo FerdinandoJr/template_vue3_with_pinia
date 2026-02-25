@@ -1,70 +1,54 @@
 import { defineStore } from "pinia";
-import { ref, computed, inject } from "vue";
-import type { Article } from "../../domain/entities/Article";
-import { KbDI } from "../../di";
-import { useToast } from "@/core/composables/useToast";
+import type { IKbArticle } from "../../domain/entities/kb";
+import { kbServices } from "../../data/kb.services";
+import { ArticleCategory } from "../../domain/valueObjects/kb-enums";
 
-export const useKbStore = defineStore('kb', () => {
-    const getArticlesUseCase = inject(KbDI.GetArticles)!;
-    const getCategoriesUseCase = inject(KbDI.GetCategories)!;    
-    const { showToast } = useToast();
-    const categories = ref<string[]>([]);
-    const articles = ref<Article[]>([]);
-    const activeCategory = ref('FAQ');
-    const searchQuery = ref('');
-    const loading = ref(false);
+export const useKbStore = defineStore('kb', {
+  state: () => ({
+    articles: [] as IKbArticle[],
+    loading: false,
+    searchQuery: '',
+    selectedCategory: 'Todas' as ArticleCategory | 'Todas'
+  }),
 
-    const filteredArticles = computed(() => {
-        let result = articles.value;
+  getters: {
+    filteredArticles: (state) => {
+      let result = state.articles;
 
-        if (activeCategory.value) {
-            result = result.filter(a => a.category === activeCategory.value);
-        }
-        if (searchQuery.value) {
-            const query = searchQuery.value.toLowerCase();
-            result = result.filter(a => 
-                a.title.toLowerCase().includes(query) || 
-                a.excerpt.toLowerCase().includes(query)
-            );
-        }
+      if (state.selectedCategory !== 'Todas') {
+        result = result.filter(a => a.category === state.selectedCategory);
+      }
+      if (state.searchQuery.trim()) {
+        const query = state.searchQuery.toLowerCase();
+        result = result.filter(a => 
+          a.title.toLowerCase().includes(query) || 
+          a.excerpt.toLowerCase().includes(query)
+        );
+      }
 
-        return result;
-    });
+      return result;
+    },
+    
+    availableCategories: (state) => {
+      const categories = new Set(state.articles.map(a => a.category));
+      return ['Todas', ...Array.from(categories)];
+    }
+  },
 
-    const loadData = async () => {
-        loading.value = true;
-        try {
-            const [cats, arts] = await Promise.all([
-                getCategoriesUseCase.execute(),
-                getArticlesUseCase.execute()
-            ]);
-            categories.value = cats;
-            articles.value = arts;
-            
-            if (!activeCategory.value && cats.length > 0) {
-                activeCategory.value = cats[0] as string;
-            }
-        } catch (error) {
-            console.error("[KbStore] Erro ao carregar Base de Conhecimento:", error);
-            showToast("Falha ao carregar artigos. Verifique sua conexão.", "error");
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    const setCategory = (category: string) => {
-        activeCategory.value = category;
-        searchQuery.value = ''; 
-    };
-
-    return { 
-        categories, 
-        articles, 
-        activeCategory, 
-        searchQuery, 
-        filteredArticles, 
-        loading, 
-        loadData, 
-        setCategory 
-    };
+  actions: {
+    async fetchArticles() {
+      this.loading = true;
+      try {
+        this.articles = await kbServices.getArticles();
+      } finally {
+        this.loading = false;
+      }
+    },
+    setSearchQuery(query: string) {
+      this.searchQuery = query;
+    },
+    setCategory(category: ArticleCategory | 'Todas') {
+      this.selectedCategory = category;
+    }
+  }
 });

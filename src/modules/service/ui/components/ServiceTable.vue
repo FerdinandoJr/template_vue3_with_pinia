@@ -18,7 +18,9 @@
                     <td class="px-6 py-4 text-sm font-bold text-slate-800">{{ item.id }}</td>
                     <td class="px-6 py-4 text-sm font-bold text-slate-800">{{ item.companyName }}</td>
                     <td class="px-6 py-4 text-sm font-medium text-slate-500">{{ item.cnpj }}</td>
-                    <td class="px-6 py-4 text-sm font-bold text-slate-700">{{ item.dateTime }}</td>
+                    <td class="px-6 py-4 text-sm font-bold text-slate-700">
+                        {{ formatDateTime(item.dateTime) }}
+                    </td>
                     <td class="px-6 py-4 text-sm text-slate-600 font-medium">{{ item.agentName }}</td>
                     <td class="px-6 py-4 text-center">
                         <span :class="getStatusBadge(item.status)">{{ getStatusLabel(item.status) }}</span>
@@ -27,7 +29,7 @@
                         <div class="flex justify-end gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
                             <button class="text-orange-400 hover:text-orange-600 transition-colors" title="Editar">✏️</button>
                             <button class="text-slate-400 hover:text-red-600 transition-colors" title="Excluir">🗑️</button>
-                            <button class="text-green-500 hover:text-green-700 transition-colors" title="Ver detalhes">🐞</button>
+                            <button class="text-green-500 hover:text-green-700 transition-colors" title="Ver detalhes">🔍</button>
                         </div>
                     </td>
                 </tr>
@@ -38,19 +40,41 @@
 </template>
 
 <script setup lang="ts">
-import type { ServiceRecord, ServiceStatus } from '../../domain/entities/ServiceRecord';
+import type { IServiceRecord } from '../../domain/entities/service-record';
 
-defineProps<{ records: ServiceRecord[] }>();
+defineProps<{ records: IServiceRecord[] }>();
 
-const getStatusLabel = (status: ServiceStatus) => {
-    const labels = { active: 'Ativo', inactive: 'Inativo', pending: 'Pendente' };
-    return labels[status];
+const formatDateTime = (value: string | Date): string => {
+  if (!value) return "--/--/----";
+  
+  const date = new Date(value);
+  
+  if (isNaN(date.getTime())) return value.toString();
+
+  const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+
+  const timeFormatter = new Intl.DateTimeFormat('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
+  return `${dateFormatter.format(date)} - ${timeFormatter.format(date)}`;
 };
 
-const getStatusBadge = (status: ServiceStatus) => {
+const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = { active: 'Ativo', inactive: 'Inativo', pending: 'Pendente' };
+    return labels[status] || status;
+};
+
+const getStatusBadge = (status: string) => {
     const base = "px-3 py-1 rounded text-[11px] font-bold text-white inline-block min-w-[70px] text-center shadow-sm";
-    if (status === 'active') return `${base} bg-[#4ade80]`; // Verde
-    if (status === 'inactive') return `${base} bg-[#ef4444]`; // Vermelho
-    return `${base} bg-[#fbbf24]`; // Amarelo/Laranja
+    if (status === 'active') return `${base} bg-[#4ade80]`; 
+    if (status === 'inactive') return `${base} bg-[#ef4444]`; 
+    return `${base} bg-[#fbbf24]`; 
 };
 </script>

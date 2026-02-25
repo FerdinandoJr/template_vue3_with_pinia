@@ -1,15 +1,15 @@
 import { createWebHistory, createRouter } from "vue-router"
 import AppLayout from "@/layouts/AppLayout.vue"
-import dashboardRoutes from "@/modules/dashboard/ui/routes"
-import ticketsRoutes from "@/modules/tickets/ui/routes"
-import chatsRoutes from "@/modules/chats/ui/routes"
-import agendaRoutes from "@/modules/calendar/ui/routes"
-import reportsRoutes from "@/modules/reports/ui/routes"
-import kbRoutes from "@/modules/kb/ui/routes"
-import kanbanRoutes from "@/modules/kanban/ui/routes"
-import atendimentosRoutes from "@/modules/service/ui/routes"
-import settingsRoutes from "@/modules/settings/ui/routes"
 import { customerRouter } from "@/modules/customer/ui/router/routes"
+import ticketsRoutes from "@/modules/tickets/ui/router/routes"
+import atendimentosRoutes from "@/modules/service/ui/router/routes"
+import kanbanRoutes from "@/modules/kanban/ui/router/routes"
+import dashboardRoutes from "@/modules/dashboard/ui/router/routes"
+import chatsRoutes from "@/modules/chats/ui/router/routes"
+import agendaRoutes from "@/modules/calendar/ui/router/routes"
+import kbRoutes from '@/modules/kb/ui/router/routes';
+import reportsRoutes from "@/modules/reports/ui/router/routes"
+import settingsRoutes from "@/modules/settings/ui/router/routes"
 
 const routes = [
   {
@@ -17,15 +17,15 @@ const routes = [
     component: AppLayout,
     children: [
       ...dashboardRoutes,
-      ...ticketsRoutes,
       ...chatsRoutes,
       ...agendaRoutes,
-      ...customerRouter,
       ...reportsRoutes,
-      ...kbRoutes,
-      ...kanbanRoutes,
-      ...atendimentosRoutes,
       ...settingsRoutes,
+      ...customerRouter,
+      ...ticketsRoutes,
+      ...atendimentosRoutes,
+      ...kanbanRoutes,
+      ...kbRoutes,
     ],
   },
   {

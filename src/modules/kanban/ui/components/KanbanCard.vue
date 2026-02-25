@@ -1,61 +1,65 @@
+<script setup lang="ts">
+import type { IKanbanCard } from '../../domain/entities/kanban-card';
+
+const props = defineProps<{ 
+  card: IKanbanCard 
+}>();
+
+const onDragStart = (event: DragEvent) => {
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('cardId', String(props.card.id));
+    event.dataTransfer.effectAllowed = 'move';
+    
+    // Feedback visual suave ao começar a arrastar
+    const target = event.target as HTMLElement;
+    target.style.opacity = '0.5';
+  }
+};
+
+const onDragEnd = (event: DragEvent) => {
+  const target = event.target as HTMLElement;
+  target.style.opacity = '1';
+};
+</script>
+
 <template>
   <div 
-    class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md transition-all group relative"
     draggable="true"
     @dragstart="onDragStart"
+    @dragend="onDragEnd"
+    class="bg-white p-5 rounded-[20px] shadow-sm border border-slate-100 cursor-grab active:cursor-grabbing hover:shadow-md transition-all mb-4 select-none group"
   >
-    <div class="flex flex-wrap gap-2 mb-3">
+    <div class="flex gap-2 mb-3">
       <span 
-        v-for="tag in task.tags" 
-        :key="tag" 
-        class="text-[10px] font-bold px-2.5 py-1 rounded-md border text-slate-700 bg-slate-50 border-slate-200"
-        :style="generateColorFromTag(tag)"
+        v-for="tag in card.tags" 
+        :key="tag.label"
+        :class="['px-3 py-0.5 rounded-full text-[10px] font-bold', tag.colorClass]"
       >
-        {{ tag }}
+        {{ tag.label }}
       </span>
     </div>
     
-    <h4 class="font-bold text-slate-800 text-sm mb-1.5">{{ task.title }}</h4>
-    <p class="text-xs text-slate-500 mb-5 leading-relaxed">{{ task.description }}</p>
+    <h4 class="text-[15px] font-extrabold text-slate-800 mb-1 leading-tight group-hover:text-blue-600 transition-colors">
+      {{ card.title }}
+    </h4>
+    <p class="text-[13px] text-slate-400 font-medium line-clamp-2 mb-4">
+      {{ card.description }}
+    </p>
     
-    <div class="flex justify-between items-center pt-3 border-t border-slate-50">
+    <div class="flex justify-between items-center pt-2">
       <div class="flex -space-x-2">
         <div 
-          v-for="(avatar, index) in task.assigneeAvatar" 
+          v-for="(avatar, index) in card.avatars" 
           :key="index"
-          class="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-[2px] border-white shadow-sm ring-1 ring-slate-100 bg-blue-600"
+          class="w-7 h-7 rounded-full border-2 border-white bg-blue-600 flex items-center justify-center text-[10px] text-white font-bold"
         >
           {{ avatar }}
         </div>
       </div>
-      <span class="text-[10px] font-medium text-slate-400">{{ task.date }}</span>
+      
+      <span class="text-[11px] font-bold text-slate-400">
+        {{ card.dateDisplay }}
+      </span>
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import type { KanbanTask } from '../../domain/entities/KanbanTask';
-
-const props = defineProps<{ task: KanbanTask }>();
-
-const onDragStart = (event: DragEvent) => {
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.dropEffect = 'move';
-    event.dataTransfer.setData('task-id', props.task.id.toString());
-  }
-};
-
-const generateColorFromTag = (tag: string) => {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  return {
-    backgroundColor: `hsl(${hue}, 85%, 96%)`,
-    color: `hsl(${hue}, 80%, 35%)`,
-    borderColor: `hsl(${hue}, 85%, 85%)`
-  };
-};
-</script>

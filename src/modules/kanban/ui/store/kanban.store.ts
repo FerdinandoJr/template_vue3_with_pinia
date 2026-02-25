@@ -1,57 +1,51 @@
 import { defineStore } from "pinia";
-import { ref, inject } from "vue";
-import type { KanbanColumn } from "../../domain/entities/KanbanColumn";
-import { KanbanDI } from "../../di";
-import { useToast } from "@/core/composables/useToast";
+import type { IKanbanCard } from "../../domain/entities/kanban-card";
+import { KanbanStatus } from "../../domain/valueObjects/kanban-status.enum";
+import { kanbanServices } from "../../data/kanban.services";
 
-export const useKanbanStore = defineStore('kanban', () => {
-    const getBoardUseCase = inject(KanbanDI.GetBoard)!;
-    const moveTaskUseCase = inject(KanbanDI.MoveTask)!;
-    
-    const { showToast } = useToast();
+interface KanbanState {
+  items: IKanbanCard[];
+  loading: boolean;
+}
 
-    const columns = ref<KanbanColumn[]>([]);
-    const loading = ref(false);
+export const useKanbanStore = defineStore('kanban', {
+  state: (): KanbanState => ({
+    items: [],
+    loading: false
+  }),
 
-    const loadBoard = async () => {
-        loading.value = true;
+  getters: {
+    todoCards: (state) => state.items.filter(c => c.status === KanbanStatus.TODO),
+    inProgressCards: (state) => state.items.filter(c => c.status === KanbanStatus.IN_PROGRESS),
+    reviewCards: (state) => state.items.filter(c => c.status === KanbanStatus.REVIEW),
+    doneCards: (state) => state.items.filter(c => c.status === KanbanStatus.DONE),
+  },
+
+  actions: {
+    async fetchCards() {
+      this.loading = true;
+      try {
+        this.items = await kanbanServices.list();
+      } catch (error) {
+        console.error("Erro ao carregar Kanban:", error);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async moveCard(cardId: string, newStatus: KanbanStatus) {
+      const card = this.items.find(c => c.id === cardId);
+      if (card) {
+        const oldStatus = card.status;
+        card.status = newStatus;
+
         try {
-            columns.value = await getBoardUseCase.execute();
+          await kanbanServices.updateStatus(cardId, newStatus);
         } catch (error) {
-            console.error("[KanbanStore] Erro ao carregar o quadro:", error);
-            showToast("Falha ao carregar o Kanban. Tente novamente.", "error");
-        } finally {
-            loading.value = false;
+          card.status = oldStatus;
+          console.error("Erro ao mover card:", error);
         }
-    };
-
-    const moveCard = async (taskId: number, fromColId: string, toColId: string) => {
-        const sourceCol = columns.value.find(c => c.id === fromColId);
-        const targetCol = columns.value.find(c => c.id === toColId);
-
-        if (sourceCol && targetCol) {
-            const taskIndex = sourceCol.tasks.findIndex(t => t.id === taskId);
-            
-            if (taskIndex !== -1) {
-                const [task] = sourceCol.tasks.splice(taskIndex, 1);
-                
-                if (task) {
-                    targetCol.tasks.push(task);
-                    
-                    try {
-                        await moveTaskUseCase.execute(taskId, fromColId, toColId);
-                    } catch (error) {
-                        console.error("[KanbanStore] Erro ao mover card:", error);
-                        
-                        targetCol.tasks.pop();
-                        sourceCol.tasks.splice(taskIndex, 0, task);
-                        
-                        showToast("Erro de conexão. A movimentação da tarefa foi desfeita.", "error");
-                    }
-                }
-            }
-        }
-    };
-
-    return { columns, loading, loadBoard, moveCard };
+      }
+    }
+  }
 });
