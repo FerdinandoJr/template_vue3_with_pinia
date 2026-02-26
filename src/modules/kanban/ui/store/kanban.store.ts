@@ -46,6 +46,16 @@ export const useKanbanStore = defineStore('kanban', {
           console.error("Erro ao mover card:", error);
         }
       }
+    },
+
+    addCard(card: Omit<IKanbanCard, 'id' | 'dateDisplay'>) {
+      const newCard: IKanbanCard = {
+        ...card,
+        id: Math.random().toString(36).substr(2, 9), 
+        dateDisplay: 'Agora mesmo'
+      };
+      
+      this.items.unshift(newCard);
     }
   }
 });

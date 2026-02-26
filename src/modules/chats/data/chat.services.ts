@@ -2,26 +2,40 @@ import type { IContact, IMessage } from "../domain/entities/chat";
 import { ChatChannel, MessageType } from "../domain/valueObjects/chat-enums";
 
 const mockContacts: IContact[] = [
-  { 
-    id: '1', name: 'Fernanda Lima', company: 'Tech Solutions', 
+  {
+    id: '1', name: 'Fernanda Lima', company: 'Tech Solutions',
     avatar: 'https://i.pravatar.cc/150?u=fernanda', channel: ChatChannel.WHATSAPP,
     lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42',
-    status: 'online', unreadCount: 1, email: 'fernanda@tech.com', 
+    status: 'online', unreadCount: 1, email: 'fernanda@tech.com',
     phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP']
   },
-  { 
-    id: '2', name: 'Roberto Carlos', company: 'Logística S.A', 
+  {
+    id: '2', name: 'Roberto Carlos', company: 'Logística S.A',
     avatar: 'https://i.pravatar.cc/150?u=roberto', channel: ChatChannel.WHATSAPP,
     lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15',
-    status: 'online', unreadCount: 0, email: 'roberto@log.com', 
+    status: 'online', unreadCount: 0, email: 'roberto@log.com',
     phone: '(11) 97777-6666', tags: ['Suporte']
   },
-  { 
-    id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil', 
+  {
+    id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil',
     avatar: 'https://i.pravatar.cc/150?u=amanda', channel: ChatChannel.WHATSAPP,
     lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem',
-    status: 'offline', unreadCount: 0, email: 'amanda@eco.com', 
+    status: 'offline', unreadCount: 0, email: 'amanda@eco.com',
     phone: '(11) 98888-7777', tags: ['Dúvida']
+  },
+  {
+    id: 'novo-numero-123',
+    name: '+55 (47) 99123-4567',
+    company: '',
+    phone: '+55 (47) 99123-4567',
+    avatar: 'https://ui-avatars.com/api/?name=%3F&background=cbd5e1&color=fff',
+    status: 'offline',
+    channel: ChatChannel.WHATSAPP,
+    unreadCount: 1,
+    lastMessage: 'Olá, gostaria de um orçamento',
+    lastMessageTime: '09:00',
+    email: '',
+    tags: []
   }
 ];
 

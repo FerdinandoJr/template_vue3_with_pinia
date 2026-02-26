@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
 import type { IContact, IMessage } from "../../domain/entities/chat";
-import { ChatFilter, MessageType } from "../../domain/valueObjects/chat-enums";
+import { ChatFilter, ChatSortOption, MessageType, ChatChannel } from "../../domain/valueObjects/chat-enums";
 import { chatServices } from "../../data/chat.services";
+import { useServiceStore } from "@/modules/service/ui/store/service.store";
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
@@ -9,18 +10,40 @@ export const useChatStore = defineStore('chat', {
     messages: [] as IMessage[],
     selectedContact: null as IContact | null,
     loading: false,
-    currentFilter: ChatFilter.ALL
+    currentFilter: ChatFilter.CHATS,
+    currentSort: ChatSortOption.LONGEST_WAIT
   }),
 
   getters: {
+    filaCount: (state) => state.contacts.filter(c => c.status === 'offline').length,
+
     filteredContacts: (state) => {
-      if (state.currentFilter === ChatFilter.UNREAD) {
-        return state.contacts.filter(c => c.unreadCount > 0);
+      let result = [...state.contacts];
+
+      if (state.currentFilter === ChatFilter.CHATS) {
+        result = result.filter(c => c.status === 'online');
+      } else if (state.currentFilter === ChatFilter.FILA) {
+        result = result.filter(c => c.status === 'offline');
+      } else {
+        return result.sort((a, b) => a.name.localeCompare(b.name));
       }
-      if (state.currentFilter === ChatFilter.QUEUE) {
-        return state.contacts.filter(c => c.status === 'offline');
-      }
-      return state.contacts;
+
+      result.sort((a, b) => {
+        const timeA = a.lastMessageTime || "";
+        const timeB = b.lastMessageTime || "";
+
+        switch (state.currentSort) {
+          case ChatSortOption.NEWEST:
+          case ChatSortOption.SHORTEST_WAIT:
+            return timeB.localeCompare(timeA);
+          case ChatSortOption.OLDEST:
+          case ChatSortOption.LONGEST_WAIT:
+          default:
+            return timeA.localeCompare(timeB);
+        }
+      });
+
+      return result;
     }
   },
 
@@ -44,29 +67,118 @@ export const useChatStore = defineStore('chat', {
       try {
         this.messages = await chatServices.getMessages(contact.id);
         const currentContact = this.contacts.find(c => c.id === contact.id);
-        if (currentContact) {
-          currentContact.unreadCount = 0;
-        }
+        if (currentContact) currentContact.unreadCount = 0;
       } finally {
         this.loading = false;
       }
     },
 
-    transferChat(contactId: string) {
-      this.contacts = [...this.contacts.filter(c => c.id !== contactId)];
+    assumirChat(contactId: string) {
+      const contact = this.contacts.find(c => c.id === contactId);
+      if (contact) {
+        contact.status = 'online';
+        this.currentFilter = ChatFilter.CHATS;
+
+        this.messages.push({
+          id: Date.now().toString(),
+          text: `Você assumiu este atendimento.`,
+          timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          isMine: false,
+          type: MessageType.ALERT
+        });
+      }
+    },
+
+    finalizarChat(contactId: string, summaryData?: { description: string, files: File[] }) {
+      const serviceStore = useServiceStore();
+      const contact = this.contacts.find(c => c.id === contactId);
+
+      if (!contact) return;
+
+      let fullDescription = summaryData?.description || 'Atendimento finalizado via Chat.';
+
+      if (summaryData && summaryData.description) {
+        const fileNames = summaryData.files.length > 0
+          ? `\n📎 Anexos: ${summaryData.files.map(f => f.name).join(', ')}`
+          : '';
+
+        this.messages.push({
+          id: Date.now().toString(),
+          text: `📝 Resumo do Atendimento:\n${summaryData.description}${fileNames}`,
+          timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          isMine: true,
+          type: MessageType.ALERT
+        });
+
+        fullDescription += fileNames;
+      }
+
+      this.messages.push({
+        id: (Date.now() + 1).toString(),
+        text: `Atendimento finalizado. Pesquisa de satisfação (CSAT) enviada ao cliente.`,
+        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        isMine: false,
+        type: MessageType.ALERT
+      });
+
+      serviceStore.registerFinish({
+        companyName: contact.company || contact.name,
+        cnpj: 'N/A',
+        reason: 'Atendimento WhatsApp',
+        description: fullDescription,
+        duration: '15m'
+      });
+
+      contact.status = 'finished' as any;
+
+      setTimeout(() => {
+        if (this.selectedContact?.id === contactId) {
+          this.selectedContact = null;
+          this.messages = [];
+        }
+      }, 2500);
+    },
+
+    transferirChat(contactId: string) {
+      const contact = this.contacts.find(c => c.id === contactId);
+      if (contact) contact.status = 'offline';
       this.selectedContact = null;
       this.messages = [];
     },
 
-    sendMessage(text: string) {
-      if (!this.selectedContact || !text.trim()) return;
+    sendMessage(text: string, type: MessageType = MessageType.TEXT, file?: File) {
+      if (!this.selectedContact || (!text.trim() && !file)) return;
+
+      let finalMessage = text;
+
+      if (file) {
+        const fileTag = `📎 Anexo: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        finalMessage = text ? `${text}\n\n${fileTag}` : fileTag;
+      }
+
       this.messages.push({
         id: Date.now().toString(),
-        text,
+        text: finalMessage,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         isMine: true,
-        type: MessageType.TEXT
+        type: type
       });
+
+      const currentContact = this.contacts.find(c => c.id === this.selectedContact?.id);
+      if (currentContact) {
+        currentContact.lastMessage = type === MessageType.NOTE ? `🔒 Nota interna` : (file && !text ? '📎 Arquivo anexado' : text);
+        currentContact.lastMessageTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      }
+    },
+
+    updateContact(contactId: string, updatedData: Partial<IContact>) {
+      const contact = this.contacts.find(c => c.id === contactId);
+      if (contact) {
+        Object.assign(contact, updatedData);
+        if (this.selectedContact?.id === contactId) {
+          Object.assign(this.selectedContact, updatedData);
+        }
+      }
     }
   }
 });

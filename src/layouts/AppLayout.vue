@@ -6,14 +6,13 @@
       <AppSidebar class="h-full" />
     </aside>
     
-    
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
       
       <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0">
         <AppHeader />
       </header>
       
-      <main class="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50">
+      <main :class="['flex-1 overflow-y-auto bg-slate-50', route.meta.noPadding ? 'p-0' : 'p-4 lg:p-8']">
         <router-view />
       </main>
     </div>
@@ -23,12 +22,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import ToastContainer from '@/core/components/ToastContainer.vue'
 import AppHeader from './AppHeader.vue'
 
 const route = useRoute()
-
 </script>

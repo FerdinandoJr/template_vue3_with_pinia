@@ -4,11 +4,19 @@ export enum ChatChannel {
 
 export enum MessageType {
   TEXT = "text",
-  ALERT = "alert"
+  ALERT = "alert",
+  NOTE = "note"
 }
 
 export enum ChatFilter {
-  ALL = "all",
-  UNREAD = "unread",
-  QUEUE = "queue"
+  CHATS = "chats",
+  FILA = "fila",
+  CONTATOS = "contatos"
+}
+
+export enum ChatSortOption {
+  LONGEST_WAIT = "longest_wait",
+  SHORTEST_WAIT = "shortest_wait",
+  NEWEST = "newest",
+  OLDEST = "oldest"
 }
