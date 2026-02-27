@@ -11,7 +11,7 @@ export const useChatStore = defineStore('chat', {
     selectedContact: null as IContact | null,
     loading: false,
     currentFilter: ChatFilter.CHATS,
-    currentSort: ChatSortOption.LONGEST_WAIT
+    currentSort: ChatSortOption.LONGEST_WAIT as string | ChatSortOption
   }),
 
   getters: {
@@ -25,21 +25,51 @@ export const useChatStore = defineStore('chat', {
       } else if (state.currentFilter === ChatFilter.FILA) {
         result = result.filter(c => c.status === 'waiting');
       } else {
-        return result.sort((a, b) => a.name.localeCompare(b.name));
+        return result.sort((a, b) => {
+          const nameA = a.name || "";
+          const nameB = b.name || "";
+          return nameA.localeCompare(nameB);
+        });
       }
 
-      result.sort((a, b) => {
-        const timeA = a.lastMessageTime || "";
-        const timeB = b.lastMessageTime || "";
+      const parseTime = (timeStr?: string) => {
+        if (!timeStr) return 0;
 
-        switch (state.currentSort) {
-          case ChatSortOption.NEWEST:
-          case ChatSortOption.SHORTEST_WAIT:
-            return timeB.localeCompare(timeA);
-          case ChatSortOption.OLDEST:
-          case ChatSortOption.LONGEST_WAIT:
-          default:
-            return timeA.localeCompare(timeB);
+        const lower = timeStr.trim().toLowerCase();
+
+        if (lower.includes('ontem')) {
+          const d = new Date();
+          d.setDate(d.getDate() - 1);
+          d.setHours(12, 0, 0, 0);
+          return d.getTime();
+        }
+
+        const timeMatch = lower.match(/(\d{1,2})[:h](\d{2})/);
+        if (timeMatch) {
+          const hh = parseInt(timeMatch[1] || '0', 10);
+          const mm = parseInt(timeMatch[2] || '0', 10);
+          const d = new Date();
+          d.setHours(hh, mm, 0, 0);
+          return d.getTime();
+        }
+
+        const parsed = Date.parse(timeStr);
+        return isNaN(parsed) ? 0 : parsed;
+      };
+
+      const sortStr = String(state.currentSort).toLowerCase();
+      const isMenorTempo = sortStr.includes('menor') || sortStr.includes('shortest') || sortStr.includes('new');
+
+      result.sort((a, b) => {
+        const timeA = parseTime(a.lastMessageTime);
+        const timeB = parseTime(b.lastMessageTime);
+
+        if (timeA === timeB) return 0;
+
+        if (isMenorTempo) {
+          return timeB - timeA;
+        } else {
+          return timeA - timeB;
         }
       });
 
@@ -63,13 +93,20 @@ export const useChatStore = defineStore('chat', {
 
     async selectContact(contact: IContact) {
       const target = this.contacts.find(c => c.id === contact.id);
-      this.selectedContact = target || contact;
+
+      if (target) {
+        this.selectedContact = target;
+      } else {
+        this.selectedContact = contact;
+      }
 
       this.loading = true;
       try {
         this.messages = await chatServices.getMessages(contact.id);
-        if (target) {
-          target.unreadCount = 0;
+        const index = this.contacts.findIndex(c => c.id === contact.id);
+        if (index !== -1 && this.contacts[index]) {
+          const current = this.contacts[index];
+          if (current) current.unreadCount = 0;
         }
       } finally {
         this.loading = false;
@@ -77,20 +114,20 @@ export const useChatStore = defineStore('chat', {
     },
 
     assumirChat(contactId: string) {
-      const contact = this.contacts.find(c => c.id === contactId);
+      const targetContact = this.contacts.find(c => c.id === contactId);
 
-      if (contact) {
-        contact.status = 'in_progress';
-
+      if (targetContact) {
         const protocol = 'ATD-' + Date.now().toString();
-        contact.currentAtendimentoId = protocol;
 
-        if (this.selectedContact?.id === contactId) {
+        targetContact.status = 'in_progress';
+        targetContact.currentAtendimentoId = protocol;
+
+        if (this.selectedContact && this.selectedContact.id === contactId) {
           this.selectedContact.status = 'in_progress';
           this.selectedContact.currentAtendimentoId = protocol;
         }
 
-        // MUDA A ABA PARA CHATS AUTOMATICAMENTE
+        this.contacts = [...this.contacts];
         this.currentFilter = ChatFilter.CHATS;
 
         this.messages.push({
@@ -106,9 +143,9 @@ export const useChatStore = defineStore('chat', {
 
     finalizarChat(contactId: string, summaryData?: { description: string, files: File[] }) {
       const serviceStore = useServiceStore();
-      const contact = this.contacts.find(c => c.id === contactId);
+      const targetContact = this.contacts.find(c => c.id === contactId);
 
-      if (!contact) return;
+      if (!targetContact) return;
 
       let fullDescription = summaryData?.description || 'Atendimento finalizado via Chat.';
 
@@ -123,7 +160,7 @@ export const useChatStore = defineStore('chat', {
           timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
           isMine: true,
           type: MessageType.ALERT,
-          atendimentoId: contact.currentAtendimentoId
+          atendimentoId: targetContact.currentAtendimentoId
         });
 
         fullDescription += fileNames;
@@ -135,24 +172,26 @@ export const useChatStore = defineStore('chat', {
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         isMine: false,
         type: MessageType.ALERT,
-        atendimentoId: contact.currentAtendimentoId
+        atendimentoId: targetContact.currentAtendimentoId
       });
 
       serviceStore.registerFinish({
-        companyName: contact.company || contact.name,
+        companyName: targetContact.company || targetContact.name,
         cnpj: 'N/A',
         reason: 'Atendimento WhatsApp',
         description: fullDescription,
         duration: '15m'
       });
 
-      contact.status = 'finished';
-      contact.currentAtendimentoId = undefined;
+      targetContact.status = 'finished';
+      targetContact.currentAtendimentoId = undefined;
 
-      if (this.selectedContact?.id === contactId) {
+      if (this.selectedContact && this.selectedContact.id === contactId) {
         this.selectedContact.status = 'finished';
         this.selectedContact.currentAtendimentoId = undefined;
       }
+
+      this.contacts = [...this.contacts];
 
       setTimeout(() => {
         if (this.selectedContact?.id === contactId) {
@@ -163,13 +202,15 @@ export const useChatStore = defineStore('chat', {
     },
 
     transferirChat(contactId: string) {
-      const contact = this.contacts.find(c => c.id === contactId);
-      if (contact) {
-        contact.status = 'waiting';
+      const targetContact = this.contacts.find(c => c.id === contactId);
+
+      if (targetContact) {
+        targetContact.status = 'waiting';
+        this.contacts = [...this.contacts];
         this.currentFilter = ChatFilter.FILA;
       }
 
-      if (this.selectedContact?.id === contactId) {
+      if (this.selectedContact && this.selectedContact.id === contactId) {
         this.selectedContact.status = 'waiting';
       }
 
@@ -196,20 +237,26 @@ export const useChatStore = defineStore('chat', {
         atendimentoId: this.selectedContact.currentAtendimentoId
       });
 
-      const currentContact = this.contacts.find(c => c.id === this.selectedContact?.id);
-      if (currentContact) {
-        currentContact.lastMessage = type === MessageType.NOTE ? `🔒 Nota interna` : (file && !text ? '📎 Arquivo anexado' : text);
-        currentContact.lastMessageTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const targetContact = this.contacts.find(c => c.id === this.selectedContact?.id);
+
+      if (targetContact) {
+        targetContact.lastMessage = type === MessageType.NOTE ? `🔒 Nota interna` : (file && !text ? '📎 Arquivo anexado' : text);
+        targetContact.lastMessageTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        this.contacts = [...this.contacts];
       }
     },
 
     updateContact(contactId: string, updatedData: Partial<IContact>) {
-      const contact = this.contacts.find(c => c.id === contactId);
-      if (contact) {
-        Object.assign(contact, updatedData);
-        if (this.selectedContact?.id === contactId) {
+      const targetContact = this.contacts.find(c => c.id === contactId);
+
+      if (targetContact) {
+        Object.assign(targetContact, updatedData);
+
+        if (this.selectedContact && this.selectedContact.id === contactId) {
           Object.assign(this.selectedContact, updatedData);
         }
+
+        this.contacts = [...this.contacts];
       }
     }
   }

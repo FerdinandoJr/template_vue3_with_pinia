@@ -208,21 +208,16 @@ const store = useChatStore();
 const text = ref('');
 const isInternalNote = ref(false); 
 const messagesContainer = ref<HTMLElement | null>(null);
-
 const isAttachmentMenuOpen = ref(false);
 const docInput = ref<HTMLInputElement | null>(null);
 const imageInput = ref<HTMLInputElement | null>(null);
-
 const attachedFile = ref<File | null>(null);
 const attachedFileUrl = ref<string | null>(null);
 
-// LÓGICA DE BLOQUEIO ABSOLUTO
-// O chat só está ativo se o cliente estiver in_progress E o atendente estiver na aba "Chats"
 const isChatActive = computed(() => {
   return props.contact?.status === 'in_progress' && store.currentFilter === ChatFilter.CHATS;
 });
 
-// Lógica para mostrar o botão "Adicionar" (Se tem o DDD com + ou se o nome for igual ao telefone)
 const isUnsavedContact = computed(() => {
   if (!props.contact) return false;
   return props.contact.name === props.contact.phone || String(props.contact.name).includes('+');
