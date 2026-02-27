@@ -15,15 +15,15 @@ export const useChatStore = defineStore('chat', {
   }),
 
   getters: {
-    filaCount: (state) => state.contacts.filter(c => c.status === 'offline').length,
+    filaCount: (state) => state.contacts.filter(c => c.status === 'waiting').length,
 
     filteredContacts: (state) => {
       let result = [...state.contacts];
 
       if (state.currentFilter === ChatFilter.CHATS) {
-        result = result.filter(c => c.status === 'online');
+        result = result.filter(c => c.status === 'in_progress');
       } else if (state.currentFilter === ChatFilter.FILA) {
-        result = result.filter(c => c.status === 'offline');
+        result = result.filter(c => c.status === 'waiting');
       } else {
         return result.sort((a, b) => a.name.localeCompare(b.name));
       }
@@ -62,12 +62,15 @@ export const useChatStore = defineStore('chat', {
     },
 
     async selectContact(contact: IContact) {
-      this.selectedContact = contact;
+      const target = this.contacts.find(c => c.id === contact.id);
+      this.selectedContact = target || contact;
+
       this.loading = true;
       try {
         this.messages = await chatServices.getMessages(contact.id);
-        const currentContact = this.contacts.find(c => c.id === contact.id);
-        if (currentContact) currentContact.unreadCount = 0;
+        if (target) {
+          target.unreadCount = 0;
+        }
       } finally {
         this.loading = false;
       }
@@ -75,16 +78,28 @@ export const useChatStore = defineStore('chat', {
 
     assumirChat(contactId: string) {
       const contact = this.contacts.find(c => c.id === contactId);
+
       if (contact) {
-        contact.status = 'online';
+        contact.status = 'in_progress';
+
+        const protocol = 'ATD-' + Date.now().toString();
+        contact.currentAtendimentoId = protocol;
+
+        if (this.selectedContact?.id === contactId) {
+          this.selectedContact.status = 'in_progress';
+          this.selectedContact.currentAtendimentoId = protocol;
+        }
+
+        // MUDA A ABA PARA CHATS AUTOMATICAMENTE
         this.currentFilter = ChatFilter.CHATS;
 
         this.messages.push({
           id: Date.now().toString(),
-          text: `Você assumiu este atendimento.`,
+          text: `Você assumiu este atendimento. Protocolo: ${protocol}`,
           timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
           isMine: false,
-          type: MessageType.ALERT
+          type: MessageType.ALERT,
+          atendimentoId: protocol
         });
       }
     },
@@ -107,7 +122,8 @@ export const useChatStore = defineStore('chat', {
           text: `📝 Resumo do Atendimento:\n${summaryData.description}${fileNames}`,
           timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
           isMine: true,
-          type: MessageType.ALERT
+          type: MessageType.ALERT,
+          atendimentoId: contact.currentAtendimentoId
         });
 
         fullDescription += fileNames;
@@ -118,7 +134,8 @@ export const useChatStore = defineStore('chat', {
         text: `Atendimento finalizado. Pesquisa de satisfação (CSAT) enviada ao cliente.`,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         isMine: false,
-        type: MessageType.ALERT
+        type: MessageType.ALERT,
+        atendimentoId: contact.currentAtendimentoId
       });
 
       serviceStore.registerFinish({
@@ -129,7 +146,13 @@ export const useChatStore = defineStore('chat', {
         duration: '15m'
       });
 
-      contact.status = 'finished' as any;
+      contact.status = 'finished';
+      contact.currentAtendimentoId = undefined;
+
+      if (this.selectedContact?.id === contactId) {
+        this.selectedContact.status = 'finished';
+        this.selectedContact.currentAtendimentoId = undefined;
+      }
 
       setTimeout(() => {
         if (this.selectedContact?.id === contactId) {
@@ -141,7 +164,15 @@ export const useChatStore = defineStore('chat', {
 
     transferirChat(contactId: string) {
       const contact = this.contacts.find(c => c.id === contactId);
-      if (contact) contact.status = 'offline';
+      if (contact) {
+        contact.status = 'waiting';
+        this.currentFilter = ChatFilter.FILA;
+      }
+
+      if (this.selectedContact?.id === contactId) {
+        this.selectedContact.status = 'waiting';
+      }
+
       this.selectedContact = null;
       this.messages = [];
     },
@@ -161,7 +192,8 @@ export const useChatStore = defineStore('chat', {
         text: finalMessage,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         isMine: true,
-        type: type
+        type: type,
+        atendimentoId: this.selectedContact.currentAtendimentoId
       });
 
       const currentContact = this.contacts.find(c => c.id === this.selectedContact?.id);

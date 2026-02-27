@@ -6,6 +6,7 @@ export interface IMessage {
   timestamp: string;
   isMine: boolean;
   type: MessageType;
+  atendimentoId?: string;
 }
 
 export interface IContact {
@@ -16,9 +17,10 @@ export interface IContact {
   channel: ChatChannel;
   lastMessage: string;
   lastMessageTime: string;
-  status: 'online' | 'offline';
+  status: 'waiting' | 'in_progress' | 'finished';
   unreadCount: number;
   email: string;
   phone: string;
   tags: string[];
+  currentAtendimentoId?: string;
 }

@@ -6,21 +6,21 @@ const mockContacts: IContact[] = [
     id: '1', name: 'Fernanda Lima', company: 'Tech Solutions',
     avatar: 'https://i.pravatar.cc/150?u=fernanda', channel: ChatChannel.WHATSAPP,
     lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42',
-    status: 'online', unreadCount: 1, email: 'fernanda@tech.com',
+    status: 'waiting', unreadCount: 1, email: 'fernanda@tech.com',
     phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP']
   },
   {
     id: '2', name: 'Roberto Carlos', company: 'Logística S.A',
     avatar: 'https://i.pravatar.cc/150?u=roberto', channel: ChatChannel.WHATSAPP,
     lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15',
-    status: 'online', unreadCount: 0, email: 'roberto@log.com',
+    status: 'waiting', unreadCount: 0, email: 'roberto@log.com',
     phone: '(11) 97777-6666', tags: ['Suporte']
   },
   {
     id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil',
     avatar: 'https://i.pravatar.cc/150?u=amanda', channel: ChatChannel.WHATSAPP,
     lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem',
-    status: 'offline', unreadCount: 0, email: 'amanda@eco.com',
+    status: 'waiting', unreadCount: 0, email: 'amanda@eco.com',
     phone: '(11) 98888-7777', tags: ['Dúvida']
   },
   {
@@ -29,7 +29,7 @@ const mockContacts: IContact[] = [
     company: '',
     phone: '+55 (47) 99123-4567',
     avatar: 'https://ui-avatars.com/api/?name=%3F&background=cbd5e1&color=fff',
-    status: 'offline',
+    status: 'in_progress',
     channel: ChatChannel.WHATSAPP,
     unreadCount: 1,
     lastMessage: 'Olá, gostaria de um orçamento',
@@ -50,9 +50,41 @@ const mockMessages: Record<string, IMessage[]> = {
 
 export const chatServices = {
   async getContacts(): Promise<IContact[]> {
-    return new Promise(res => setTimeout(() => res(mockContacts), 300));
+    return new Promise(res => setTimeout(() => res([...mockContacts]), 300));
   },
+
   async getMessages(contactId: string): Promise<IMessage[]> {
-    return new Promise(res => setTimeout(() => res(mockMessages[contactId] || []), 300));
+    return new Promise(res => setTimeout(() => {
+      if (mockMessages[contactId]) {
+        res([...mockMessages[contactId]]);
+        return;
+      }
+
+      const contact = mockContacts.find(c => c.id === contactId);
+
+      if (!contact) {
+        res([]);
+        return;
+      }
+
+      const dynamicMessages: IMessage[] = [
+        {
+          id: Date.now().toString() + '1',
+          text: 'Olá! Nosso atendimento é automatizado. Em breve um de nossos consultores falará com você.',
+          timestamp: '08:00',
+          isMine: true,
+          type: MessageType.TEXT
+        },
+        {
+          id: Date.now().toString() + '2',
+          text: contact.lastMessage,
+          timestamp: contact.lastMessageTime,
+          isMine: false,
+          type: MessageType.TEXT
+        }
+      ];
+
+      res(dynamicMessages);
+    }, 300));
   }
 };
