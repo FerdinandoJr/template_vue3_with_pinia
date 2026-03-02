@@ -14,11 +14,15 @@ export class FetchHttpClient implements HttpClient {
 
     private async request<T>(endpoint: string, options: RequestInit): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`;
-        
-        const defaultHeaders = {
+        const token = localStorage.getItem('token');
+
+        const defaultHeaders: Record<string, string> = {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
         };
+
+        if (token) {
+            defaultHeaders['Authorization'] = `Bearer ${token}`;
+        }
 
         const response = await fetch(url, {
             ...options,
@@ -28,9 +32,16 @@ export class FetchHttpClient implements HttpClient {
             },
         });
 
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+            throw new Error('Sessão expirada. Por favor, faça login novamente.');
+        }
+
         if (!response.ok) {
             let errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
-            
+
             try {
                 const errorData = await response.json();
                 if (errorData && errorData.message) {
@@ -38,7 +49,7 @@ export class FetchHttpClient implements HttpClient {
                 }
             } catch {
             }
-            
+
             throw new Error(errorMessage);
         }
 

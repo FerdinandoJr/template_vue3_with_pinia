@@ -1,5 +1,6 @@
 import { createWebHistory, createRouter } from "vue-router"
 import AppLayout from "@/layouts/AppLayout.vue"
+import LoginPage from "@/modules/auth/ui/views/LoginPage.vue"
 import { customerRouter } from "@/modules/customer/ui/router/routes"
 import ticketsRoutes from "@/modules/tickets/ui/router/routes"
 import atendimentosRoutes from "@/modules/service/ui/router/routes"
@@ -13,8 +14,15 @@ import settingsRoutes from "@/modules/settings/ui/router/routes"
 
 const routes = [
   {
+    path: "/login",
+    name: "Login",
+    component: LoginPage,
+    meta: { requiresAuth: false }
+  },
+  {
     path: "/",
     component: AppLayout,
+    meta: { requiresAuth: true },
     children: [
       ...dashboardRoutes,
       ...chatsRoutes,
@@ -38,5 +46,19 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 })
+
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('token');
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next('/login');
+  }
+  else if (to.path === '/login' && isAuthenticated) {
+    next('/');
+  }
+  else {
+    next();
+  }
+});
 
 export default router

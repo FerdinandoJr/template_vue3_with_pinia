@@ -5,7 +5,7 @@
 
     <template v-if="selectedContact">
       <ChatArea :contact="selectedContact" :messages="messages" @send="store.sendMessage" @assumir="store.assumirChat"
-        @finalizar="openFinishModal" @transferir="isTransferModalOpen = true" @adicionar="openEditContactModal"
+        @finalizar="openFinishModal" @transferir="isTransferModalOpen = true" @vincular="openLinkModal"
         @abrir-modal-ticket="openTicketModal" @toggle-profile="isProfileOpen = !isProfileOpen" />
 
       <div :class="[
@@ -83,32 +83,57 @@
       </div>
     </div>
 
-    <div v-if="isEditModalOpen"
-      class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-      <div class="bg-white rounded-2xl w-[450px] p-6 shadow-xl border border-slate-200">
-        <h3 class="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">Adicionar Contato</h3>
+    <div v-if="isLinkModalOpen"
+      class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+      <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl border border-slate-200">
+        <h3 class="font-bold text-slate-800 text-lg mb-2 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            class="text-blue-600">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <line x1="19" y1="8" x2="19" y2="14"></line>
+            <line x1="22" y1="11" x2="16" y2="11"></line>
+          </svg>
+          Adicionar Contato
+        </h3>
+        <p class="text-sm text-slate-500 mb-6 leading-relaxed">Cadastre o nome da pessoa que está falando neste WhatsApp
+          e
+          adicione à empresa correspondente.</p>
+
         <div class="space-y-4">
           <div>
-            <label class="block text-[11px] font-black uppercase text-slate-400 mb-1">WhatsApp</label>
+            <label class="block text-[11px] font-black uppercase text-slate-400 mb-1">Número do WhatsApp</label>
             <input type="text" disabled :value="selectedContact?.phone"
-              class="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-400 outline-none cursor-not-allowed" />
+              class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-500 outline-none cursor-not-allowed" />
           </div>
+
           <div>
-            <label class="block text-[11px] font-black uppercase text-slate-400 mb-1">Nome</label>
-            <input v-model="editContactForm.name" type="text" placeholder="Ex: Carlos Silva"
-              class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-blue-500" />
+            <label class="block text-[11px] font-black uppercase text-slate-400 mb-1">Nome da Pessoa (Contato) *</label>
+            <input v-model="linkForm.contactName" type="text" placeholder="Ex: João Silva" required
+              class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm" />
           </div>
+
           <div>
-            <label class="block text-[11px] font-black uppercase text-slate-400 mb-1">Empresa</label>
-            <input v-model="editContactForm.company" type="text" placeholder="Ex: Tech Solutions"
-              class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-blue-500" />
+            <label class="block text-[11px] font-black uppercase text-slate-400 mb-1">Empresa / Cliente Associado
+              *</label>
+            <select v-model="linkForm.customerUuid" required
+              class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-sm cursor-pointer">
+              <option value="">Selecione a empresa...</option>
+              <option v-for="customer in customerStore.items" :key="customer.uuid" :value="customer.uuid">
+                {{ (customer as any).tradeName || customer.companyName }}
+              </option>
+            </select>
           </div>
         </div>
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-          <button @click="isEditModalOpen = false"
-            class="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-          <button @click="submitEditContact"
-            class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">Salvar</button>
+
+        <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-slate-100">
+          <button @click="isLinkModalOpen = false"
+            class="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
+          <button @click="submitLinkContact" :disabled="!linkForm.customerUuid || !linkForm.contactName.trim()"
+            class="px-6 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            Adicionar
+          </button>
         </div>
       </div>
     </div>
@@ -219,9 +244,7 @@
                 <div class="relative">
                   <button @click.stop="toggleTagMenu"
                     class="w-8 h-8 shrink-0 bg-slate-100 text-slate-500 rounded-md hover:bg-slate-200 flex items-center justify-center font-bold transition-colors shadow-sm"
-                    title="Adicionar Tag">
-                    +
-                  </button>
+                    title="Adicionar Tag">+</button>
 
                   <div v-if="isTagMenuOpen"
                     class="absolute top-full left-0 mt-2 w-64 bg-white border border-slate-200 shadow-xl rounded-lg z-50 py-2 overflow-hidden flex flex-col"
@@ -263,9 +286,7 @@
                         </div>
                         <div class="flex gap-2 mt-1">
                           <button v-if="editingTagIndex !== null" @click.prevent="resetTagManager"
-                            class="flex-1 font-bold text-xs py-1.5 rounded transition-colors bg-slate-200 text-slate-600 hover:bg-slate-300">
-                            Cancelar
-                          </button>
+                            class="flex-1 font-bold text-xs py-1.5 rounded transition-colors bg-slate-200 text-slate-600 hover:bg-slate-300">Cancelar</button>
                           <button @click.prevent="saveTag" :disabled="!newTagLabel.trim()"
                             :class="['flex-1 font-bold text-xs py-1.5 rounded transition-colors shadow-sm', newTagLabel.trim() ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed']">
                             {{ editingTagIndex !== null ? 'Salvar Alteração' : 'Criar Etiqueta' }}
@@ -462,26 +483,92 @@ import { MessageType } from '../../domain/valueObjects/chat-enums';
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 import { KanbanStatus } from '@/modules/kanban/domain/valueObjects/kanban-status.enum';
 
+// IMPORT DA STORE DE CLIENTES
+import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
+
 import ContactList from '../components/ContactList.vue';
 import ChatArea from '../components/ChatArea.vue';
 import ChatProfile from '../components/ChatProfile.vue';
 
 const store = useChatStore();
 const kanbanStore = useKanbanStore();
+const customerStore = useCustomerStore();
 
 const { messages, selectedContact } = storeToRefs(store);
 
 // Controle de Modais
 const isTransferModalOpen = ref(false);
 const isFinishModalOpen = ref(false);
-const isEditModalOpen = ref(false);
+const isLinkModalOpen = ref(false);
 const isProfileOpen = ref(false);
 const isTicketModalOpen = ref(false);
 
-// Formulários Base
 const finishForm = ref({ description: '', files: [] as File[] });
 const finishFormError = ref(false);
-const editContactForm = ref({ name: '', company: '' });
+
+// ----------------------------------------------------
+// FORMULÁRIO DE ADICIONAR CONTATO
+// ----------------------------------------------------
+const linkForm = ref({
+  customerUuid: '',
+  contactName: ''
+});
+
+// ----------------------------------------------------
+// LÓGICA DE VINCULAR / ADICIONAR CLIENTE
+// ----------------------------------------------------
+const openLinkModal = () => {
+  if (selectedContact.value) {
+    linkForm.value.customerUuid = '';
+
+    // Se o nome atual já for apenas o número de telefone (ex: +55119999), 
+    // ou se contiver o '+', deixamos em branco para o usuário digitar.
+    const isUnknown = selectedContact.value.name === selectedContact.value.phone || String(selectedContact.value.name).includes('+');
+    linkForm.value.contactName = isUnknown ? '' : selectedContact.value.name;
+
+    isLinkModalOpen.value = true;
+  }
+};
+
+const submitLinkContact = async () => {
+  if (selectedContact.value && linkForm.value.customerUuid && linkForm.value.contactName.trim()) {
+
+    const customer = customerStore.items.find(c => c.uuid === linkForm.value.customerUuid);
+
+    if (customer) {
+      // Nome da empresa a ser exibido no chat
+      const companyDisplayName = (customer as any).tradeName || customer.companyName;
+
+      // 1. Atualiza visualmente o contato no Chat
+      // Coloca o Nome da Pessoa como principal e o Nome da Empresa como secundário
+      store.updateContact(selectedContact.value.id, {
+        name: linkForm.value.contactName,
+        company: companyDisplayName,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(linkForm.value.contactName)}&background=2563eb&color=fff`
+      });
+
+      // 2. Salva o Vínculo na store de Clientes
+      const updatedContacts = [...(customer.contacts || []), selectedContact.value.id];
+      if (customerStore.updateCustomer) {
+        await customerStore.updateCustomer(customer.uuid, { contacts: updatedContacts });
+      } else {
+        customer.contacts = updatedContacts;
+      }
+
+      // 3. Adiciona a mensagem de aviso no histórico do chat (Texto atualizado)
+      store.messages.push({
+        id: Date.now().toString(),
+        text: `✅ Contato "${linkForm.value.contactName}" adicionado com sucesso à empresa: ${companyDisplayName}`,
+        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        isMine: false,
+        type: MessageType.ALERT
+      });
+
+      isLinkModalOpen.value = false;
+    }
+  }
+};
+
 
 // ----------------------------------------------------
 // SISTEMA DE ETIQUETAS DO TICKET KANBAN (CRUD)
@@ -528,6 +615,7 @@ const ticketForm = ref({
 
 onMounted(() => {
   store.fetchContacts();
+  customerStore.fetch(); // Carrega as empresas para o select do modal de Vínculo
 });
 
 const handleSelectContact = (contact: any) => {
@@ -562,37 +650,9 @@ const submitTransfer = () => {
   }
 };
 
-const openEditContactModal = () => {
-  if (selectedContact.value) {
-    editContactForm.value = {
-      name: selectedContact.value.name.includes('+') ? '' : selectedContact.value.name,
-      company: selectedContact.value.company || ''
-    };
-    isEditModalOpen.value = true;
-  }
-};
-
-const submitEditContact = () => {
-  if (selectedContact.value && editContactForm.value.name) {
-    const newAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(editContactForm.value.name)}&background=2563eb&color=fff`;
-
-    store.updateContact(selectedContact.value.id, {
-      name: editContactForm.value.name,
-      company: editContactForm.value.company,
-      avatar: newAvatar
-    });
-
-    store.messages.push({
-      id: Date.now().toString(),
-      text: `✏️ Contato adicionado: ${editContactForm.value.name} (${editContactForm.value.company || 'Sem empresa'})`,
-      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      isMine: false,
-      type: MessageType.ALERT
-    });
-
-    isEditModalOpen.value = false;
-  }
-};
+// ----------------------------------------------------
+// TICKET E KANBAN METODOS (Mantidos iguais)
+// ----------------------------------------------------
 
 const closeMenus = () => {
   isTagMenuOpen.value = false;
@@ -718,7 +778,6 @@ const removeAttachment = (index: number) => {
   }
 };
 
-// 🔥 FUNÇÃO CORRIGIDA E SEGURA PARA O TYPESCRIPT
 const openTicketModal = (contact: any) => {
   const now = new Date();
   const todayYMD = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().substring(0, 10);
@@ -748,7 +807,7 @@ const openTicketModal = (contact: any) => {
     title: `Atendimento: ${contact.company || contact.name}`,
     description: `Protocolo: ${contact.currentAtendimentoId || 'N/A'}\n\n--- Histórico da Conversa ---\n\n${chatHistory}\n\n---\nDetalhe a solicitação aqui: `,
     date: todayYMD,
-    tags: firstTag ? [firstTag] : [], // Seguro!
+    tags: firstTag ? [firstTag] : [],
     status: KanbanStatus.TODO,
     checklists: [],
     attachments: [],
