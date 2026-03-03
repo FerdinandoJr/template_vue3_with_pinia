@@ -1,114 +1,123 @@
 <template>
   <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex-1 flex flex-col">
-    <div class="overflow-x-auto flex-1 custom-scrollbar">
-      <table class="w-full text-left border-collapse whitespace-nowrap">
-
-        <thead>
-          <tr
-            class="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[10px] uppercase tracking-widest font-black">
-            <th class="px-6 py-4">Cliente / Empresa</th>
-            <th class="px-6 py-4">Contato Responsável</th>
-            <th class="px-6 py-4">Origem</th>
-            <th class="px-6 py-4">Status</th>
-            <th class="px-6 py-4 text-right">Ações</th>
-          </tr>
-        </thead>
-
-        <tbody class="text-sm divide-y divide-slate-50">
-          <tr v-for="client in clients" :key="client.uuid" @click="$emit('select', client.uuid)"
-            class="hover:bg-slate-50 transition-colors group cursor-pointer">
-            <td class="px-6 py-4">
-              <div class="flex items-center gap-4">
-                <div
-                  class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-lg border border-blue-100 shrink-0">
-                  {{ client.avatar }}
-                </div>
-                <div>
-                  <p class="font-bold text-slate-800">
-                    <span v-if="client.tradeName">{{ client.tradeName }}</span>
-                    <span v-else>{{ client.companyName }}</span>
-                  </p>
-                  <p class="text-[11px] text-slate-500 font-bold mt-0.5">
-                    <span v-if="client.document">{{ client.document }}</span>
-                    <span v-else>Sem CNPJ</span>
-                  </p>
-                </div>
-              </div>
-            </td>
-
-            <td class="px-6 py-4">
-              <p class="font-bold text-slate-700">{{ client.name }}</p>
-              <p class="text-[11px] text-slate-500 font-medium mt-0.5">
-                <span v-if="client.phone">{{ client.phone }}</span>
-                <span v-else-if="client.email">{{ client.email }}</span>
-                <span v-else>Sem contato principal</span>
+    <el-table :data="clients" style="width: 100%; height: 100%;" @row-click="handleRowClick"
+      row-class-name="cursor-pointer hover:bg-slate-50 transition-colors" highlight-current-row>
+      <el-table-column label="Cliente / Empresa" min-width="250">
+        <template #default="scope">
+          <div class="flex items-center gap-4 py-2">
+            <el-avatar :size="40" class="!bg-blue-50 !text-blue-600 !border !border-blue-100 !font-black">
+              {{ scope.row.avatar }}
+            </el-avatar>
+            <div>
+              <p class="font-bold text-slate-800 leading-tight">
+                {{ scope.row.tradeName || scope.row.companyName }}
               </p>
-            </td>
+              <p class="text-[11px] text-slate-500 font-bold mt-0.5">
+                {{ scope.row.document || 'Sem CNPJ' }}
+              </p>
+            </div>
+          </div>
+        </template>
+      </el-table-column>
 
-            <td class="px-6 py-4">
-              <span
-                class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                <span v-if="client.source">{{ client.source }}</span>
-                <span v-else>Sistema</span>
-              </span>
-            </td>
+      <el-table-column label="Contato Responsável" min-width="200">
+        <template #default="scope">
+          <p class="font-bold text-slate-700">{{ scope.row.name }}</p>
+          <div class="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+            <el-icon>
+              <Phone />
+            </el-icon>
+            <span>
+              {{ formatPhone(scope.row.phone) || scope.row.email || 'Sem contato' }}
+            </span>
+          </div>
+        </template>
+      </el-table-column>
 
-            <td class="px-6 py-4">
-              <span
-                :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest', client.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500']">
-                <span v-if="client.status === 'active'">Ativo</span>
-                <span v-else>Inativo</span>
-              </span>
-            </td>
+      <el-table-column label="Origem" width="150">
+        <template #default="scope">
+          <el-tag type="info" effect="plain" round size="small">
+            {{ scope.row.source || 'Sistema' }}
+          </el-tag>
+        </template>
+      </el-table-column>
 
-            <td class="px-6 py-4 text-right">
-              <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button @click.stop="$emit('edit', client)"
-                  class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
-                  title="Editar">
-                  <Pencil class="w-4 h-4" />
-                </button>
-                <button @click.stop="$emit('delete', client.uuid)"
-                  class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                  title="Excluir">
-                  <Trash2 class="w-4 h-4" />
-                </button>
-              </div>
-            </td>
-          </tr>
+      <el-table-column label="Status" width="120">
+        <template #default="scope">
+          <el-tag :type="scope.row.status === 'active' ? 'success' : 'danger'" effect="light" round>
+            {{ scope.row.status === 'active' ? 'Ativo' : 'Inativo' }}
+          </el-tag>
+        </template>
+      </el-table-column>
 
-          <tr v-if="clients.length === 0">
-            <td colspan="5" class="px-6 py-12 text-center text-slate-500 font-medium">
-              Nenhum cliente encontrado no sistema.
-            </td>
-          </tr>
-        </tbody>
+      <el-table-column label="Ações" width="140" align="right">
+        <template #default="scope">
+          <div @click.stop class="flex justify-end gap-2">
+            <el-button type="primary" circle plain size="small" @click="$emit('edit', scope.row)">
+              <el-icon>
+                <Edit />
+              </el-icon>
+            </el-button>
+            <el-button type="danger" circle plain size="small" @click="$emit('delete', scope.row.uuid)">
+              <el-icon>
+                <Delete />
+              </el-icon>
+            </el-button>
+          </div>
+        </template>
+      </el-table-column>
 
-      </table>
-    </div>
+      <template #empty>
+        <div class="py-12 text-center text-slate-500">
+          <el-icon :size="40" class="mb-2 block mx-auto">
+            <FolderDelete />
+          </el-icon>
+          <p>Nenhum cliente encontrado no sistema.</p>
+        </div>
+      </template>
+    </el-table>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Pencil, Trash2 } from 'lucide-vue-next';
-import type { ICustomer } from '../../domain/entities/customer';
+import { Edit, Delete, Phone, FolderDelete } from '@element-plus/icons-vue'
+import type { ICustomer } from '../../domain/entities/customer'
 
-defineProps<{ clients: ICustomer[] }>();
-defineEmits(['select', 'edit', 'delete']);
+defineProps<{ clients: ICustomer[] }>()
+const emit = defineEmits(['select', 'edit', 'delete'])
+
+const handleRowClick = (row: ICustomer) => {
+  emit('select', row.uuid)
+}
+
+const formatPhone = (phone?: string) => {
+  if (!phone) return null
+
+  const cleaned = phone.replace(/\D/g, '')
+
+  if (cleaned.length === 11) {
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
+  }
+
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`
+  }
+
+  return phone
+}
 </script>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
+:deep(.el-table__inner-wrapper::before) {
+  display: none;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 20px;
+:deep(.el-table th.el-table__cell) {
+  background-color: #f8fafc;
+  color: #64748b;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
 }
 </style>

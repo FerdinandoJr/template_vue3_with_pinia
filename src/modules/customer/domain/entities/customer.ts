@@ -13,6 +13,8 @@ export interface ICustomer {
   email: string;
   phone: string;
   avatar: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
   status: CustomerStatus;
   source: string;
   companyName: string;

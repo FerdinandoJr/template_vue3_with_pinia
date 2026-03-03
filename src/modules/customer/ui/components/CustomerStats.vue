@@ -1,42 +1,91 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Base de Clientes</p>
-        <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ total }}</h3>
-      </div>
-      <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">👥</div>
-    </div>
-    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Clientes c/ Chamados</p>
-        <h3 class="text-2xl font-bold text-blue-600 mt-1">{{ withTickets }}</h3>
-      </div>
-      <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">🎫</div>
-    </div>
-    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Atenção (CSAT Baixo)</p>
-        <h3 class="text-2xl font-bold text-amber-600 mt-1">{{ critical }}</h3>
-      </div>
-      <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">⚠️</div>
-    </div>
+  <div class="mb-2">
+    <el-row :gutter="20">
+
+      <el-col :xs="24" :sm="8">
+        <el-card shadow="hover" class="stats-card !border-l-4 !border-l-blue-500">
+          <div class="flex items-center justify-between">
+            <el-statistic :value="total" title="Total de Clientes">
+              <template #suffix>
+                <el-icon class="text-blue-500">
+                  <UserFilled />
+                </el-icon>
+              </template>
+            </el-statistic>
+          </div>
+        </el-card>
+      </el-col>
+
+      <el-col :xs="24" :sm="8">
+        <el-card shadow="hover" class="stats-card !border-l-4 !border-l-green-500">
+          <div class="flex items-center justify-between">
+            <el-statistic :value="activeCount" title="Clientes Ativos">
+              <template #suffix>
+                <el-icon class="text-green-500">
+                  <CircleCheck />
+                </el-icon>
+              </template>
+            </el-statistic>
+          </div>
+        </el-card>
+      </el-col>
+
+      <el-col :xs="24" :sm="8">
+        <el-card shadow="hover" class="stats-card !border-l-4 !border-l-orange-500">
+          <div class="flex items-center justify-between">
+            <el-statistic :value="inactiveCount" title="Inativos / Leads">
+              <template #suffix>
+                <el-icon class="text-orange-500">
+                  <Warning />
+                </el-icon>
+              </template>
+            </el-statistic>
+          </div>
+        </el-card>
+      </el-col>
+
+    </el-row>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from 'vue'
+import { UserFilled, CircleCheck, Warning } from '@element-plus/icons-vue'
+import { useCustomerStore } from '../store/customer.store'
+import { storeToRefs } from 'pinia'
 
-defineProps<{
-  total: number
-}>();
+const props = defineProps<{ total: number }>()
 
+const store = useCustomerStore()
+const { items } = storeToRefs(store)
 
-const withTickets = computed(() => {
-    return 2
-})
-
-const critical = computed(() => {
-    return 4
-})
+const activeCount = computed(() => items.value.filter(c => c.status === 'active').length)
+const inactiveCount = computed(() => items.value.filter(c => c.status !== 'active').length)
 </script>
+
+<style scoped>
+.stats-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+}
+
+:deep(.el-statistic__content) {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+:deep(.el-statistic__head) {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+</style>
