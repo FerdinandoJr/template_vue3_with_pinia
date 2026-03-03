@@ -1,263 +1,316 @@
-import { defineStore } from "pinia";
-import type { IContact, IMessage } from "../../domain/entities/chat";
-import { ChatFilter, ChatSortOption, MessageType, ChatChannel } from "../../domain/valueObjects/chat-enums";
-import { chatServices } from "../../data/chat.services";
-import { useServiceStore } from "@/modules/service/ui/store/service.store";
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import type { IContact, IMessage } from '../../domain/entities/chat';
+import { ChatFilter, ChatSortOption, MessageType, ChatChannel } from '../../domain/valueObjects/chat-enums';
 
-export const useChatStore = defineStore('chat', {
-  state: () => ({
-    contacts: [] as IContact[],
-    messages: [] as IMessage[],
-    selectedContact: null as IContact | null,
-    loading: false,
-    currentFilter: ChatFilter.CHATS,
-    currentSort: ChatSortOption.LONGEST_WAIT as string | ChatSortOption
-  }),
+// --- HELPER: UUID v7 GENERATOR ---
+const generateUUIDv7 = (): string => {
+  const now = Date.now();
+  const value = new Uint8Array(16);
+  crypto.getRandomValues(value);
 
-  getters: {
-    filaCount: (state) => state.contacts.filter(c => c.status === 'waiting').length,
+  value[0] = (now >> 40) & 0xff;
+  value[1] = (now >> 32) & 0xff;
+  value[2] = (now >> 24) & 0xff;
+  value[3] = (now >> 16) & 0xff;
+  value[4] = (now >> 8) & 0xff;
+  value[5] = now & 0xff;
 
-    filteredContacts: (state) => {
-      let result = [...state.contacts];
+  value[6] = ((value[6] ?? 0) & 0x0f) | 0x70;
+  value[8] = ((value[8] ?? 0) & 0x3f) | 0x80;
 
-      if (state.currentFilter === ChatFilter.CHATS) {
-        result = result.filter(c => c.status === 'in_progress');
-      } else if (state.currentFilter === ChatFilter.FILA) {
-        result = result.filter(c => c.status === 'waiting');
-      } else {
-        return result.sort((a, b) => {
-          const nameA = a.name || "";
-          const nameB = b.name || "";
-          return nameA.localeCompare(nameB);
-        });
-      }
+  return [...value].map((b) => b.toString(16).padStart(2, '0')).join('')
+    .replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+};
 
-      const parseTime = (timeStr?: string) => {
-        if (!timeStr) return 0;
+// --- HELPER: TIME PARSER ---
+const getTimeWeight = (timeStr: string): number => {
+  if (!timeStr) return 0;
+  const t = timeStr.toLowerCase().trim();
 
-        const lower = timeStr.trim().toLowerCase();
+  // Palavras-chave do mock
+  if (t === 'agora') return Date.now() + 1000; // +1s para garantir topo
+  if (t === 'ontem') return Date.now() - 86400000; // 24h atrás
 
-        if (lower.includes('ontem')) {
-          const d = new Date();
-          d.setDate(d.getDate() - 1);
-          d.setHours(12, 0, 0, 0);
-          return d.getTime();
-        }
+  // Formato HH:mm (assume data de hoje)
+  if (t.includes(':') && !t.includes('/')) {
+    const parts = t.split(':').map(Number);
+    const h = parts[0] ?? 0;
+    const m = parts[1] ?? 0;
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d.getTime();
+  }
 
-        const timeMatch = lower.match(/(\d{1,2})[:h](\d{2})/);
-        if (timeMatch) {
-          const hh = parseInt(timeMatch[1] || '0', 10);
-          const mm = parseInt(timeMatch[2] || '0', 10);
-          const d = new Date();
-          d.setHours(hh, mm, 0, 0);
-          return d.getTime();
-        }
+  // Formato DD/MM/YYYY (Data completa)
+  if (t.includes('/')) {
+    const parts = t.split('/').map(Number);
+    const day = parts[0] ?? 1;
+    const month = (parts[1] ?? 1) - 1; // Mês 0-indexado
+    const year = parts[2] ?? new Date().getFullYear();
+    const d = new Date(year, month, day);
+    return d.getTime();
+  }
 
-        const parsed = Date.parse(timeStr);
-        return isNaN(parsed) ? 0 : parsed;
-      };
+  return 0;
+};
 
-      const sortStr = String(state.currentSort).toLowerCase();
-      const isMenorTempo = sortStr.includes('menor') || sortStr.includes('shortest') || sortStr.includes('new');
+export const useChatStore = defineStore('chat', () => {
 
-      result.sort((a, b) => {
-        const timeA = parseTime(a.lastMessageTime);
-        const timeB = parseTime(b.lastMessageTime);
+  // --- STATE ---
+  const activeContactId = ref<string | null>(null);
+  const currentFilter = ref<ChatFilter>(ChatFilter.CHATS);
+  const currentSort = ref<ChatSortOption>(ChatSortOption.NEWEST);
+  const searchTerm = ref('');
+  const currentUser = ref({ id: 'agent_1', name: 'Você' });
 
-        if (timeA === timeB) return 0;
-
-        if (isMenorTempo) {
-          return timeB - timeA;
-        } else {
-          return timeA - timeB;
-        }
-      });
-
-      return result;
+  // --- MOCK DATA ---
+  const contacts = ref<IContact[]>([
+    {
+      id: '1',
+      name: 'Fernanda Lima',
+      company: 'Tech Solutions',
+      avatar: 'https://i.pravatar.cc/150?u=fernanda',
+      channel: ChatChannel.WHATSAPP,
+      lastMessage: 'Pode confirmar o recebimento?',
+      lastMessageTime: '10:42',
+      status: 'in_progress',
+      serviceId: generateUUIDv7(),
+      agentId: 'agent_1',
+      customerId: 'cust_55',
+      unreadCount: 1,
+      email: 'fernanda@tech.com',
+      phone: '(11) 99999-8888',
+      tags: ['Financeiro', 'VIP']
+    },
+    {
+      id: '2',
+      name: 'Roberto Carlos',
+      company: 'Logística S.A',
+      avatar: 'https://i.pravatar.cc/150?u=roberto',
+      channel: ChatChannel.WHATSAPP,
+      lastMessage: 'Obrigado pelo suporte!',
+      lastMessageTime: '09:15',
+      status: 'in_progress',
+      serviceId: generateUUIDv7(),
+      agentId: 'agent_1',
+      customerId: 'cust_102',
+      unreadCount: 0,
+      email: 'roberto@log.com',
+      phone: '(11) 97777-6666',
+      tags: ['Suporte']
+    },
+    {
+      id: '3',
+      name: 'Amanda Silva',
+      company: 'E-commerce Brasil',
+      avatar: 'https://i.pravatar.cc/150?u=amanda',
+      channel: ChatChannel.WHATSAPP,
+      lastMessage: 'Qual o prazo de entrega?',
+      lastMessageTime: 'Ontem',
+      status: 'queued',
+      serviceId: null,
+      agentId: null,
+      customerId: null,
+      unreadCount: 0,
+      email: 'amanda@eco.com',
+      phone: '(11) 98888-7777',
+      tags: ['Dúvida']
+    },
+    {
+      id: 'novo-numero-123',
+      name: '+55 (47) 99123-4567',
+      company: '',
+      phone: '+55 (47) 99123-4567',
+      avatar: '',
+      status: 'queued',
+      channel: ChatChannel.WHATSAPP,
+      lastMessage: 'Olá, gostaria de um orçamento',
+      lastMessageTime: '09:00',
+      serviceId: null,
+      agentId: null,
+      customerId: null,
+      unreadCount: 1,
+      email: '',
+      tags: []
     }
-  },
+  ]);
 
-  actions: {
-    async fetchContacts() {
-      this.loading = true;
-      try {
-        this.contacts = await chatServices.getContacts();
-      } finally {
-        this.loading = false;
-      }
-    },
+  const messagesDb = ref<Record<string, IMessage[]>>({
+    '1': [
+      { id: generateUUIDv7(), text: 'Bom dia.', timestamp: '09:55', isMine: false, type: MessageType.TEXT },
+      { id: generateUUIDv7(), text: 'Olá Fernanda!', timestamp: '10:00', isMine: true, type: MessageType.TEXT },
+      { id: generateUUIDv7(), text: 'Pode confirmar o recebimento?', timestamp: '10:42', isMine: false, type: MessageType.TEXT }
+    ]
+  });
 
-    setFilter(filter: ChatFilter) {
-      this.currentFilter = filter;
-    },
+  // --- GETTERS ---
+  const filteredContacts = computed(() => {
+    // 1. Filtro de Status
+    let list = contacts.value.filter(c => {
+      if (currentFilter.value === ChatFilter.CHATS) return c.status === 'in_progress';
+      if (currentFilter.value === ChatFilter.FILA) return c.status === 'queued';
+      return true;
+    });
 
-    async selectContact(contact: IContact) {
-      const target = this.contacts.find(c => c.id === contact.id);
+    // 2. Filtro de Busca
+    if (searchTerm.value) {
+      const lower = searchTerm.value.toLowerCase();
+      list = list.filter(c => c.name.toLowerCase().includes(lower) || c.phone.includes(lower));
+    }
 
-      if (target) {
-        this.selectedContact = target;
-      } else {
-        this.selectedContact = contact;
-      }
+    // 3. Ordenação
+    const sortedList = [...list];
 
-      this.loading = true;
-      try {
-        this.messages = await chatServices.getMessages(contact.id);
-        const index = this.contacts.findIndex(c => c.id === contact.id);
-        if (index !== -1 && this.contacts[index]) {
-          const current = this.contacts[index];
-          if (current) current.unreadCount = 0;
-        }
-      } finally {
-        this.loading = false;
-      }
-    },
+    switch (currentSort.value) {
+      case ChatSortOption.NEWEST: // Mais Recentes (Descrescente)
+        sortedList.sort((a, b) => getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime));
+        break;
 
-    assumirChat(contactId: string) {
-      const targetContact = this.contacts.find(c => c.id === contactId);
+      case ChatSortOption.OLDEST: // Mais Antigos (Crescente)
+        sortedList.sort((a, b) => getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime));
+        break;
 
-      if (targetContact) {
-        const protocol = 'ATD-' + Date.now().toString();
+      case ChatSortOption.LONGEST_WAIT: // Maior Espera = Mensagem mais antiga sem resposta
+        // Removemos a verificação de 'unread' para focar estritamente no tempo (Visualmente mais coerente)
+        sortedList.sort((a, b) => getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime));
+        break;
 
-        targetContact.status = 'in_progress';
-        targetContact.currentAtendimentoId = protocol;
+      case ChatSortOption.SHORTEST_WAIT: // Menor Espera = Mensagem mais recente
+        sortedList.sort((a, b) => getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime));
+        break;
 
-        if (this.selectedContact && this.selectedContact.id === contactId) {
-          this.selectedContact.status = 'in_progress';
-          this.selectedContact.currentAtendimentoId = protocol;
-        }
+      default:
+        sortedList.sort((a, b) => getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime));
+    }
 
-        this.contacts = [...this.contacts];
-        this.currentFilter = ChatFilter.CHATS;
+    return sortedList;
+  });
 
-        this.messages.push({
-          id: Date.now().toString(),
-          text: `Você assumiu este atendimento. Protocolo: ${protocol}`,
-          timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          isMine: false,
-          type: MessageType.ALERT,
-          atendimentoId: protocol
-        });
-      }
-    },
+  const selectedContact = computed(() => contacts.value.find(c => c.id === activeContactId.value) || null);
+  const messages = computed(() => activeContactId.value ? (messagesDb.value[activeContactId.value] || []) : []);
+  const filaCount = computed(() => contacts.value.filter(c => c.status === 'queued').length);
 
-    finalizarChat(contactId: string, summaryData?: { description: string, files: File[] }) {
-      const serviceStore = useServiceStore();
-      const targetContact = this.contacts.find(c => c.id === contactId);
-
-      if (!targetContact) return;
-
-      let fullDescription = summaryData?.description || 'Atendimento finalizado via Chat.';
-
-      if (summaryData && summaryData.description) {
-        const fileNames = summaryData.files.length > 0
-          ? `\n📎 Anexos: ${summaryData.files.map(f => f.name).join(', ')}`
-          : '';
-
-        this.messages.push({
-          id: Date.now().toString(),
-          text: `📝 Resumo do Atendimento:\n${summaryData.description}${fileNames}`,
-          timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          isMine: true,
-          type: MessageType.ALERT,
-          atendimentoId: targetContact.currentAtendimentoId
-        });
-
-        fullDescription += fileNames;
-      }
-
-      this.messages.push({
-        id: (Date.now() + 1).toString(),
-        text: `Atendimento finalizado. Pesquisa de satisfação (CSAT) enviada ao cliente.`,
-        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        isMine: false,
-        type: MessageType.ALERT,
-        atendimentoId: targetContact.currentAtendimentoId
-      });
-
-      serviceStore.registerFinish({
-        companyName: targetContact.company || targetContact.name,
-        cnpj: 'N/A',
-        reason: 'Atendimento WhatsApp',
-        description: fullDescription,
-        duration: '15m'
-      });
-
-      targetContact.status = 'finished';
-      targetContact.currentAtendimentoId = undefined;
-
-      if (this.selectedContact && this.selectedContact.id === contactId) {
-        this.selectedContact.status = 'finished';
-        this.selectedContact.currentAtendimentoId = undefined;
-      }
-
-      this.contacts = [...this.contacts];
-
-      setTimeout(() => {
-        if (this.selectedContact?.id === contactId) {
-          this.selectedContact = null;
-          this.messages = [];
-        }
-      }, 2500);
-    },
-
-    transferirChat(contactId: string) {
-      const targetContact = this.contacts.find(c => c.id === contactId);
-
-      if (targetContact) {
-        targetContact.status = 'waiting';
-        this.contacts = [...this.contacts];
-        this.currentFilter = ChatFilter.FILA;
-      }
-
-      if (this.selectedContact && this.selectedContact.id === contactId) {
-        this.selectedContact.status = 'waiting';
-      }
-
-      this.selectedContact = null;
-      this.messages = [];
-    },
-
-    sendMessage(text: string, type: MessageType = MessageType.TEXT, file?: File) {
-      if (!this.selectedContact || (!text.trim() && !file)) return;
-
-      let finalMessage = text;
-
-      if (file) {
-        const fileTag = `📎 Anexo: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-        finalMessage = text ? `${text}\n\n${fileTag}` : fileTag;
-      }
-
-      this.messages.push({
-        id: Date.now().toString(),
-        text: finalMessage,
-        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        isMine: true,
-        type: type,
-        atendimentoId: this.selectedContact.currentAtendimentoId
-      });
-
-      const targetContact = this.contacts.find(c => c.id === this.selectedContact?.id);
-
-      if (targetContact) {
-        targetContact.lastMessage = type === MessageType.NOTE ? `🔒 Nota interna` : (file && !text ? '📎 Arquivo anexado' : text);
-        targetContact.lastMessageTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        this.contacts = [...this.contacts];
-      }
-    },
-
-    updateContact(contactId: string, updatedData: Partial<IContact>) {
-      const targetContact = this.contacts.find(c => c.id === contactId);
-
-      if (targetContact) {
-        Object.assign(targetContact, updatedData);
-
-        if (this.selectedContact && this.selectedContact.id === contactId) {
-          Object.assign(this.selectedContact, updatedData);
-        }
-
-        this.contacts = [...this.contacts];
-      }
+  // --- ACTIONS ---
+  function selectContact(contact: IContact) {
+    activeContactId.value = contact.id;
+    if (contact.status === 'in_progress') {
+      const found = contacts.value.find(c => c.id === contact.id);
+      if (found) found.unreadCount = 0;
     }
   }
+
+  function sendMessage(text: string, type: MessageType, file?: File) {
+    const chatId = activeContactId.value;
+    if (!chatId) return;
+
+    const newMessage: IMessage = {
+      id: generateUUIDv7(),
+      text: file ? file.name : text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isMine: true,
+      type: type === MessageType.NOTE ? MessageType.NOTE : (file ? MessageType.TEXT : MessageType.TEXT),
+    };
+
+    if (!messagesDb.value[chatId]) messagesDb.value[chatId] = [];
+    messagesDb.value[chatId].push(newMessage);
+
+    const contact = contacts.value.find(c => c.id === chatId);
+    if (contact) {
+      contact.lastMessage = type === MessageType.NOTE ? 'Nota interna' : text;
+      contact.lastMessageTime = 'Agora';
+    }
+  }
+
+  function assumirChat(contactId: string) {
+    const contact = contacts.value.find(c => c.id === contactId);
+
+    if (contact) {
+      const newServiceId = generateUUIDv7();
+
+      contact.status = 'in_progress';
+      contact.serviceId = newServiceId;
+      contact.agentId = currentUser.value.id;
+
+      if (!messagesDb.value[contactId]) messagesDb.value[contactId] = [];
+      messagesDb.value[contactId].push({
+        id: generateUUIDv7(),
+        text: `Atendimento iniciado. Protocolo: #${newServiceId}`,
+        timestamp: 'Agora',
+        isMine: true,
+        type: MessageType.ALERT
+      });
+
+      currentFilter.value = ChatFilter.CHATS;
+      activeContactId.value = contactId;
+
+      return newServiceId;
+    }
+    return null;
+  }
+
+  function finalizarChat(contactId: string, reason?: string) {
+    const idx = contacts.value.findIndex(c => c.id === contactId);
+    if (idx !== -1) {
+      contacts.value.splice(idx, 1);
+      activeContactId.value = null;
+    }
+  }
+
+  function transferirChat(contactId: string, destination?: string) {
+    const idx = contacts.value.findIndex(c => c.id === contactId);
+    if (idx !== -1) {
+      if (messagesDb.value[contactId]) {
+        messagesDb.value[contactId].push({
+          id: generateUUIDv7(),
+          text: `Transferido para: ${destination || 'Outro departamento'}`,
+          timestamp: 'Agora',
+          isMine: true,
+          type: MessageType.ALERT
+        });
+      }
+      contacts.value.splice(idx, 1);
+      activeContactId.value = null;
+    }
+  }
+
+  function updateContact(id: string, updates: Partial<IContact>) {
+    const contact = contacts.value.find(c => c.id === id);
+    if (contact) {
+      Object.assign(contact, updates);
+    }
+  }
+
+  function linkCustomerToChat(contactId: string, customerData: { id: string, name: string, company?: string }) {
+    const contact = contacts.value.find(c => c.id === contactId);
+    if (contact) {
+      contact.customerId = customerData.id;
+      contact.name = customerData.name;
+      if (customerData.company) contact.company = customerData.company;
+    }
+  }
+
+  function setFilter(f: ChatFilter) { currentFilter.value = f; activeContactId.value = null; }
+  function setSearchQuery(q: string) { searchTerm.value = q; }
+
+  return {
+    contacts,
+    activeContactId,
+    currentFilter,
+    currentSort,
+    messages,
+    selectedContact,
+    filteredContacts,
+    filaCount,
+    currentUser,
+    setFilter,
+    selectContact,
+    setSearchQuery,
+    sendMessage,
+    assumirChat,
+    finalizarChat,
+    transferirChat,
+    updateContact,
+    linkCustomerToChat
+  };
 });

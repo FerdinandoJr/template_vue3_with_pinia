@@ -1,26 +1,30 @@
-import type { ChatChannel, MessageType } from "../valueObjects/chat-enums";
+import { ChatChannel } from '../valueObjects/chat-enums';
 
 export interface IMessage {
   id: string;
   text: string;
   timestamp: string;
   isMine: boolean;
-  type: MessageType;
-  atendimentoId?: string;
+  type: 'text' | 'image' | 'file' | 'audio' | 'alert' | 'note';
+  fileUrl?: string;
+  fileName?: string;
 }
 
 export interface IContact {
   id: string;
   name: string;
-  company: string;
-  avatar: string;
-  channel: ChatChannel;
+  phone: string;
+  avatar?: string;
   lastMessage: string;
   lastMessageTime: string;
-  status: 'waiting' | 'in_progress' | 'finished';
   unreadCount: number;
-  email: string;
-  phone: string;
+  status: 'queued' | 'in_progress' | 'finished';
+  channel: ChatChannel;
+  company?: string;
+  email?: string;
   tags: string[];
-  currentAtendimentoId?: string;
+
+  serviceId?: string | null;
+  agentId?: string | null;
+  customerId?: string | null;
 }
