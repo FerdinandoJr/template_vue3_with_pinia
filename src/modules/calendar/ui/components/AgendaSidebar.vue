@@ -1,47 +1,230 @@
 <template>
-  <div class="w-[320px] shrink-0 flex flex-col gap-6">
-    
-    <div class="bg-white rounded-[16px] border border-slate-200 p-6 shadow-sm flex-1">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-[13px] font-black text-slate-800 uppercase tracking-widest">Próximos</h3>
-        <button class="text-[12px] font-bold text-blue-600 hover:underline">Ver todos</button>
-      </div>
+  <div
+    class="w-72 bg-white border-r border-slate-200 flex flex-col h-full shrink-0 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
 
-      <div class="space-y-6 relative before:absolute before:inset-y-2 before:left-[11px] before:w-[2px] before:bg-slate-100">
-        <div v-for="evt in store.events" :key="evt.id" class="relative pl-8">
-          <div class="absolute left-0 top-1 w-6 h-6 bg-white rounded-full border-[3px] border-white shadow-sm flex items-center justify-center z-10">
-            <div :class="['w-2.5 h-2.5 rounded-full', evt.dotClass]"></div>
-          </div>
-          
-          <div class="flex justify-between items-start">
-            <div>
-              <h4 class="text-[14px] font-extrabold text-slate-800 leading-tight mb-0.5">{{ evt.client }}</h4>
-              <p class="text-[11px] font-medium text-slate-500 mb-1.5">{{ evt.title }}</p>
-              <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest">{{ evt.assigneeName }}</span>
-            </div>
-            <span class="bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-lg">
-              {{ evt.time }}
+    <div class="p-4 shrink-0">
+      <div class="bg-slate-50 rounded-xl p-2 border border-slate-100 transition-all hover:shadow-sm">
+
+        <div class="flex items-center justify-between mb-1 px-1">
+          <el-button :icon="ArrowLeft" circle text size="small" @click="prevMonth" class="!p-1 hover:bg-slate-200/50"
+            style="color: rgb(51, 126, 204);" />
+
+          <div class="relative flex justify-center items-center flex-1">
+            <span class="absolute font-extrabold text-[13px] capitalize pointer-events-none z-0"
+              style="color: rgb(51, 126, 204);">
+              {{ formattedMonthYear }}
             </span>
+
+            <el-date-picker v-model="miniCalendarDate" type="month" :clearable="false"
+              class="hidden-date-picker z-10" />
           </div>
+
+          <el-button :icon="ArrowRight" circle text size="small" @click="nextMonth" class="!p-1 hover:bg-slate-200/50"
+            style="color: rgb(51, 126, 204);" />
         </div>
+
+        <el-calendar v-model="miniCalendarDate" class="mini-calendar" />
       </div>
     </div>
 
-    <div class="flex gap-4 h-[120px]">
-      <div class="flex-1 bg-[#1a56db] rounded-[16px] p-6 text-white flex flex-col justify-end shadow-lg shadow-blue-200">
-        <span class="text-[40px] font-black leading-none mb-1">12</span>
-        <span class="text-[10px] font-black uppercase tracking-widest opacity-80">Agendados Hoje</span>
-      </div>
-      <div class="flex-1 bg-white rounded-[16px] border border-slate-200 p-6 flex flex-col justify-end shadow-sm">
-        <span class="text-[40px] font-black leading-none mb-1 text-slate-800">03</span>
-        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Pendentes</span>
-      </div>
+    <div class="flex-1 flex flex-col min-h-0 border-t border-slate-100">
+
+      <el-collapse v-model="activeCollapse" class="modern-collapse border-none">
+        <el-collapse-item name="people">
+
+          <template #title>
+            <div class="flex items-center text-[12px] font-bold px-5 tracking-wide uppercase w-full"
+              style="color: rgb(51, 126, 204);">
+              Adicionar Pessoa
+            </div>
+          </template>
+
+          <div class="px-4 pb-3">
+            <el-input v-model="searchQuery" placeholder="Buscar membro..." :prefix-icon="Search" clearable
+              class="modern-search" />
+          </div>
+
+          <div class="overflow-y-auto custom-scrollbar max-h-[350px] px-2 pb-4">
+            <div v-for="user in filteredUsers" :key="user.id" @click="store.toggleUserFilter(user.id)"
+              class="group flex items-center gap-3 px-3 py-1.5 mx-2 rounded-md cursor-pointer transition-all duration-200 select-none"
+              :class="store.selectedUserIds.includes(user.id)
+                ? 'bg-indigo-50 shadow-[inset_2px_0_0_#4f46e5]'
+                : 'hover:bg-slate-50'">
+              <el-checkbox :model-value="store.selectedUserIds.includes(user.id)"
+                class="!mr-0 pointer-events-none custom-checkbox" />
+
+              <span class="text-[13px] transition-colors duration-200 truncate"
+                :class="store.selectedUserIds.includes(user.id) ? 'text-indigo-700 font-semibold' : 'text-slate-600 group-hover:text-slate-900'">
+                {{ user.name }}
+              </span>
+            </div>
+
+            <div v-if="filteredUsers.length === 0" class="text-center py-4">
+              <span class="text-[11px] text-slate-400 font-medium bg-slate-50 px-3 py-1 rounded-full">
+                Nenhum membro encontrado
+              </span>
+            </div>
+          </div>
+
+        </el-collapse-item>
+      </el-collapse>
+
     </div>
-    
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import { useAgendaStore } from '../store/agenda.store';
+import { Search, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
+
 const store = useAgendaStore();
+const emit = defineEmits(['date-change']);
+
+const activeCollapse = ref([]);
+const searchQuery = ref('');
+
+const filteredUsers = computed(() => {
+  if (!searchQuery.value) return store.availableUsers;
+  const query = searchQuery.value.toLowerCase();
+  return store.availableUsers.filter(u => u.name.toLowerCase().includes(query));
+});
+
+const miniCalendarDate = computed({
+  get: () => store.selectedDate,
+  set: (val) => {
+    if (!val) return;
+    store.setSelectedDate(val);
+    emit('date-change', val);
+  }
+});
+
+const formattedMonthYear = computed(() => {
+  const d = miniCalendarDate.value;
+  return d ? d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }) : '';
+});
+
+const prevMonth = () => {
+  const d = new Date(miniCalendarDate.value);
+  d.setMonth(d.getMonth() - 1);
+  miniCalendarDate.value = d;
+};
+
+const nextMonth = () => {
+  const d = new Date(miniCalendarDate.value);
+  d.setMonth(d.getMonth() + 1);
+  miniCalendarDate.value = d;
+};
 </script>
+
+<style>
+/* Reset do Date Picker */
+.hidden-date-picker {
+  width: 100% !important;
+  max-width: 140px;
+}
+
+.hidden-date-picker .el-input__wrapper {
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  cursor: pointer;
+}
+
+.hidden-date-picker .el-input__inner {
+  color: transparent !important;
+  cursor: pointer;
+}
+
+.hidden-date-picker .el-input__prefix {
+  display: none;
+}
+
+/* Estilo do Mini Calendário com AZUL EXATO */
+.mini-calendar .el-calendar__header {
+  display: none;
+}
+
+.mini-calendar .el-calendar__body {
+  padding: 0 !important;
+}
+
+.mini-calendar .el-calendar-table td {
+  border: none !important;
+  padding: 2px !important;
+}
+
+.mini-calendar .el-calendar-table .el-calendar-day {
+  height: 30px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+/* Dia Selecionado no Calendário Pequeno */
+.mini-calendar .el-calendar-table td.is-selected .el-calendar-day {
+  background-color: rgb(51, 126, 204);
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(51, 126, 204, 0.3);
+}
+
+/* Bolinha do "Hoje" no Calendário Pequeno */
+.mini-calendar .el-calendar-table td.is-today .el-calendar-day {
+  color: rgb(51, 126, 204);
+  font-weight: 900;
+  background-color: #f0f5ff;
+}
+
+.mini-calendar .el-calendar-table td .el-calendar-day:hover {
+  background-color: #f1f5f9;
+}
+
+/* Accordion e Busca */
+.modern-collapse .el-collapse-item__header {
+  border-bottom: none !important;
+  background: transparent !important;
+  height: 48px;
+}
+
+.modern-collapse .el-collapse-item__wrap {
+  border-bottom: none !important;
+  background: transparent !important;
+}
+
+.modern-search .el-input__wrapper {
+  box-shadow: 0 0 0 1px #e2e8f0 inset !important;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 2px 10px;
+}
+
+.modern-search .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px #4f46e5 inset !important;
+  background: #fff;
+}
+
+.custom-checkbox .el-checkbox__inner {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border-color: #cbd5e1;
+}
+
+.custom-checkbox.is-checked .el-checkbox__inner {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+</style>
