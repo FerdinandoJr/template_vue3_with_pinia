@@ -3,52 +3,9 @@ import { ref, computed } from 'vue';
 import type { IContact, IMessage } from '../../domain/entities/chat';
 import { ChatFilter, ChatSortOption, MessageType, ChatChannel } from '../../domain/valueObjects/chat-enums';
 import type { SendMessageDTO } from '../../domain/dto/chat.dto';
-
-const generateUUIDv7 = (): string => {
-  const now = Date.now();
-  const value = new Uint8Array(16);
-  crypto.getRandomValues(value);
-  value[0] = (now >> 40) & 0xff;
-  value[1] = (now >> 32) & 0xff;
-  value[2] = (now >> 24) & 0xff;
-  value[3] = (now >> 16) & 0xff;
-  value[4] = (now >> 8) & 0xff;
-  value[5] = now & 0xff;
-  value[6] = ((value[6] ?? 0) & 0x0f) | 0x70;
-  value[8] = ((value[8] ?? 0) & 0x3f) | 0x80;
-  return [...value].map((b) => b.toString(16).padStart(2, '0')).join('')
-    .replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
-};
-
-const getTimeWeight = (timeStr: string): number => {
-  if (!timeStr) return 0;
-  const t = timeStr.toLowerCase().trim();
-
-  if (t === 'agora') return Date.now() + 1000;
-  if (t === 'ontem') return Date.now() - 86400000;
-
-  if (t.includes(':') && !t.includes('/')) {
-    const parts = t.split(':').map(Number);
-    const h = parts[0] ?? 0;
-    const m = parts[1] ?? 0;
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
-    return d.getTime();
-  }
-
-  if (t.includes('/')) {
-    const parts = t.split('/').map(Number);
-    const day = parts[0] ?? 1;
-    const month = (parts[1] ?? 1) - 1;
-    const year = parts[2] ?? new Date().getFullYear();
-    const d = new Date(year, month, day);
-    return d.getTime();
-  }
-  return 0;
-};
+import { generateUUIDv7, getTimeWeight } from '../../../../util/helpers';
 
 export const useChatStore = defineStore('chat', () => {
-
   const activeContactId = ref<string | null>(null);
   const currentFilter = ref<ChatFilter>(ChatFilter.CHATS);
   const currentSort = ref<ChatSortOption>(ChatSortOption.NEWEST);
@@ -111,9 +68,9 @@ export const useChatStore = defineStore('chat', () => {
         break;
       case ChatSortOption.LONGEST_WAIT:
       case ChatSortOption.SHORTEST_WAIT:
-        sortedList.sort((a, b) => currentSort.value === ChatSortOption.LONGEST_WAIT ?
-          getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime) :
-          getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime)
+        sortedList.sort((a, b) => currentSort.value === ChatSortOption.LONGEST_WAIT
+          ? getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime)
+          : getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime)
         );
         break;
       default:
@@ -231,9 +188,8 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   return {
-    contacts, activeContactId, currentFilter, currentSort, messages, selectedContact,
-    filteredContacts, filaCount, currentUser,
-    setFilter, selectContact, setSearchQuery, sendMessage, assumirChat,
+    contacts, activeContactId, currentFilter, currentSort, messages, selectedContact, filteredContacts,
+    filaCount, currentUser, setFilter, selectContact, setSearchQuery, sendMessage, assumirChat,
     finalizarChat, transferirChat, updateContact, linkCustomerToChat
   };
 });

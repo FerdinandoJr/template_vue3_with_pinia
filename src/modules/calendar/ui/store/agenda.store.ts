@@ -1,5 +1,7 @@
 import { defineStore } from "pinia";
 import type { IAgendaEvent, IClosedDay } from "../../domain/entities/agenda";
+import { AgendaDomainService } from "../../domain/services/agenda.domain.service";
+import { generateUUIDv7 } from "@/util/helpers";
 
 interface ICalendarUser {
   id: string;
@@ -17,27 +19,9 @@ const MOCK_USERS: ICalendarUser[] = [
 
 const GUEST_USER: ICalendarUser = { id: 'guest', name: 'Convidado', avatar: 'G', color: '#94a3b8' };
 
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-function addOneHour(time: string): string {
-  if (!time) return '10:00';
-  const parts = time.split(':');
-  const h = Number(parts[0] || '0');
-  const m = Number(parts[1] || '0');
-  const date = new Date();
-  date.setHours(h + 1, m);
-  return date.toTimeString().substring(0, 5);
-}
-
 export const useAgendaStore = defineStore('agenda', {
   state: () => {
     const activeUser = MOCK_USERS[0] || GUEST_USER;
-
     return {
       allEvents: [] as IAgendaEvent[],
       closedDays: [] as IClosedDay[],
@@ -48,7 +32,6 @@ export const useAgendaStore = defineStore('agenda', {
       selectedUserIds: [activeUser.id] as string[]
     };
   },
-
   getters: {
     filteredEvents: (state) => {
       return state.allEvents.filter(event => {
@@ -58,16 +41,13 @@ export const useAgendaStore = defineStore('agenda', {
       });
     }
   },
-
   actions: {
     async fetchAgendaData() {
       this.allEvents = [];
     },
-
     setSelectedDate(date: Date) {
       this.selectedDate = date;
     },
-
     toggleUserFilter(userId: string) {
       if (this.selectedUserIds.includes(userId)) {
         this.selectedUserIds = this.selectedUserIds.filter(id => id !== userId);
@@ -75,25 +55,21 @@ export const useAgendaStore = defineStore('agenda', {
         this.selectedUserIds.push(userId);
       }
     },
-
     addEvent(event: Partial<IAgendaEvent> & { isRecurring?: boolean }) {
       const startTime = event.time || '09:00';
-      const endTime = event.endTime || addOneHour(startTime);
-
+      const endTime = event.endTime || AgendaDomainService.addOneHour(startTime);
       const safeUser = this.currentUser || GUEST_USER;
 
       const baseEvent: IAgendaEvent = {
-        id: generateUUID(),
+        id: generateUUIDv7(),
         date: event.date || (new Date().toISOString().split('T')[0] ?? ''),
         time: startTime,
         endTime: endTime,
         title: event.title || 'Sem título',
         client: event.client || 'Sem cliente',
-
         userId: event.userId || safeUser.id,
         assigneeName: event.assigneeName || safeUser.name,
         assigneeInitials: (event.assigneeName || safeUser.name).substring(0, 2).toUpperCase(),
-
         colorClass: event.colorClass || 'text-blue-600',
         dotClass: event.dotClass || 'bg-blue-400',
         description: event.description || '',
@@ -105,57 +81,20 @@ export const useAgendaStore = defineStore('agenda', {
       };
 
       if (event.isRecurring && event.recurrenceType) {
-        this.generateRecurringEvents(baseEvent);
+        const recurringEvents = AgendaDomainService.generateRecurringEvents(baseEvent);
+        this.allEvents.push(...recurringEvents);
       } else {
         this.allEvents.push(baseEvent);
       }
     },
-
     updateEvent(event: IAgendaEvent) {
       const index = this.allEvents.findIndex(e => e.id === event.id);
-      if (index !== -1) this.allEvents[index] = { ...event };
+      if (index !== -1) {
+        this.allEvents[index] = { ...event };
+      }
     },
-
     deleteEvent(eventId: string) {
       this.allEvents = this.allEvents.filter(e => e.id !== eventId);
-    },
-
-    generateRecurringEvents(baseEvent: IAgendaEvent) {
-      const eventsToAdd: IAgendaEvent[] = [];
-      const startDate = new Date(baseEvent.date + 'T00:00:00');
-      const limitDate = baseEvent.recurrenceEndDate
-        ? new Date(baseEvent.recurrenceEndDate + 'T23:59:59')
-        : new Date(new Date().setMonth(new Date().getMonth() + 3));
-
-      let currentDate = new Date(startDate);
-      const groupId = generateUUID();
-
-      while (currentDate <= limitDate) {
-        let shouldAdd = false;
-
-        if (baseEvent.recurrenceType === 'daily') shouldAdd = true;
-        else if (baseEvent.recurrenceType === 'monthly') {
-          if (currentDate.getDate() === startDate.getDate()) shouldAdd = true;
-        } else if (baseEvent.recurrenceType === 'weekly') {
-          const currentDay = currentDate.getDay();
-          const targetDays = baseEvent.recurrenceDays && baseEvent.recurrenceDays.length > 0
-            ? baseEvent.recurrenceDays
-            : [startDate.getDay()];
-          if (targetDays.includes(currentDay)) shouldAdd = true;
-        }
-
-        if (shouldAdd) {
-          eventsToAdd.push({
-            ...baseEvent,
-            id: generateUUID(),
-            groupId: groupId,
-            date: currentDate.toISOString().split('T')[0] ?? '',
-            isRecurringInstance: true
-          });
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      this.allEvents.push(...eventsToAdd);
     }
   }
 });
