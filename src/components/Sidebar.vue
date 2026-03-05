@@ -1,35 +1,33 @@
 <template>
-  <aside class="w-64 h-screen bg-[#1e293b] text-white flex flex-col shadow-2xl fixed left-0 top-0 z-50 font-sans border-r border-white/5">
-    
+  <aside
+    class="w-64 h-screen bg-[#1e293b] text-white flex flex-col shadow-2xl fixed left-0 top-0 z-50 font-sans border-r border-white/5">
+
     <div class="h-20 flex items-center px-8 border-b border-white/5">
       <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-blue-500/20">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5V19A9 3 0 0 0 21 19V5"></path><path d="M3 12A9 3 0 0 0 21 12"></path></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
+          <path d="M3 12A9 3 0 0 0 21 12"></path>
+        </svg>
       </div>
       <h1 class="text-xl font-black tracking-tight italic">Data <span class="text-blue-500 font-light">CRM</span></h1>
     </div>
-    
+
     <nav class="flex-1 py-8 overflow-y-auto custom-scrollbar">
       <div class="px-4 mb-4">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] px-4 mb-4">Menu Principal</p>
         <ul class="space-y-1.5">
           <li v-for="item in menuItems" :key="item.path">
-            <router-link 
-              :to="item.path" 
+            <router-link :to="item.path"
               class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5"
-              active-class="!bg-blue-600 !text-white shadow-lg shadow-blue-900/40"
-            >
-              <component 
-                :is="item.icon" 
-                class="w-5 h-5 flex-shrink-0"
-              />
-              
+              active-class="!bg-blue-600 !text-white shadow-lg shadow-blue-900/40">
+              <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
+
               <span class="text-sm font-bold tracking-tight">{{ item.label }}</span>
 
-              <span 
-                v-if="item.badge" 
-                class="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full"
-                :class="$route.path === item.path ? 'bg-white text-blue-600' : 'bg-blue-500 text-white'"
-              >
+              <span v-if="item.badge" class="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full"
+                :class="$route.path === item.path ? 'bg-white text-blue-600' : 'bg-blue-500 text-white'">
                 {{ item.badge }}
               </span>
             </router-link>
@@ -37,21 +35,30 @@
         </ul>
       </div>
     </nav>
-    
+
     <div class="p-4 bg-[#1a2232] border-t border-white/5">
       <div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group">
         <div class="relative">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white font-black shadow-inner border border-white/10">
+          <div
+            class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white font-black shadow-inner border border-white/10">
             U
           </div>
-          <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#1a2232] rounded-full shadow-sm"></div>
+          <div
+            class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#1a2232] rounded-full shadow-sm">
+          </div>
         </div>
         <div class="overflow-hidden">
-          <p class="text-sm font-black text-white truncate tracking-tight group-hover:text-blue-400 transition-colors">Usuário</p>
+          <p class="text-sm font-black text-white truncate tracking-tight group-hover:text-blue-400 transition-colors">
+            Usuário</p>
           <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Administrador</p>
         </div>
         <button class="ml-auto text-slate-500 hover:text-red-400 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
         </button>
       </div>
     </div>
@@ -73,7 +80,7 @@ const IconSettings = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width
 
 const menuItems = ref([
   { label: 'Dashboard', path: '/', icon: IconDashboard },
-  { label: 'Agenda', path: '/agenda', icon: IconAgenda },
+  { label: 'Agenda', path: '/calendar', icon: IconAgenda },
   { label: 'Clientes', path: '/clientes', icon: IconUsers },
   { label: 'Chats', path: '/chats', icon: IconChat, badge: '12' },
   { label: 'Atendimento', path: '/atendimentos', icon: IconPhone },
