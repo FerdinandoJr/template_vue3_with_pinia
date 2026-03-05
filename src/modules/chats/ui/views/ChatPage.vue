@@ -1,12 +1,11 @@
 <template>
   <div class="flex h-full w-full bg-white overflow-hidden relative border-t border-slate-200">
-
     <ContactList :selectedId="selectedContact?.id" @select="handleSelectContact" />
 
     <template v-if="selectedContact">
-      <ChatArea :contact="selectedContact" :messages="messages" @send="store.sendMessage" @assumir="handleAssumirChat"
+      <ChatArea :contact="selectedContact" :messages="messages" @send="handleSendMessage" @assumir="handleAssumirChat"
         @finalizar="openFinishModal" @transferir="isTransferModalOpen = true" @vincular="openLinkModal"
-        @abrir-modal-ticket="openTicketModal" @toggle-profile="isProfileOpen = !isProfileOpen" />
+        @abrir-modal-ticket="openTicketModal" @toggle-profile="toggleProfile" />
 
       <div :class="[
         'transition-all duration-300 ease-in-out overflow-hidden h-full shrink-0 bg-white z-20 border-l border-slate-200',
@@ -27,7 +26,6 @@
 
     <el-dialog v-model="isLinkModalOpen" title="Gestão de Identidade (CRM)" width="850px" align-center destroy-on-close
       class="rounded-lg custom-dialog">
-
       <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-lg mb-6 border border-slate-100">
         <el-avatar :size="50" :src="selectedContact?.avatar" class="bg-blue-100 text-blue-600 font-bold text-xl">
           {{ selectedContact?.name?.charAt(0).toUpperCase() }}
@@ -54,15 +52,12 @@
             </el-form-item>
           </el-form>
         </el-tab-pane>
-
         <el-tab-pane>
           <template #label><span class="flex items-center gap-2"><el-icon>
                 <Plus />
               </el-icon> Novo Cadastro Completo</span></template>
-
           <el-form :model="newCustomerForm" label-position="top"
             class="mt-2 p-4 max-h-[450px] overflow-y-auto overflow-x-hidden custom-scroll">
-
             <div class="mb-6">
               <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">
                 Dados da Empresa / Pessoa</h4>
@@ -81,7 +76,6 @@
                   </el-form-item>
                 </el-col>
               </el-row>
-
               <el-row :gutter="20">
                 <el-col :span="12">
                   <el-form-item :label="newCustomerForm.type === 'PJ' ? 'Razão Social' : 'Nome Completo'" required>
@@ -130,7 +124,6 @@
                   </el-icon> Buscando...
                 </span>
               </div>
-
               <el-row :gutter="15">
                 <el-col :span="6">
                   <el-form-item label="CEP">
@@ -154,7 +147,6 @@
                   </el-form-item>
                 </el-col>
               </el-row>
-
               <el-row :gutter="15">
                 <el-col :span="10">
                   <el-form-item label="Bairro">
@@ -173,12 +165,12 @@
                 </el-col>
               </el-row>
             </div>
-
           </el-form>
         </el-tab-pane>
       </el-tabs>
+
       <template #footer>
-        <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
+        <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
           <el-button @click="isLinkModalOpen = false">Cancelar</el-button>
           <el-button type="primary" @click="submitCRMAction" :loading="loadingSubmit" class="!font-bold">
             Confirmar e Vincular
@@ -208,6 +200,7 @@
           </div>
         </div>
       </template>
+
       <div class="flex gap-0 h-[700px] overflow-hidden -m-5 mt-0 bg-white">
         <div class="flex-1 flex flex-col border-r border-slate-100">
           <div class="px-6 pt-6 pb-2 shrink-0">
@@ -215,6 +208,7 @@
               class="w-full text-2xl font-bold text-slate-800 placeholder-slate-300 border-none outline-none bg-transparent resize-none focus:ring-0"
               placeholder="Título do chamado..." @input="autoResize"></textarea>
           </div>
+
           <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
             <el-tabs v-model="ticketActiveTab" class="px-6 custom-tabs h-full flex flex-col overflow-hidden">
               <el-tab-pane label="Descrição" name="main" class="h-full flex flex-col overflow-hidden">
@@ -233,6 +227,7 @@
                   <div class="flex-1 overflow-y-auto custom-scroll pr-1">
                     <el-input ref="descriptionInputRef" v-model="ticketForm.description" type="textarea" :rows="12"
                       placeholder="Descreva o problema detalhadamente..." class="w-full description-textarea" />
+
                     <div class="mt-8 mb-6">
                       <h4 class="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2"><el-icon>
                           <List />
@@ -256,6 +251,7 @@
                   </div>
                 </div>
               </el-tab-pane>
+
               <el-tab-pane label="Anexos" name="files" class="h-full overflow-y-auto custom-scroll pb-4">
                 <div class="mt-4">
                   <el-upload drag multiple action="#" :auto-upload="false" :on-change="handleAttachmentChange"
@@ -280,6 +276,7 @@
                   </div>
                 </div>
               </el-tab-pane>
+
               <el-tab-pane label="Histórico Chat" name="chat" class="h-full flex flex-col overflow-hidden">
                 <div
                   class="mt-4 flex-1 overflow-y-auto custom-scroll bg-slate-50 rounded-lg border border-slate-200 p-4 space-y-3 mb-4">
@@ -296,6 +293,7 @@
             </el-tabs>
           </div>
         </div>
+
         <div
           class="w-[300px] bg-slate-50 p-5 flex flex-col gap-6 border-l border-slate-200 h-full overflow-y-auto custom-scroll">
           <div>
@@ -308,6 +306,7 @@
                 label="Concluído" value="done" />
             </el-select>
           </div>
+
           <div>
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Responsáveis</span>
             <el-select v-model="ticketForm.assignees" multiple filterable placeholder="Adicionar..."
@@ -320,6 +319,7 @@
                 }}</el-avatar>
             </div>
           </div>
+
           <div>
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Prioridade</span>
             <div class="flex gap-1 w-full">
@@ -328,6 +328,7 @@
                 {{ p.charAt(0) }}</div>
             </div>
           </div>
+
           <div>
             <div class="flex justify-between items-center mb-2">
               <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tags</span>
@@ -356,9 +357,9 @@
                       </div>
                     </div>
                   </div>
-                  <div class="border-t pt-3 mt-2">
-                    <el-input v-model="newTagInput" size="small" placeholder="Nome..." class="mb-2" />
-                    <div class="flex justify-between items-center gap-2 mb-3">
+                  <div v-if="editingTagId || availableTags.length === 0" class="mb-4">
+                    <el-input v-model="newTagInput" size="small" placeholder="Nome da tag..." class="mb-2" />
+                    <div class="flex items-center gap-2 mb-3">
                       <el-select v-model="newTagType" size="small" style="width: 100px">
                         <el-option value="" label="Cinza" /><el-option value="success" label="Verde" /><el-option
                           value="warning" label="Laranja" /><el-option value="danger" label="Vermelho" />
@@ -377,6 +378,7 @@
                 @close="toggleTag(tagId)" size="small">{{ getTagName(tagId).name }}</el-tag>
             </div>
           </div>
+
           <div class="mt-auto pt-4 border-t border-slate-200">
             <el-button type="primary" size="large" class="w-full !font-bold shadow-lg shadow-blue-100"
               @click="submitTicket">SALVAR TICKET</el-button>
@@ -407,7 +409,6 @@
             <el-option label="Venda Concluída" value="sale" />
           </el-select>
         </el-form-item>
-
         <el-form-item label="Observações Obrigatórias" prop="description">
           <el-input v-model="finishForm.description" type="textarea" :rows="4"
             placeholder="Descreva o que foi resolvido ou o status final..." />
@@ -418,7 +419,6 @@
         <el-button type="danger" @click="submitFinish">Finalizar</el-button>
       </template>
     </el-dialog>
-
   </div>
 </template>
 
@@ -427,20 +427,17 @@ import { ref, reactive } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../store/chat.store';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
-import {
-  ChatLineSquare, Search, Plus, User, Close, Loading,
-  ChatDotRound, List, Delete, UploadFilled, Setting, Edit, Phone, Message
-} from '@element-plus/icons-vue';
+import { ChatLineSquare, Search, Plus, User, Close, Loading, ChatDotRound, List, Delete, UploadFilled, Setting, Edit, Phone, Message } from '@element-plus/icons-vue';
 import { ElMessage, type UploadFile, type FormInstance, type FormRules } from 'element-plus';
 
 import ContactList from '../components/ContactList.vue';
 import ChatArea from '../components/ChatArea.vue';
 import ChatProfile from '../components/ChatProfile.vue';
+import type { SendMessageDTO } from '../../domain/dto/chat.dto';
 
 const store = useChatStore();
 const customerStore = useCustomerStore();
 const { messages, selectedContact } = storeToRefs(store);
-
 const isTransferModalOpen = ref(false);
 const isFinishModalOpen = ref(false);
 const isLinkModalOpen = ref(false);
@@ -450,10 +447,11 @@ const ticketActiveTab = ref('main');
 const loadingSearch = ref(false);
 const loadingSubmit = ref(false);
 const transferDest = ref('');
-
-// --- Lógica de Finalização (Atualizada) ---
 const finishFormRef = ref<FormInstance>();
-const finishForm = reactive({ reason: '', description: '' });
+const finishForm = reactive({
+  reason: '',
+  description: ''
+});
 
 const finishRules = reactive<FormRules>({
   reason: [
@@ -473,7 +471,6 @@ const openFinishModal = () => {
 
 const submitFinish = async () => {
   if (!finishFormRef.value) return;
-
   await finishFormRef.value.validate((valid) => {
     if (valid) {
       if (selectedContact.value) {
@@ -486,7 +483,6 @@ const submitFinish = async () => {
     }
   });
 };
-// ------------------------------------------
 
 const descriptionInputRef = ref();
 const editingTagId = ref<string | null>(null);
@@ -494,62 +490,43 @@ const isTagPopoverOpen = ref(false);
 const newTagInput = ref('');
 const newTagType = ref('');
 
-const linkForm = reactive({ customerUuid: '' });
-const searchResults = ref<any[]>([]);
-
-// --- FORMULÁRIO DE NOVO CADASTRO EXPANDIDO ---
-const newCustomerForm = reactive({
-  type: 'PF',
-  document: '',
-  name: '',
-  tradeName: '', // Nome Fantasia
-  phone: '',
-  email: '',
-  zipCode: '',
-  street: '',
-  number: '',
-  neighborhood: '',
-  city: '',
-  state: ''
+interface ChecklistItem { text: string; done: boolean; }
+const ticketForm = reactive({
+  title: '', description: '', priority: 'Medium', column: 'todo',
+  assignees: [] as string[], tags: [] as string[], attachments: [] as any[],
+  checklist: [] as ChecklistItem[], contextMessages: [] as any[]
 });
 
-const isLoadingCep = ref(false);
+const teamMembers = ref([
+  { id: '1', name: 'Você' },
+  { id: '2', name: 'Atendente Alpha' },
+  { id: '3', name: 'Gestor' }
+]);
 
-const fetchCep = async () => {
-  const cleanCep = newCustomerForm.zipCode?.replace(/\D/g, '') || '';
-  if (cleanCep.length === 8) {
-    isLoadingCep.value = true;
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data = await response.json();
-      if (!data.erro) {
-        newCustomerForm.street = data.logradouro;
-        newCustomerForm.neighborhood = data.bairro;
-        newCustomerForm.city = data.localidade;
-        newCustomerForm.state = data.uf;
-        // Focar no número após preencher
-        setTimeout(() => document.getElementById('numero-input')?.focus(), 100);
-      } else {
-        ElMessage.warning('CEP não encontrado.');
-      }
-    } catch (error) {
-      console.error("Erro ao buscar CEP", error);
-      ElMessage.error('Erro ao buscar CEP.');
-    } finally {
-      isLoadingCep.value = false;
-    }
+const availableTags = ref([
+  { id: 't1', name: 'Financeiro', type: 'success' },
+  { id: 't2', name: 'Urgente', type: 'danger' }
+]);
+
+const openTicketModal = () => {
+  ticketForm.title = `Atendimento: ${selectedContact.value?.name}`;
+  ticketForm.description = '';
+  ticketForm.checklist = [];
+  ticketForm.assignees = ['1'];
+  ticketForm.tags = [];
+  ticketForm.attachments = [];
+  ticketActiveTab.value = 'main';
+  if (messages.value) {
+    ticketForm.contextMessages = messages.value.map((m: any) => ({ id: m.id, text: m.text, isMine: m.isMine, timestamp: m.timestamp }));
   }
+  isTicketModalOpen.value = true;
 };
 
-const teamMembers = ref([{ id: '1', name: 'Você' }, { id: '2', name: 'Atendente Alpha' }, { id: '3', name: 'Gestor' }]);
-const availableTags = ref([{ id: 't1', name: 'Financeiro', type: 'success' }, { id: 't2', name: 'Urgente', type: 'danger' }]);
-
-interface ChecklistItem { text: string; done: boolean; }
-const ticketForm = reactive({ title: '', description: '', priority: 'Medium', column: 'todo', assignees: [] as string[], tags: [] as string[], attachments: [] as any[], checklist: [] as ChecklistItem[], contextMessages: [] as any[] });
-
-const handleSelectContact = (contact: any) => store.selectContact(contact);
-const handleAssumirChat = (contactId: string) => store.assumirChat(contactId);
-const autoResize = (e: Event) => { const el = e.target as HTMLTextAreaElement; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
+const autoResize = (e: Event) => {
+  const el = e.target as HTMLTextAreaElement;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
 
 const insertFormat = (pre: string, pos: string) => {
   const txt = ticketForm.description;
@@ -570,25 +547,49 @@ const cancelEditTag = () => { editingTagId.value = null; newTagInput.value = '';
 const deleteTag = (id: string) => { availableTags.value = availableTags.value.filter(t => t.id !== id); ticketForm.tags = ticketForm.tags.filter(tid => tid !== id); };
 const getTagName = (id: string) => availableTags.value.find(t => t.id === id) || { name: '?', type: 'info' };
 const getTeamMemberName = (id: string) => teamMembers.value.find(u => u.id === id)?.name || '?';
-const getTeamMemberAvatar = (id: string) => null;
 const getStatusColor = (s: string) => ({ todo: 'bg-slate-400', doing: 'bg-blue-500', done: 'bg-green-500' }[s] || 'bg-slate-400');
 const getPriorityStyle = (p: string) => ({ Low: 'bg-slate-50 text-slate-500', Medium: 'bg-blue-50 text-blue-600', High: 'bg-orange-50 text-orange-600', Urgent: 'bg-red-50 text-red-600' }[p] || '');
-
-const openTicketModal = () => {
-  ticketForm.title = `Atendimento: ${selectedContact.value?.name}`;
-  ticketForm.description = '';
-  ticketForm.checklist = [];
-  ticketForm.assignees = ['1'];
-  ticketForm.tags = [];
-  ticketForm.attachments = [];
-  ticketActiveTab.value = 'main';
-  if (messages.value) ticketForm.contextMessages = messages.value.map(m => ({ id: m.id, text: m.text, isMine: m.isMine, timestamp: m.timestamp }));
-  isTicketModalOpen.value = true;
-};
-
 const addChecklistItem = () => ticketForm.checklist.push({ text: '', done: false });
 const removeChecklistItem = (idx: number) => ticketForm.checklist.splice(idx, 1);
-const submitTicket = () => { if (!ticketForm.title) return ElMessage.warning('Título obrigatório'); isTicketModalOpen.value = false; ElMessage.success('Ticket Criado!'); };
+
+const submitTicket = () => {
+  if (!ticketForm.title) return ElMessage.warning('Título obrigatório');
+  isTicketModalOpen.value = false;
+  ElMessage.success('Ticket Criado!');
+};
+
+const linkForm = reactive({ customerUuid: '' });
+const searchResults = ref<any[]>([]);
+const newCustomerForm = reactive({
+  type: 'PF', document: '', name: '', tradeName: '',
+  phone: '', email: '', zipCode: '', street: '', number: '',
+  neighborhood: '', city: '', state: ''
+});
+
+const isLoadingCep = ref(false);
+const fetchCep = async () => {
+  const cleanCep = newCustomerForm.zipCode?.replace(/\D/g, '') || '';
+  if (cleanCep.length === 8) {
+    isLoadingCep.value = true;
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await response.json();
+      if (!data.erro) {
+        newCustomerForm.street = data.logradouro;
+        newCustomerForm.neighborhood = data.bairro;
+        newCustomerForm.city = data.localidade;
+        newCustomerForm.state = data.uf;
+        setTimeout(() => document.getElementById('numero-input')?.focus(), 100);
+      } else {
+        ElMessage.warning('CEP não encontrado.');
+      }
+    } catch (error) {
+      ElMessage.error('Erro ao buscar CEP.');
+    } finally {
+      isLoadingCep.value = false;
+    }
+  }
+};
 
 const openLinkModal = () => {
   if (!selectedContact.value) return;
@@ -606,12 +607,19 @@ const openLinkModal = () => {
   isLinkModalOpen.value = true;
 };
 
-const remoteSearchCustomer = (q: string) => { if (q) { loadingSearch.value = true; setTimeout(() => { searchResults.value = [{ uuid: '1', name: 'Cliente Mock', document: '000' }]; loadingSearch.value = false; }, 500); } };
+const remoteSearchCustomer = (q: string) => {
+  if (q) {
+    loadingSearch.value = true;
+    setTimeout(() => {
+      searchResults.value = [{ uuid: '1', name: 'Cliente Mock', document: '000' }];
+      loadingSearch.value = false;
+    }, 500);
+  }
+};
 
 const submitCRMAction = async () => {
   if (!selectedContact.value) return;
   loadingSubmit.value = true;
-
   try {
     let customerId = linkForm.customerUuid;
     let customerName = '';
@@ -623,7 +631,6 @@ const submitCRMAction = async () => {
         loadingSubmit.value = false;
         return;
       }
-
       const newCustomerData = {
         name: newCustomerForm.name,
         companyName: newCustomerForm.type === 'PJ' ? newCustomerForm.name : '',
@@ -643,7 +650,6 @@ const submitCRMAction = async () => {
         website: '',
         complement: ''
       };
-
       await customerStore.createCustomer(newCustomerData as any);
       const created = customerStore.items[0];
       if (created) {
@@ -667,36 +673,65 @@ const submitCRMAction = async () => {
     } else {
       ElMessage.error('Erro ao identificar cliente criado.');
     }
-
   } catch (error) {
-    ElMessage.error('Erro ao vincular cliente.');
-    console.error(error);
+    ElMessage.error('Erro ao vincular.');
   } finally {
     loadingSubmit.value = false;
   }
 };
 
-const confirmTransfer = () => { store.transferirChat(selectedContact.value!.id); isTransferModalOpen.value = false; };
+const toggleProfile = () => { isProfileOpen.value = !isProfileOpen.value; };
+
+const handleSelectContact = (payload: any) => {
+  if (payload && payload.id) store.selectContact(payload);
+  else if (typeof payload === 'string') {
+    const foundContact = store.contacts.find(c => c.id === payload);
+    if (foundContact) store.selectContact(foundContact);
+  }
+};
+
+const handleAssumirChat = (contactId?: string) => {
+  if (contactId || selectedContact.value?.id) {
+    store.assumirChat(contactId || selectedContact.value!.id);
+  }
+};
+
+const handleSendMessage = (payload: Omit<SendMessageDTO, 'contactId'>) => {
+  if (!selectedContact.value) return;
+  const dto: SendMessageDTO = {
+    contactId: selectedContact.value.id,
+    text: payload.text,
+    type: payload.type,
+    file: payload.file
+  };
+  store.sendMessage(dto);
+};
+
+const confirmTransfer = () => {
+  if (!selectedContact.value || !transferDest.value) return;
+  store.transferirChat(selectedContact.value.id, transferDest.value);
+  ElMessage.success(`Chat transferido com sucesso!`);
+  isTransferModalOpen.value = false;
+  transferDest.value = '';
+};
 </script>
 
-<style>
+<style scoped>
 .custom-scroll::-webkit-scrollbar {
   width: 6px;
 }
 
-.custom-scroll::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+.custom-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
   border-radius: 4px;
 }
 
-.ticket-dialog .el-dialog__header {
-  margin-right: 0;
-  padding: 0;
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
-.ticket-dialog .el-dialog__body {
-  padding: 20px 25px !important;
-  background-color: #ffffff;
-  overflow: hidden;
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 </style>
