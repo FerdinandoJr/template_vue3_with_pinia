@@ -52,7 +52,6 @@ export function useCustomerDetails(customerId: string) {
         }
     };
 
-    // Removido o confirm() nativo daqui! A confirmação será visual na tela agora.
     const removeContact = async (index: number) => {
         if (!customer.value) return;
 

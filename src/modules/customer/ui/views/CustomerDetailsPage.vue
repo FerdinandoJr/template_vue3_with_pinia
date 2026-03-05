@@ -113,12 +113,12 @@
                             </h4>
                             <el-descriptions :column="2" border>
                                 <el-descriptions-item label="Razão Social">{{ customer.companyName
-                                }}</el-descriptions-item>
+                                    }}</el-descriptions-item>
                                 <el-descriptions-item label="Nome Fantasia">{{ customer.tradeName
-                                }}</el-descriptions-item>
+                                    }}</el-descriptions-item>
                                 <el-descriptions-item label="CNPJ / CPF">{{ customer.document }}</el-descriptions-item>
                                 <el-descriptions-item label="Contato Principal">{{ customer.name
-                                }}</el-descriptions-item>
+                                    }}</el-descriptions-item>
                             </el-descriptions>
                         </div>
 
@@ -209,7 +209,7 @@ const promptDelete = async () => {
         )
         if (customer.value?.uuid) {
             await store.deleteCustomer(customer.value.uuid)
-            router.push('/clientes')
+            router.push('/customer')
             ElMessage.success('Cliente excluído com sucesso')
         }
     } catch { }

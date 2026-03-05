@@ -83,7 +83,7 @@ const handleLogout = () => {
 const menuItems = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
   { label: 'Agenda', path: '/calendar', icon: Calendar },
-  { label: 'Clientes', path: '/clientes', icon: Users },
+  { label: 'Clientes', path: '/customer', icon: Users },
   { label: 'Chats', path: '/chats', icon: MessageSquare, badge: '12' },
   { label: 'Tickets', path: '/tickets', icon: Ticket },
   { label: 'Atendimento', path: '/atendimentos', icon: Phone },

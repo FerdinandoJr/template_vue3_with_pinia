@@ -3,8 +3,8 @@ import CustomerDetailsPage from "../views/CustomerDetailsPage.vue";
 
 export const customerRouter = [
     {
-        path: '/clientes',
-        name: 'Clientes',
+        path: '/customer',
+        name: 'Customer',
         component: CustomerPage,
         meta: {
             title: 'Meus Clientes',
@@ -12,7 +12,7 @@ export const customerRouter = [
         }
     },
     {
-        path: '/clientes/:id',
+        path: '/customer/:id',
         name: 'CustomerDetails',
         component: CustomerDetailsPage,
         meta: {

@@ -82,7 +82,7 @@ const handleSearch = (value: string) => {
 }
 
 const goToDetails = (uuid: string) => {
-  router.push(`/clientes/${uuid}`)
+  router.push(`/customer/${uuid}`)
 }
 
 const openCreateModal = () => {

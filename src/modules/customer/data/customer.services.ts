@@ -15,8 +15,8 @@ let mock: ICustomer[] = [
   {
     uuid: "1001",
     name: "Carlos Silva",
-    companyName: "Tech Solutions Desenvolvimento de Software LTDA", // Razão Social
-    tradeName: "Tech Solutions", // Nome Fantasia
+    companyName: "Tech Solutions Desenvolvimento de Software LTDA",
+    tradeName: "Tech Solutions",
     document: "12.345.678/0001-90",
     website: "www.techsolutions.com.br",
 
@@ -76,7 +76,7 @@ export const customerServices = {
           filtered = filtered.filter(c =>
             c.name.toLowerCase().includes(q) ||
             c.companyName.toLowerCase().includes(q) ||
-            (c.tradeName && c.tradeName.toLowerCase().includes(q)) || // Pesquisa por Nome Fantasia também
+            (c.tradeName && c.tradeName.toLowerCase().includes(q)) ||
             c.email.toLowerCase().includes(q)
           );
         }

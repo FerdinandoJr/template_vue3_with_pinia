@@ -81,7 +81,7 @@ const IconSettings = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width
 const menuItems = ref([
   { label: 'Dashboard', path: '/', icon: IconDashboard },
   { label: 'Agenda', path: '/calendar', icon: IconAgenda },
-  { label: 'Clientes', path: '/clientes', icon: IconUsers },
+  { label: 'Clientes', path: '/customer', icon: IconUsers },
   { label: 'Chats', path: '/chats', icon: IconChat, badge: '12' },
   { label: 'Atendimento', path: '/atendimentos', icon: IconPhone },
   { label: 'Relatórios', path: '/relatorios', icon: IconReport },
