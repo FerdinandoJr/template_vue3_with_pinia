@@ -1,11 +1,11 @@
 import { reactive, watch, computed, ref, onMounted } from 'vue';
-import { useAgendaStore } from '../store/agenda.store';
+import { useCalendarStore } from '../store/calendar.store';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import { cepService } from '@/core/services/cep.service';
 
 export function useEventModal(props: { isOpen: boolean, eventData?: any }, emit: any) {
-    const store = useAgendaStore();
+    const store = useCalendarStore();
 
     const ruleFormRef = ref<FormInstance>();
     const activeTab = ref('general');

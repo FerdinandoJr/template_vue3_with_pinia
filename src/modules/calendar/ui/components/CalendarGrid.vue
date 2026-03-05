@@ -50,8 +50,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useAgendaStore } from '../store/agenda.store';
-import type { IAgendaEvent } from '../../domain/entities/agenda';
+import { useCalendarStore } from '../store/calendar.store';
 
 interface ICalendarCell {
   date: string;
@@ -61,7 +60,7 @@ interface ICalendarCell {
 }
 
 const emit = defineEmits(['create-event', 'edit-event']);
-const store = useAgendaStore();
+const store = useCalendarStore();
 const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 const calendarCells = computed<ICalendarCell[]>(() => {

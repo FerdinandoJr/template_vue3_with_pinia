@@ -72,10 +72,10 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useAgendaStore } from '../store/agenda.store';
+import { useCalendarStore } from '../store/calendar.store';
 import { Search, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 
-const store = useAgendaStore();
+const store = useCalendarStore();
 const emit = defineEmits(['date-change']);
 
 const activeCollapse = ref(['people']);
@@ -115,7 +115,6 @@ const nextMonth = () => {
 </script>
 
 <style scoped>
-/* Reduzindo o vazamento (acoplamento global) definindo como SCOPED e usando variáveis nativas */
 .hidden-date-picker {
   width: 100%;
   max-width: 140px;
@@ -137,7 +136,6 @@ const nextMonth = () => {
   display: none;
 }
 
-/* Modificadores isolados com :deep */
 :deep(.mini-calendar .el-calendar__header) {
   display: none;
 }

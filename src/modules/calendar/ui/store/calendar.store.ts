@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
-import type { IAgendaEvent, IClosedDay } from "../../domain/entities/agenda";
-import { AgendaDomainService } from "../../domain/services/agenda.domain.service";
+import type { ICalendarEvent, IClosedDay } from "../../domain/entities/calendar";
+import { CalendarDomainService } from "../../domain/services/calendar.domain.service";
 import { generateUUIDv7 } from "@/util/helpers";
 import { useAuthStore } from "@/modules/auth/ui/store/auth.store";
 
@@ -20,10 +20,10 @@ const MOCK_USERS: ICalendarUser[] = [
 
 const GUEST_USER: ICalendarUser = { id: 'guest', name: 'Convidado', avatar: 'G', color: '#94a3b8' };
 
-export const useAgendaStore = defineStore('agenda', {
+export const useCalendarStore = defineStore('calendar', {
   state: () => {
     return {
-      allEvents: [] as IAgendaEvent[],
+      allEvents: [] as ICalendarEvent[],
       closedDays: [] as IClosedDay[],
       loading: false,
       selectedDate: new Date(),
@@ -45,7 +45,7 @@ export const useAgendaStore = defineStore('agenda', {
       return GUEST_USER;
     },
 
-    filteredEvents(state): IAgendaEvent[] {
+    filteredEvents(state): ICalendarEvent[] {
       const activeIds = state.selectedUserIds.length > 0
         ? state.selectedUserIds
         : [this.currentUser.id];
@@ -73,12 +73,12 @@ export const useAgendaStore = defineStore('agenda', {
         this.selectedUserIds.push(userId);
       }
     },
-    addEvent(event: Partial<IAgendaEvent> & { isRecurring?: boolean }) {
+    addEvent(event: Partial<ICalendarEvent> & { isRecurring?: boolean }) {
       const startTime = event.time || '09:00';
-      const endTime = event.endTime || AgendaDomainService.addOneHour(startTime);
+      const endTime = event.endTime || CalendarDomainService.addOneHour(startTime);
       const safeUser = this.currentUser || GUEST_USER;
 
-      const baseEvent: IAgendaEvent = {
+      const baseEvent: ICalendarEvent = {
         id: generateUUIDv7(),
         date: event.date || (new Date().toISOString().split('T')[0] ?? ''),
         time: startTime,
@@ -99,13 +99,13 @@ export const useAgendaStore = defineStore('agenda', {
       };
 
       if (event.isRecurring && event.recurrenceType) {
-        const recurringEvents = AgendaDomainService.generateRecurringEvents(baseEvent);
+        const recurringEvents = CalendarDomainService.generateRecurringEvents(baseEvent);
         this.allEvents.push(...recurringEvents);
       } else {
         this.allEvents.push(baseEvent);
       }
     },
-    updateEvent(event: IAgendaEvent) {
+    updateEvent(event: ICalendarEvent) {
       const index = this.allEvents.findIndex(e => e.id === event.id);
       if (index !== -1) {
         this.allEvents[index] = { ...event };

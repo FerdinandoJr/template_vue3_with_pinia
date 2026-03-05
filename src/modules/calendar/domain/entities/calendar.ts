@@ -1,8 +1,8 @@
-export interface IAgendaEvent {
+export interface ICalendarEvent {
   id: string;
   date: string;
   time: string;
-  endTime: string;
+  endTime?: string;
   title: string;
   client: string;
   assigneeInitials: string;

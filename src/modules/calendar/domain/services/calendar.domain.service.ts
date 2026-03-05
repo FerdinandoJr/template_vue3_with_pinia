@@ -1,7 +1,7 @@
-import type { IAgendaEvent } from '../entities/agenda';
+import type { ICalendarEvent } from '../entities/calendar';
 import { generateUUIDv7 } from '@/util/helpers';
 
-export const AgendaDomainService = {
+export const CalendarDomainService = {
 
     addOneHour(time: string): string {
         if (!time) return '10:00';
@@ -13,8 +13,8 @@ export const AgendaDomainService = {
         return date.toTimeString().substring(0, 5);
     },
 
-    generateRecurringEvents(baseEvent: IAgendaEvent): IAgendaEvent[] {
-        const eventsToAdd: IAgendaEvent[] = [];
+    generateRecurringEvents(baseEvent: ICalendarEvent): ICalendarEvent[] {
+        const eventsToAdd: ICalendarEvent[] = [];
         const startDate = new Date(baseEvent.date + 'T00:00:00');
 
         const limitDate = baseEvent.recurrenceEndDate

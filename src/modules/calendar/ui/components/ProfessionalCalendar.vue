@@ -12,21 +12,20 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import ptBrLocale from '@fullcalendar/core/locales/pt-br'
 import type { CalendarOptions } from '@fullcalendar/core'
-import { useAgendaStore } from '../store/agenda.store'
+import { useCalendarStore } from '../store/calendar.store'
 
 const props = defineProps<{
     currentView: string;
 }>();
 
 const emit = defineEmits(['create-event', 'edit-event', 'update-event-date', 'dates-set'])
-const store = useAgendaStore()
+const store = useCalendarStore()
 const calendarRef = ref<any>(null)
 
 defineExpose({
     getApi: () => calendarRef.value?.getApi()
 })
 
-// PREPARAÇÃO DOS DADOS MULTI-USUÁRIO
 const calendarEvents = computed(() => {
     return store.filteredEvents.map(evt => {
         const defaultOwner = { name: 'Desconhecido', avatar: '?', color: '#94a3b8' };
@@ -56,7 +55,6 @@ const calendarEvents = computed(() => {
     })
 })
 
-// CONFIGURAÇÕES VISUAIS DO FULLCALENDAR
 const calendarOptions = ref<CalendarOptions>({
     plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
@@ -71,11 +69,8 @@ const calendarOptions = ref<CalendarOptions>({
     allDaySlot: false,
     slotDuration: "00:15:00",
     slotLabelInterval: "01:00",
-
-    // --- MÁGICA PARA NÃO CONFUNDIR AS AGENDAS ---
-    slotEventOverlap: false, // Na visão Semana/Dia, eventos no mesmo horário ficam lado a lado
-    dayMaxEvents: 2,         // Na visão Mês, mostra no máximo 2 blocos e cria um link "+X eventos"
-
+    slotEventOverlap: false,
+    dayMaxEvents: 2,
     weekends: true,
     nowIndicator: true,
     editable: true,
@@ -85,7 +80,6 @@ const calendarOptions = ref<CalendarOptions>({
 
     events: calendarEvents.value as any,
 
-    // RENDERIZAÇÃO CUSTOMIZADA (CARD DO EVENTO)
     eventContent: function (arg) {
         const p = arg.event.extendedProps;
         const iconRecur = p.isRecurring ? '<span class="text-[9px] font-bold opacity-70 ml-1" title="Série Recorrente">↻</span>' : '';

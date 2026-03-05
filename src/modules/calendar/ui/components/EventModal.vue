@@ -119,7 +119,7 @@
                         <span class="text-xs font-bold text-slate-500 uppercase mb-2 block">Repetir nos dias:</span>
                         <el-checkbox-group v-model="form.recurrenceDays" size="small">
                             <el-checkbox-button v-for="(day, index) in weekDays" :key="index" :label="index">{{ day
-                            }}</el-checkbox-button>
+                                }}</el-checkbox-button>
                         </el-checkbox-group>
                     </div>
 
@@ -161,7 +161,6 @@
 
 <script setup lang="ts">
 import { Check, Calendar, User, UserFilled, Briefcase, InfoFilled, Location, Search } from '@element-plus/icons-vue';
-// Importação limpa! O componente só consome as funções
 import { useEventModal } from '../composables/useEventModal';
 
 const props = defineProps<{ isOpen: boolean; eventData?: any; }>();

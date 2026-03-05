@@ -1,10 +1,10 @@
-import AgendaPage from "../views/AgendaPage.vue";
+import CalendarPage from "../views/CalendarPage.vue";
 
 export default [
   {
-    path: '/agenda',
-    name: 'Agenda',
-    component: AgendaPage,
-    meta: { title: 'Agenda', subtitle: 'Calendário e compromissos' }
+    path: '/calendar',
+    name: 'Calendar',
+    component: CalendarPage,
+    meta: { title: 'Calendar', subtitle: 'Calendar and appointments' }
   }
 ];

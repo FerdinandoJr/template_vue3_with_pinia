@@ -50,15 +50,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useAgendaStore } from '../store/agenda.store';
+import { useCalendarStore } from '../store/calendar.store';
 import { Plus, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 import ProfessionalCalendar from '../components/ProfessionalCalendar.vue';
-import AgendaSidebar from '../components/AgendaSidebar.vue';
+import AgendaSidebar from '../components/CalendarSidebar.vue';
 import EventModal from '../components/EventModal.vue';
 
-const store = useAgendaStore();
+const store = useCalendarStore();
 const viewMode = ref('dayGridMonth');
 const currentTitle = ref('');
 const calendarComponentRef = ref<any>(null);
@@ -68,7 +68,6 @@ const currentEvent = ref<any>(null);
 
 const getApi = () => calendarComponentRef.value?.getApi();
 
-// Sincroniza a data do calendário principal com o mini calendário da sidebar
 const syncStoreDate = () => {
   const api = getApi();
   if (api) store.setSelectedDate(api.getDate());
@@ -141,7 +140,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Usando as variáveis CSS nativas do Element Plus sem invadir com !important generalizado */
 .custom-radio-group {
   --el-radio-button-checked-bg-color: #f1f5f9;
   --el-radio-button-checked-text-color: rgb(51, 126, 204);
@@ -154,14 +152,12 @@ onMounted(() => {
   font-weight: 600;
   color: #64748b;
   box-shadow: none !important;
-  /* Exceção do El Plus que injeta shadow no lugar da borda em radio-groups */
 }
 
 .custom-radio-group :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
   border-radius: 6px;
 }
 
-/* Classe unificada ao invés de forçar no template */
 .custom-primary-btn {
   border-radius: 0.75rem !important;
   padding-left: 1.5rem !important;
