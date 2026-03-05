@@ -31,7 +31,6 @@
 
       <el-collapse v-model="activeCollapse" class="modern-collapse border-none">
         <el-collapse-item name="people">
-
           <template #title>
             <div class="flex items-center text-[12px] font-bold px-5 tracking-wide uppercase w-full"
               style="color: rgb(51, 126, 204);">
@@ -65,10 +64,8 @@
               </span>
             </div>
           </div>
-
         </el-collapse-item>
       </el-collapse>
-
     </div>
   </div>
 </template>
@@ -81,7 +78,7 @@ import { Search, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 const store = useAgendaStore();
 const emit = defineEmits(['date-change']);
 
-const activeCollapse = ref([]);
+const activeCollapse = ref(['people']);
 const searchQuery = ref('');
 
 const filteredUsers = computed(() => {
@@ -117,45 +114,45 @@ const nextMonth = () => {
 };
 </script>
 
-<style>
-/* Reset do Date Picker */
+<style scoped>
+/* Reduzindo o vazamento (acoplamento global) definindo como SCOPED e usando variáveis nativas */
 .hidden-date-picker {
-  width: 100% !important;
+  width: 100%;
   max-width: 140px;
 }
 
-.hidden-date-picker .el-input__wrapper {
-  box-shadow: none !important;
-  background: transparent !important;
-  padding: 0 !important;
+:deep(.hidden-date-picker .el-input__wrapper) {
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
   cursor: pointer;
 }
 
-.hidden-date-picker .el-input__inner {
-  color: transparent !important;
+:deep(.hidden-date-picker .el-input__inner) {
+  color: transparent;
   cursor: pointer;
 }
 
-.hidden-date-picker .el-input__prefix {
+:deep(.hidden-date-picker .el-input__prefix) {
   display: none;
 }
 
-/* Estilo do Mini Calendário com AZUL EXATO */
-.mini-calendar .el-calendar__header {
+/* Modificadores isolados com :deep */
+:deep(.mini-calendar .el-calendar__header) {
   display: none;
 }
 
-.mini-calendar .el-calendar__body {
-  padding: 0 !important;
+:deep(.mini-calendar .el-calendar__body) {
+  padding: 0;
 }
 
-.mini-calendar .el-calendar-table td {
-  border: none !important;
-  padding: 2px !important;
+:deep(.mini-calendar .el-calendar-table td) {
+  border: none;
+  padding: 2px;
 }
 
-.mini-calendar .el-calendar-table .el-calendar-day {
-  height: 30px !important;
+:deep(.mini-calendar .el-calendar-table .el-calendar-day) {
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,57 +161,55 @@ const nextMonth = () => {
   transition: all 0.2s;
 }
 
-/* Dia Selecionado no Calendário Pequeno */
-.mini-calendar .el-calendar-table td.is-selected .el-calendar-day {
+:deep(.mini-calendar .el-calendar-table td.is-selected .el-calendar-day) {
   background-color: rgb(51, 126, 204);
   color: white;
   font-weight: bold;
   box-shadow: 0 4px 10px rgba(51, 126, 204, 0.3);
 }
 
-/* Bolinha do "Hoje" no Calendário Pequeno */
-.mini-calendar .el-calendar-table td.is-today .el-calendar-day {
+:deep(.mini-calendar .el-calendar-table td.is-today .el-calendar-day) {
   color: rgb(51, 126, 204);
   font-weight: 900;
   background-color: #f0f5ff;
 }
 
-.mini-calendar .el-calendar-table td .el-calendar-day:hover {
+:deep(.mini-calendar .el-calendar-table td .el-calendar-day:hover) {
   background-color: #f1f5f9;
 }
 
-/* Accordion e Busca */
-.modern-collapse .el-collapse-item__header {
-  border-bottom: none !important;
-  background: transparent !important;
+/* Accordion e Busca isolados no componente */
+:deep(.modern-collapse .el-collapse-item__header) {
+  border-bottom: none;
+  background: transparent;
   height: 48px;
 }
 
-.modern-collapse .el-collapse-item__wrap {
-  border-bottom: none !important;
-  background: transparent !important;
+:deep(.modern-collapse .el-collapse-item__wrap) {
+  border-bottom: none;
+  background: transparent;
 }
 
-.modern-search .el-input__wrapper {
-  box-shadow: 0 0 0 1px #e2e8f0 inset !important;
+:deep(.modern-search .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #e2e8f0 inset;
   border-radius: 8px;
   background: #f8fafc;
   padding: 2px 10px;
 }
 
-.modern-search .el-input__wrapper.is-focus {
-  box-shadow: 0 0 0 1px #4f46e5 inset !important;
+:deep(.modern-search .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #4f46e5 inset;
   background: #fff;
 }
 
-.custom-checkbox .el-checkbox__inner {
+:deep(.custom-checkbox .el-checkbox__inner) {
   width: 14px;
   height: 14px;
   border-radius: 4px;
   border-color: #cbd5e1;
 }
 
-.custom-checkbox.is-checked .el-checkbox__inner {
+:deep(.custom-checkbox.is-checked .el-checkbox__inner) {
   background-color: #4f46e5;
   border-color: #4f46e5;
 }

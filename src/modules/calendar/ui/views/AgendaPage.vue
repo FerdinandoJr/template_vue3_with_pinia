@@ -1,6 +1,5 @@
 <template>
   <div class="flex h-full w-full bg-[#f8fafc] overflow-hidden">
-
     <AgendaSidebar @date-change="handleDateChange" />
 
     <div
@@ -23,18 +22,17 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <el-radio-group v-model="viewMode" size="default">
+          <el-radio-group v-model="viewMode" size="default" class="custom-radio-group">
             <el-radio-button label="dayGridMonth">Mês</el-radio-button>
             <el-radio-button label="timeGridWeek">Semana</el-radio-button>
             <el-radio-button label="timeGridDay">Dia</el-radio-button>
           </el-radio-group>
 
-          <el-button type="primary" size="large"
-            class="!rounded-xl !px-6 !border-none shadow-md hover:brightness-110 transition-all active:scale-95"
-            style="background-color: rgb(51, 126, 204);" @click="openCreateModal()">
+          <el-button type="primary" size="large" class="custom-primary-btn" @click="openCreateModal()">
             <el-icon class="mr-2">
               <Plus />
-            </el-icon> Novo Agendamento
+            </el-icon>
+            Novo Agendamento
           </el-button>
         </div>
       </div>
@@ -47,7 +45,6 @@
 
     <EventModal :is-open="isModalOpen" :event-data="currentEvent" @close="isModalOpen = false" @save="handleSaveEvent"
       @delete="handleDeleteEvent" />
-
   </div>
 </template>
 
@@ -62,10 +59,10 @@ import AgendaSidebar from '../components/AgendaSidebar.vue';
 import EventModal from '../components/EventModal.vue';
 
 const store = useAgendaStore();
-
 const viewMode = ref('dayGridMonth');
 const currentTitle = ref('');
 const calendarComponentRef = ref<any>(null);
+
 const isModalOpen = ref(false);
 const currentEvent = ref<any>(null);
 
@@ -77,9 +74,26 @@ const syncStoreDate = () => {
   if (api) store.setSelectedDate(api.getDate());
 };
 
-const handlePrev = () => { if (getApi()) { getApi().prev(); syncStoreDate(); } };
-const handleNext = () => { if (getApi()) { getApi().next(); syncStoreDate(); } };
-const handleToday = () => { if (getApi()) { getApi().today(); syncStoreDate(); } };
+const handlePrev = () => {
+  if (getApi()) {
+    getApi().prev();
+    syncStoreDate();
+  }
+};
+
+const handleNext = () => {
+  if (getApi()) {
+    getApi().next();
+    syncStoreDate();
+  }
+};
+
+const handleToday = () => {
+  if (getApi()) {
+    getApi().today();
+    syncStoreDate();
+  }
+};
 
 const handleDatesSet = (title: string) => {
   currentTitle.value = title;
@@ -121,23 +135,48 @@ const handleDeleteEvent = async (id: string) => {
   } catch { }
 };
 
-onMounted(() => { store.fetchAgendaData(); });
+onMounted(() => {
+  store.fetchAgendaData();
+});
 </script>
 
 <style scoped>
-/* Estilo do Rádio (Mês/Semana/Dia) */
-:deep(.el-radio-button__inner) {
-  border: none !important;
-  background-color: transparent !important;
-  font-weight: 600;
-  color: #64748b;
+/* Usando as variáveis CSS nativas do Element Plus sem invadir com !important generalizado */
+.custom-radio-group {
+  --el-radio-button-checked-bg-color: #f1f5f9;
+  --el-radio-button-checked-text-color: rgb(51, 126, 204);
+  --el-radio-button-checked-border-color: transparent;
 }
 
-/* Aplicação da cor sugerida no item ativo do rádio (Mês) */
-:deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-  background-color: #f1f5f9 !important;
-  color: rgb(51, 126, 204) !important;
+.custom-radio-group :deep(.el-radio-button__inner) {
+  border: none;
+  background-color: transparent;
+  font-weight: 600;
+  color: #64748b;
   box-shadow: none !important;
-  border-radius: 6px !important;
+  /* Exceção do El Plus que injeta shadow no lugar da borda em radio-groups */
+}
+
+.custom-radio-group :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  border-radius: 6px;
+}
+
+/* Classe unificada ao invés de forçar no template */
+.custom-primary-btn {
+  border-radius: 0.75rem !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+  border: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background-color: rgb(51, 126, 204);
+  transition: all 0.2s;
+}
+
+.custom-primary-btn:hover {
+  filter: brightness(1.1);
+}
+
+.custom-primary-btn:active {
+  transform: scale(0.95);
 }
 </style>

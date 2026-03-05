@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import type { IAgendaEvent, IClosedDay } from "../../domain/entities/agenda";
 import { AgendaDomainService } from "../../domain/services/agenda.domain.service";
 import { generateUUIDv7 } from "@/util/helpers";
+import { useAuthStore } from "@/modules/auth/ui/store/auth.store";
 
 interface ICalendarUser {
   id: string;
@@ -21,29 +22,46 @@ const GUEST_USER: ICalendarUser = { id: 'guest', name: 'Convidado', avatar: 'G',
 
 export const useAgendaStore = defineStore('agenda', {
   state: () => {
-    const activeUser = MOCK_USERS[0] || GUEST_USER;
     return {
       allEvents: [] as IAgendaEvent[],
       closedDays: [] as IClosedDay[],
       loading: false,
       selectedDate: new Date(),
-      currentUser: activeUser as ICalendarUser,
       availableUsers: MOCK_USERS,
-      selectedUserIds: [activeUser.id] as string[]
+      selectedUserIds: [] as string[]
     };
   },
   getters: {
-    filteredEvents: (state) => {
-      return state.allEvents.filter(event => {
-        const currentUserId = state.currentUser?.id || 'unknown';
-        const ownerId = event.userId || currentUserId;
-        return state.selectedUserIds.includes(ownerId);
+    currentUser(): ICalendarUser {
+      const authStore = useAuthStore();
+      if (authStore.user) {
+        return {
+          id: authStore.user.id || 'u1',
+          name: authStore.user.name,
+          avatar: authStore.user.name.substring(0, 2).toUpperCase(),
+          color: '#4f46e5'
+        };
+      }
+      return GUEST_USER;
+    },
+
+    filteredEvents(state): IAgendaEvent[] {
+      const activeIds = state.selectedUserIds.length > 0
+        ? state.selectedUserIds
+        : [this.currentUser.id];
+
+      return state.allEvents.filter((event) => {
+        const ownerId = event.userId || this.currentUser.id;
+        return activeIds.includes(ownerId);
       });
     }
   },
   actions: {
     async fetchAgendaData() {
       this.allEvents = [];
+      if (this.selectedUserIds.length === 0 && this.currentUser.id !== 'guest') {
+        this.selectedUserIds.push(this.currentUser.id);
+      }
     },
     setSelectedDate(date: Date) {
       this.selectedDate = date;
