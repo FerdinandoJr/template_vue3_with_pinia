@@ -8,4 +8,5 @@ export interface ITicket {
   status: TicketStatus;
   priority: TicketPriority;
   createdAt: Date;
+  description?: string;
 }

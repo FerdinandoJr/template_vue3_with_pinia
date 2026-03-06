@@ -1,5 +1,6 @@
 <template>
   <div class="h-[calc(100vh-4rem)] bg-[#f8fafc] p-6 flex flex-col custom-scrollbar overflow-y-auto">
+
     <div class="flex justify-between items-center mb-6 shrink-0">
       <div>
         <h1 class="text-[28px] font-black text-slate-800 leading-none mb-1">Gestão de Tickets</h1>
@@ -21,8 +22,7 @@
     </div>
 
     <div v-else class="flex-1 flex flex-col min-h-0">
-      <TicketFilters class="shrink-0" :model-value="filter.status || 'all'"
-        @update:modelValue="store.setFilterStatus" />
+      <TicketFilters class="shrink-0" :filters="filter" @update:filters="store.applyFilters" />
 
       <TicketTable :tickets="items" @view="handleViewTicket" @edit="handleEditTicket" @delete="handleDeleteTicket" />
     </div>
@@ -38,10 +38,11 @@ import { storeToRefs } from 'pinia';
 import { ElMessage } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import { useTicketsStore } from '../store/tickets.store';
+
 import TicketStats from '../components/TicketStats.vue';
 import TicketFilters from '../components/TicketFilters.vue';
 import TicketTable from '../components/TicketTable.vue';
-import TicketModal from '../components/TicketModal.vue'; // <-- Importação do Modal restaurada
+import TicketModal from '../components/TicketModal.vue';
 import type { ITicket } from '../../domain/entities/Ticket';
 
 const store = useTicketsStore();
@@ -84,19 +85,18 @@ const handleSave = async (data: Partial<ITicket>) => {
       await store.updateTicket(currentTicket.value.id, data);
       ElMessage.success('Ticket atualizado com sucesso!');
     } else {
-      await store.createTicket(data as Omit<ITicket, 'id' | 'createdAt'>);
+      await store.createTicket(data as any);
       ElMessage.success('Ticket criado com sucesso!');
     }
-    closeModal();
+    isModalOpen.value = false;
   } catch (error) {
-    ElMessage.error('Ocorreu um erro ao salvar o ticket.');
+    ElMessage.error('Erro ao salvar o ticket.');
   }
 };
 
 const closeModal = () => {
   isModalOpen.value = false;
   currentTicket.value = null;
-  isViewing.value = false;
 };
 
 onMounted(() => {

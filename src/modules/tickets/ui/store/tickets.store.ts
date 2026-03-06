@@ -19,7 +19,12 @@ export const useTicketsStore = defineStore('tickets', {
     filteredTotal: 0,
     loading: false,
     _fetchPromise: null,
-    filter: { status: 'all' }
+    filter: {
+      status: 'all',
+      query: '',
+      customers: [],
+      dateRange: null
+    }
   }),
   getters: {
     openTickets: (state) => state.items.filter(t => t.status === TicketStatus.OPEN).length,
@@ -43,18 +48,22 @@ export const useTicketsStore = defineStore('tickets', {
       })();
       return this._fetchPromise;
     },
-    async setFilterStatus(status: TicketStatus | 'all') {
-      this.filter.status = status;
+
+    async applyFilters(newFilters: TicketFilter) {
+      this.filter = { ...this.filter, ...newFilters };
       await this.fetch();
     },
+
     async createTicket(data: Omit<ITicket, 'id' | 'createdAt'>) {
       await ticketServices.create(data);
       await this.fetch();
     },
+
     async updateTicket(id: number, data: Partial<ITicket>) {
       await ticketServices.update(id, data);
       await this.fetch();
     },
+
     async deleteTicket(id: number) {
       await ticketServices.delete(id);
       await this.fetch();
