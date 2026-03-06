@@ -18,8 +18,14 @@ export interface ICalendarEvent {
   recurrenceType?: 'daily' | 'weekly' | 'monthly';
   recurrenceEndDate?: string;
   recurrenceDays?: number[];
+
+  cep?: string;
+  address?: string;
 }
 
 export interface IClosedDay {
+  id: string;
   date: string;
+  reason?: string;
+  userId?: string;
 }

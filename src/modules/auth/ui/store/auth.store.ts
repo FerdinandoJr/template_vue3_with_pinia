@@ -19,14 +19,16 @@ export const useAuthStore = defineStore('auth', {
                 const response = await authServices.login(email, password);
                 this.token = response.token;
                 this.user = response.user;
-
-                // Persiste o login no navegador
                 localStorage.setItem('token', response.token);
                 localStorage.setItem('user', JSON.stringify(response.user));
 
                 return true;
-            } catch (err: any) {
-                this.error = err.message || 'Erro ao efetuar login';
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    this.error = err.message;
+                } else {
+                    this.error = 'Erro ao efetuar login';
+                }
                 return false;
             } finally {
                 this.loading = false;

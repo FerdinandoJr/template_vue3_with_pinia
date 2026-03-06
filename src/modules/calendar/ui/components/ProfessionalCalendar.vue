@@ -82,39 +82,70 @@ const calendarOptions = ref<CalendarOptions>({
 
     eventContent: function (arg) {
         const p = arg.event.extendedProps;
-        const iconRecur = p.isRecurring ? '<span class="text-[9px] font-bold opacity-70 ml-1" title="Série Recorrente">↻</span>' : '';
-        const iconDesc = p.hasDescription ? '<span class="text-[9px] opacity-70 ml-1" title="Ver detalhes">≣</span>' : '';
-        const timeDisplay = arg.timeText || '';
 
-        return {
-            html: `
-        <div class="flex flex-col px-2 py-1 leading-tight h-full w-full relative group overflow-hidden border-l-[3px] transition-all hover:brightness-95 hover:shadow-md"
-             style="border-left-color: ${p.ownerColor}; background-color: ${arg.event.backgroundColor}; color: ${arg.event.textColor}; border-radius: 3px;">
-          
-          <div class="flex justify-between items-center mb-0.5 pb-0.5 border-b border-black/5">
-             <span class="font-bold text-[10px] tracking-tight opacity-90">${timeDisplay}</span>
-             
-             <div class="flex items-center gap-0.5">
-                 ${iconRecur}
-                 <div class="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-sm ring-1 ring-white/50"
-                      style="background-color: ${p.ownerColor}" 
-                      title="Agendado por: ${p.ownerName}">
-                    ${p.ownerAvatar}
-                 </div>
-             </div>
-          </div>
-          
-          <div class="flex flex-col justify-center flex-1 min-h-0">
-              <div class="font-extrabold text-[10px] truncate leading-tight">
-                ${arg.event.title}
-              </div>
-              <div class="text-[9px] opacity-80 truncate flex items-center mt-0.5">
-                ${p.originalTitle || '(Sem título)'} ${iconDesc}
-              </div>
-          </div>
-        </div>
-      `
+        // 1. Criar o contentor principal
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex flex-col px-2 py-1 leading-tight h-full w-full relative group overflow-hidden border-l-[3px] transition-all hover:brightness-95 hover:shadow-md';
+        wrapper.style.borderLeftColor = p.ownerColor;
+        wrapper.style.backgroundColor = arg.event.backgroundColor;
+        wrapper.style.color = arg.event.textColor;
+        wrapper.style.borderRadius = '3px';
+
+        // 2. Header (Hora e Avatar)
+        const header = document.createElement('div');
+        header.className = 'flex justify-between items-center mb-0.5 pb-0.5 border-b border-black/5';
+
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'font-bold text-[10px] tracking-tight opacity-90';
+        timeSpan.textContent = arg.timeText || '';
+        header.appendChild(timeSpan);
+
+        const iconsDiv = document.createElement('div');
+        iconsDiv.className = 'flex items-center gap-0.5';
+
+        if (p.isRecurring) {
+            const recurSpan = document.createElement('span');
+            recurSpan.className = 'text-[9px] font-bold opacity-70 ml-1';
+            recurSpan.title = 'Série Recorrente';
+            recurSpan.textContent = '↻';
+            iconsDiv.appendChild(recurSpan);
         }
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-sm ring-1 ring-white/50';
+        avatarDiv.style.backgroundColor = p.ownerColor;
+        avatarDiv.title = `Agendado por: ${p.ownerName}`;
+        avatarDiv.textContent = p.ownerAvatar;
+        iconsDiv.appendChild(avatarDiv);
+
+        header.appendChild(iconsDiv);
+        wrapper.appendChild(header);
+
+        // 3. Body (Título do Cliente e Descrição)
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'flex flex-col justify-center flex-1 min-h-0';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'font-extrabold text-[10px] truncate leading-tight';
+        titleDiv.textContent = arg.event.title;
+        bodyDiv.appendChild(titleDiv);
+
+        const descDiv = document.createElement('div');
+        descDiv.className = 'text-[9px] opacity-80 truncate flex items-center mt-0.5';
+        descDiv.textContent = p.originalTitle || '(Sem título)';
+
+        if (p.hasDescription) {
+            const descIcon = document.createElement('span');
+            descIcon.className = 'text-[9px] opacity-70 ml-1';
+            descIcon.title = 'Ver detalhes';
+            descIcon.textContent = '≣';
+            descDiv.appendChild(descIcon);
+        }
+
+        bodyDiv.appendChild(descDiv);
+        wrapper.appendChild(bodyDiv);
+
+        return { domNodes: [wrapper] };
     },
 
     select: (info) => {

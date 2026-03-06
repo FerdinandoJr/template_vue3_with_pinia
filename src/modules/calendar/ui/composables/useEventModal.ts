@@ -3,23 +3,40 @@ import { useCalendarStore } from '../store/calendar.store';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import { cepService } from '@/core/services/cep.service';
+import type { ICalendarEvent } from '../../domain/entities/calendar';
 
-export function useEventModal(props: { isOpen: boolean, eventData?: any }, emit: any) {
+export function useEventModal(
+    props: { isOpen: boolean, eventData?: Partial<ICalendarEvent> },
+    emit: (event: 'close' | 'save' | 'delete', ...args: any[]) => void
+) {
     const store = useCalendarStore();
-
     const ruleFormRef = ref<FormInstance>();
     const activeTab = ref('general');
     const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
     const isEditing = computed(() => !!props.eventData?.id);
 
     const clientOptions = ref<{ id: string, name: string }[]>([]);
     const loadingClients = ref(false);
 
     const form = reactive({
-        id: '', title: '', userId: '', client: '', date: '', time: '', endTime: '',
-        description: '', cep: '', address: '', createdBy: '', colorClass: 'text-blue-600',
-        dotClass: 'bg-blue-400', isRecurring: false, recurrenceType: 'weekly',
-        recurrenceDays: [] as number[], recurrenceEndDate: ''
+        id: '',
+        title: '',
+        userId: '',
+        client: '',
+        date: '',
+        time: '',
+        endTime: '',
+        description: '',
+        cep: '',
+        address: '',
+        createdBy: '',
+        colorClass: 'text-blue-600',
+        dotClass: 'bg-blue-400',
+        isRecurring: false,
+        recurrenceType: 'weekly',
+        recurrenceDays: [] as number[],
+        recurrenceEndDate: ''
     });
 
     const rules = reactive<FormRules>({
@@ -60,7 +77,8 @@ export function useEventModal(props: { isOpen: boolean, eventData?: any }, emit:
         const parts = newTime.split(':');
         const h = Number(parts[0] || '0');
         const m = Number(parts[1] || '0');
-        const d = new Date(); d.setHours(h + 1, m);
+        const d = new Date();
+        d.setHours(h + 1, m);
         form.endTime = d.toTimeString().substring(0, 5);
     };
 
@@ -98,7 +116,8 @@ export function useEventModal(props: { isOpen: boolean, eventData?: any }, emit:
                         const parts = props.eventData.time.split(':');
                         const h = Number(parts[0] || '0');
                         const m = Number(parts[1] || '0');
-                        const d = new Date(); d.setHours(h + 1, m);
+                        const d = new Date();
+                        d.setHours(h + 1, m);
                         return d.toTimeString().substring(0, 5);
                     })() : '10:00'),
                     description: props.eventData.description || '',
@@ -110,12 +129,17 @@ export function useEventModal(props: { isOpen: boolean, eventData?: any }, emit:
                     recurrenceType: props.eventData.recurrenceType || 'weekly',
                     recurrenceDays: props.eventData.recurrenceDays || [new Date(props.eventData.date || new Date()).getDay()]
                 });
+
                 if (!form.endTime && form.time) handleStartTimeChange(form.time);
             }
         }
     });
 
-    const selectType = (type: any) => { form.dotClass = type.dot; form.colorClass = type.text; };
+    const selectType = (type: any) => {
+        form.dotClass = type.dot;
+        form.colorClass = type.text;
+    };
+
     const handleClose = () => emit('close');
 
     const submitForm = async () => {
@@ -129,8 +153,21 @@ export function useEventModal(props: { isOpen: boolean, eventData?: any }, emit:
     };
 
     return {
-        store, ruleFormRef, activeTab, weekDays, isEditing, clientOptions,
-        loadingClients, form, rules, eventTypes, formatAndSearchCep,
-        handleStartTimeChange, searchClients, selectType, handleClose, submitForm
+        store,
+        ruleFormRef,
+        activeTab,
+        weekDays,
+        isEditing,
+        clientOptions,
+        loadingClients,
+        form,
+        rules,
+        eventTypes,
+        formatAndSearchCep,
+        handleStartTimeChange,
+        searchClients,
+        selectType,
+        handleClose,
+        submitForm
     };
 }
