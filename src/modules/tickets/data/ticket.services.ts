@@ -1,4 +1,4 @@
-import type { ITicket } from "../domain/entities/ticket";
+import type { ITicket } from "../domain/entities/Ticket";
 import { TicketStatus } from "../domain/valueObjects/ticket-status.enum";
 import { TicketPriority } from "../domain/valueObjects/ticket-priority.enum";
 
@@ -26,7 +26,7 @@ export const ticketServices = {
     return new Promise((resolve) => {
       setTimeout(() => {
         let filtered = [...mock];
-        
+
         if (filter.status && filter.status !== 'all') {
           filtered = filtered.filter(t => t.status === filter.status);
         }

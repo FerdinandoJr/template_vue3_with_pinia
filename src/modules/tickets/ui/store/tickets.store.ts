@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { ITicket } from "../../domain/entities/ticket";
+import type { ITicket } from "../../domain/entities/Ticket";
 import { ticketServices, type TicketFilter } from "../../data/ticket.services";
 import { TicketStatus } from "../../domain/valueObjects/ticket-status.enum";
 
@@ -45,7 +45,7 @@ export const useTicketsStore = defineStore('tickets', {
 
       return this._fetchPromise;
     },
-    
+
     async setFilterStatus(status: TicketStatus | 'all') {
       this.filter.status = status;
       await this.fetch();

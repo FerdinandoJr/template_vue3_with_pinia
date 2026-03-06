@@ -8,7 +8,8 @@
             <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Título</th>
             <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Cliente</th>
             <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Prioridade</th>
+            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Prioridade
+            </th>
             <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Criado em</th>
             <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Ações</th>
           </tr>
@@ -26,8 +27,10 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ formatDate(ticket.createdAt) }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
-              <button @click="$emit('view', ticket.id)" class="text-blue-600 hover:text-blue-800 font-medium mr-3">Ver</button>
-              <button @click="$emit('edit', ticket.id)" class="text-slate-600 hover:text-slate-800 font-medium">Editar</button>
+              <button @click="$emit('view', ticket.id)"
+                class="text-blue-600 hover:text-blue-800 font-medium mr-3">Ver</button>
+              <button @click="$emit('edit', ticket.id)"
+                class="text-slate-600 hover:text-slate-800 font-medium">Editar</button>
             </td>
           </tr>
         </tbody>
@@ -37,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ITicket } from '../../domain/entities/ticket';
+import type { ITicket } from '../../domain/entities/Ticket';
 
 defineProps<{
   tickets: ITicket[];

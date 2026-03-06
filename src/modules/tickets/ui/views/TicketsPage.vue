@@ -2,25 +2,14 @@
   <div v-if="loading" class="flex justify-center p-10">
     <span class="text-slate-500 animate-pulse">Carregando tickets...</span>
   </div>
-  
+
   <div v-else>
-    <TicketStats 
-      :total="total"
-      :open="store.openTickets"
-      :in-progress="store.inProgressTickets"
-      :resolved="store.resolvedTickets"
-    />
+    <TicketStats :total="total" :open="store.openTickets" :in-progress="store.inProgressTickets"
+      :resolved="store.resolvedTickets" />
 
-    <TicketFilters 
-      :model-value="filter.status || 'all'" 
-      @update:model-value="store.setFilterStatus" 
-    />
+    <TicketFilters :model-value="filter.status || 'all'" @update:model-value="store.setFilterStatus" />
 
-    <TicketTable 
-      :tickets="items" 
-      @view="handleViewTicket"
-      @edit="handleEditTicket"
-    />
+    <TicketTable :tickets="items" @view="handleViewTicket" @edit="handleEditTicket" />
   </div>
 </template>
 
