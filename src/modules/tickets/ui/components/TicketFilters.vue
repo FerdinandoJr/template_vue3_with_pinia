@@ -1,18 +1,10 @@
 <template>
-  <div class="flex gap-2 mb-6">
-    <button 
-      v-for="option in options" 
-      :key="option.value"
-      @click="$emit('update:modelValue', option.value)"
-      :class="[
-        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-        modelValue === option.value 
-          ? 'bg-slate-800 text-white' 
-          : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-      ]"
-    >
-      {{ option.label }}
-    </button>
+  <div class="mb-6">
+    <el-radio-group :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" size="large">
+      <el-radio-button v-for="option in options" :key="option.value" :value="option.value">
+        {{ option.label }}
+      </el-radio-button>
+    </el-radio-group>
   </div>
 </template>
 

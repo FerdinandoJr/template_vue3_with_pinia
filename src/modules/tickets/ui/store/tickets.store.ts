@@ -29,7 +29,6 @@ export const useTicketsStore = defineStore('tickets', {
   actions: {
     async fetch() {
       this.loading = true;
-
       this._fetchPromise = (async () => {
         try {
           const { total, filteredTotal, items } = await ticketServices.list(this.filter);
@@ -42,12 +41,22 @@ export const useTicketsStore = defineStore('tickets', {
           this.loading = false;
         }
       })();
-
       return this._fetchPromise;
     },
-
     async setFilterStatus(status: TicketStatus | 'all') {
       this.filter.status = status;
+      await this.fetch();
+    },
+    async createTicket(data: Omit<ITicket, 'id' | 'createdAt'>) {
+      await ticketServices.create(data);
+      await this.fetch();
+    },
+    async updateTicket(id: number, data: Partial<ITicket>) {
+      await ticketServices.update(id, data);
+      await this.fetch();
+    },
+    async deleteTicket(id: number) {
+      await ticketServices.delete(id);
       await this.fetch();
     }
   }

@@ -1,81 +1,120 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full">
-        <thead class="bg-slate-50 border-b border-slate-200">
-          <tr>
-            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">ID</th>
-            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Título</th>
-            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Cliente</th>
-            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Prioridade
-            </th>
-            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Criado em</th>
-            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Ações</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-200">
-          <tr v-for="ticket in tickets" :key="ticket.id" class="hover:bg-slate-50 transition-colors">
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">#{{ ticket.id }}</td>
-            <td class="px-6 py-4 text-sm text-slate-900">{{ ticket.title }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ ticket.customer }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span :class="getStatusClass(ticket.status)">{{ getStatusLabel(ticket.status) }}</span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span :class="getPriorityClass(ticket.priority)">{{ getPriorityLabel(ticket.priority) }}</span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{{ formatDate(ticket.createdAt) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm">
-              <button @click="$emit('view', ticket.id)"
-                class="text-blue-600 hover:text-blue-800 font-medium mr-3">Ver</button>
-              <button @click="$emit('edit', ticket.id)"
-                class="text-slate-600 hover:text-slate-800 font-medium">Editar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
+        <el-table :data="tickets" style="width: 100%; height: 100%;" class="custom-table" highlight-current-row>
+
+            <el-table-column prop="id" label="ID" width="100" align="center">
+                <template #default="scope">
+                    <span class="font-bold text-slate-800">#{{ scope.row.id }}</span>
+                </template>
+            </el-table-column>
+
+            <el-table-column prop="title" label="Título do Ticket" min-width="250">
+                <template #default="scope">
+                    <span class="font-bold text-slate-800">{{ scope.row.title }}</span>
+                </template>
+            </el-table-column>
+
+            <el-table-column prop="customer" label="Cliente" min-width="200">
+                <template #default="scope">
+                    <span class="font-medium text-slate-600">{{ scope.row.customer }}</span>
+                </template>
+            </el-table-column>
+
+            <el-table-column prop="status" label="Status" width="150">
+                <template #default="scope">
+                    <el-tag :type="getStatusType(scope.row.status)" effect="light" round>
+                        {{ getStatusLabel(scope.row.status) }}
+                    </el-tag>
+                </template>
+            </el-table-column>
+
+            <el-table-column prop="priority" label="Prioridade" width="130">
+                <template #default="scope">
+                    <el-tag :type="getPriorityType(scope.row.priority)" effect="plain" size="small">
+                        {{ getPriorityLabel(scope.row.priority) }}
+                    </el-tag>
+                </template>
+            </el-table-column>
+
+            <el-table-column label="Ações" width="160" align="right">
+                <template #default="scope">
+                    <div class="flex justify-end gap-2 pr-2">
+                        <el-button type="primary" circle plain size="small" @click="$emit('view', scope.row)"
+                            title="Visualizar">
+                            <el-icon>
+                                <View />
+                            </el-icon>
+                        </el-button>
+                        <el-button type="primary" circle plain size="small" @click="$emit('edit', scope.row)"
+                            title="Editar">
+                            <el-icon>
+                                <Edit />
+                            </el-icon>
+                        </el-button>
+                        <el-popconfirm title="Tem certeza que deseja excluir?" confirm-button-text="Sim"
+                            cancel-button-text="Não" @confirm="$emit('delete', scope.row.id)">
+                            <template #reference>
+                                <el-button type="danger" circle plain size="small" title="Excluir">
+                                    <el-icon>
+                                        <Delete />
+                                    </el-icon>
+                                </el-button>
+                            </template>
+                        </el-popconfirm>
+                    </div>
+                </template>
+            </el-table-column>
+
+            <template #empty>
+                <div class="py-12 text-center text-slate-500">
+                    <p>Nenhum ticket encontrado.</p>
+                </div>
+            </template>
+        </el-table>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
+import { View, Edit, Delete } from '@element-plus/icons-vue';
 import type { ITicket } from '../../domain/entities/Ticket';
 
 defineProps<{
-  tickets: ITicket[];
+    tickets: ITicket[];
 }>();
 
-defineEmits(['view', 'edit']);
+defineEmits<{
+    (e: 'view', ticket: ITicket): void;
+    (e: 'edit', ticket: ITicket): void;
+    (e: 'delete', id: number): void;
+}>();
 
-const formatDate = (date: Date) => new Date(date).toLocaleDateString('pt-BR');
-
-const getStatusClass = (status: string) => {
-  const map: Record<string, string> = {
-    'open': 'px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800',
-    'in-progress': 'px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800',
-    'resolved': 'px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800'
-  };
-  return map[status] || '';
+const getStatusType = (status: string) => {
+    const map: Record<string, string> = { 'open': 'warning', 'in-progress': 'primary', 'resolved': 'success' };
+    return map[status] || 'info';
 };
 
 const getStatusLabel = (status: string) => {
-  const map: Record<string, string> = { 'open': 'Aberto', 'in-progress': 'Em Andamento', 'resolved': 'Resolvido' };
-  return map[status] || status;
+    const map: Record<string, string> = { 'open': 'Aberto', 'in-progress': 'Em Andamento', 'resolved': 'Resolvido' };
+    return map[status] || status;
 };
 
-const getPriorityClass = (priority: string) => {
-  const map: Record<string, string> = {
-    'low': 'px-3 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700',
-    'medium': 'px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700',
-    'high': 'px-3 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-700',
-    'urgent': 'px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700'
-  };
-  return map[priority] || '';
+const getPriorityType = (priority: string) => {
+    const map: Record<string, string> = { 'low': 'info', 'medium': 'primary', 'high': 'warning', 'urgent': 'danger' };
+    return map[priority] || 'info';
 };
 
 const getPriorityLabel = (priority: string) => {
-  const map: Record<string, string> = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
-  return map[priority] || priority;
+    const map: Record<string, string> = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
+    return map[priority] || priority;
 };
 </script>
+
+<style scoped>
+:deep(.el-table th.el-table__cell) {
+    background-color: #f8fafc;
+    color: #64748b;
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 800;
+}
+</style>
