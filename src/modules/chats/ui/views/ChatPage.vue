@@ -81,7 +81,7 @@ import ContactList from '../components/ContactList.vue';
 import ChatArea from '../components/ChatArea.vue';
 import ChatProfile from '../components/ChatProfile.vue';
 import LinkCustomerModal from '../components/modals/LinkCustomerModal.vue';
-import TicketModal from '@/modules/tickets/ui/components/TicketModal.vue'; // <-- COMPONENTE IMPORTADO!
+import TicketModal from '@/modules/tickets/ui/components/TicketModal.vue';
 
 import type { SendMessageDTO } from '../../domain/dto/chat.dto';
 
@@ -172,11 +172,8 @@ const toggleProfile = () => {
   isProfileOpen.value = !isProfileOpen.value;
 };
 
-// ==========================================
-// --- NOVA LÓGICA DE TICKET (DESACOPLADA) --
-// ==========================================
 const isTicketModalOpen = ref(false);
-const ticketInitialData = ref<any>(null); // Injeta dados dinâmicos da conversa para a criação
+const ticketInitialData = ref<any>(null);
 
 const openTicketModal = () => {
   if (!selectedContact.value) return;

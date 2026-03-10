@@ -1,5 +1,6 @@
 <template>
     <div class="shrink-0 flex flex-col bg-[#f0f2f5] relative border-t border-slate-200">
+
         <div v-if="attachedFile"
             class="absolute bottom-[100%] left-0 w-full p-3 bg-slate-50 border-t border-slate-200 flex items-center gap-3 shadow-md z-20">
             <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded flex items-center justify-center shrink-0">
@@ -37,6 +38,7 @@
 
             <div
                 :class="['px-4 py-3 shrink-0 flex items-center gap-2 transition-colors border-t', isInternalNote ? 'bg-amber-50 border-amber-200' : 'bg-[#f0f2f5] border-slate-200']">
+
                 <el-popover placement="top-start" :width="200" trigger="click">
                     <template #reference>
                         <el-button circle :type="isInternalNote ? 'warning' : 'info'" plain>
@@ -45,14 +47,17 @@
                             </el-icon>
                         </el-button>
                     </template>
+
                     <div class="flex flex-col gap-1">
-                        <el-button text class="!justify-start" @click="triggerDocUpload">
-                            <el-icon class="mr-2">
+                        <el-button text @click="triggerDocUpload"
+                            style="display: flex; align-items: center; justify-content: flex-start; gap: 8px; width: 100%; margin-left: 0;">
+                            <el-icon>
                                 <Document />
                             </el-icon> Documento
                         </el-button>
-                        <el-button text class="!justify-start" @click="triggerImageUpload">
-                            <el-icon class="mr-2">
+                        <el-button text @click="triggerImageUpload"
+                            style="display: flex; align-items: center; justify-content: flex-start; gap: 8px; width: 100%; margin-left: 0;">
+                            <el-icon>
                                 <Picture />
                             </el-icon> Fotos e Vídeos
                         </el-button>
@@ -63,7 +68,7 @@
                 <input type="file" ref="imageInput" class="hidden" accept="image/*,video/*"
                     @change="handleFileUpload" />
 
-                <el-input v-model="text" @keyup.enter="handleSend"
+                <el-input v-model="text" @keydown.enter.prevent="handleSend"
                     :placeholder="isInternalNote ? 'Digite uma nota interna...' : 'Digite uma mensagem...'"
                     type="textarea" :autosize="{ minRows: 1, maxRows: 4 }" resize="none" class="flex-1"
                     :input-style="{ backgroundColor: isInternalNote ? '#fffbeb' : '#ffffff', borderRadius: '8px' }" />
@@ -85,8 +90,9 @@ import { Plus, Document, Close, Picture, Position } from '@element-plus/icons-vu
 import { MessageType } from '../../../domain/valueObjects/chat-enums';
 
 defineProps<{ contactStatus?: string; }>();
-
-const emit = defineEmits<{ (e: 'send', text: string, type: MessageType, file?: File): void; }>();
+const emit = defineEmits<{
+    (e: 'send', text: string, type: MessageType, file?: File): void;
+}>();
 
 const text = ref('');
 const isInternalNote = ref(false);
@@ -106,7 +112,9 @@ const handleFileUpload = (event: Event) => {
     }
 };
 
-const clearAttachment = () => { attachedFile.value = null; };
+const clearAttachment = () => {
+    attachedFile.value = null;
+};
 
 const handleSend = () => {
     if (text.value.trim() || attachedFile.value) {
@@ -117,3 +125,14 @@ const handleSend = () => {
     }
 };
 </script>
+
+<style scoped>
+:deep(.el-textarea__inner) {
+    box-shadow: 0 0 0 1px #e2e8f0 inset;
+    transition: all 0.2s ease;
+}
+
+:deep(.el-textarea__inner:focus) {
+    box-shadow: 0 0 0 2px #3b82f6 inset;
+}
+</style>

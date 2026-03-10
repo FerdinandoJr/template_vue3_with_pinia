@@ -14,27 +14,16 @@ export const useChatStore = defineStore('chat', () => {
 
   const contacts = ref<IContact[]>([
     {
-      id: '1', name: 'Fernanda Lima', company: 'Tech Solutions', avatar: 'https://i.pravatar.cc/150?u=fernanda',
-      channel: ChatChannel.WHATSAPP, lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42',
-      status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_55',
-      unreadCount: 1, email: 'fernanda@tech.com', phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP']
+      id: '1', name: 'Fernanda Lima', company: 'Tech Solutions', avatar: 'https://i.pravatar.cc/150?u=fernanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_55', unreadCount: 1, email: 'fernanda@tech.com', phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP']
     },
     {
-      id: '2', name: 'Roberto Carlos', company: 'Logística S.A', avatar: 'https://i.pravatar.cc/150?u=roberto',
-      channel: ChatChannel.WHATSAPP, lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15',
-      status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_102',
-      unreadCount: 0, email: 'roberto@log.com', phone: '(11) 97777-6666', tags: ['Suporte']
+      id: '2', name: 'Roberto Carlos', company: 'Logística S.A', avatar: 'https://i.pravatar.cc/150?u=roberto', channel: ChatChannel.WHATSAPP, lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_102', unreadCount: 0, email: 'roberto@log.com', phone: '(11) 97777-6666', tags: ['Suporte']
     },
     {
-      id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil', avatar: 'https://i.pravatar.cc/150?u=amanda',
-      channel: ChatChannel.WHATSAPP, lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem',
-      status: 'queued', serviceId: null, agentId: null, customerId: null,
-      unreadCount: 0, email: 'amanda@eco.com', phone: '(11) 98888-7777', tags: ['Dúvida']
+      id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil', avatar: 'https://i.pravatar.cc/150?u=amanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem', status: 'queued', serviceId: null, agentId: null, customerId: null, unreadCount: 0, email: 'amanda@eco.com', phone: '(11) 98888-7777', tags: ['Dúvida']
     },
     {
-      id: 'novo-numero-123', name: '+55 (47) 99123-4567', company: '', phone: '+55 (47) 99123-4567', avatar: '',
-      status: 'queued', channel: ChatChannel.WHATSAPP, lastMessage: 'Olá, gostaria de um orçamento', lastMessageTime: '09:00',
-      serviceId: null, agentId: null, customerId: null, unreadCount: 1, email: '', tags: []
+      id: 'novo-numero-123', name: '+55 (47) 99123-4567', company: '', phone: '+55 (47) 99123-4567', avatar: '', status: 'queued', channel: ChatChannel.WHATSAPP, lastMessage: 'Olá, gostaria de um orçamento', lastMessageTime: '09:00', serviceId: null, agentId: null, customerId: null, unreadCount: 1, email: '', tags: []
     }
   ]);
 
@@ -68,10 +57,7 @@ export const useChatStore = defineStore('chat', () => {
         break;
       case ChatSortOption.LONGEST_WAIT:
       case ChatSortOption.SHORTEST_WAIT:
-        sortedList.sort((a, b) => currentSort.value === ChatSortOption.LONGEST_WAIT
-          ? getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime)
-          : getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime)
-        );
+        sortedList.sort((a, b) => currentSort.value === ChatSortOption.LONGEST_WAIT ? getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime) : getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime));
         break;
       default:
         sortedList.sort((a, b) => getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime));
@@ -84,10 +70,27 @@ export const useChatStore = defineStore('chat', () => {
   const filaCount = computed(() => contacts.value.filter(c => c.status === 'queued').length);
 
   function selectContact(contact: IContact) {
+    const now = Date.now();
+
+    if (activeContactId.value && activeContactId.value !== contact.id) {
+      const previous = contacts.value.find(c => c.id === activeContactId.value);
+      if (previous && previous.lastActiveAt) {
+        previous.accumulatedTime = (previous.accumulatedTime || 0) + (now - previous.lastActiveAt);
+        previous.lastActiveAt = null;
+      }
+    }
+
     activeContactId.value = contact.id;
-    if (contact.status === 'in_progress') {
-      const found = contacts.value.find(c => c.id === contact.id);
-      if (found) found.unreadCount = 0;
+
+    const current = contacts.value.find(c => c.id === contact.id);
+    if (current) {
+      if (current.status === 'in_progress') {
+        current.unreadCount = 0;
+        current.lastActiveAt = now;
+        if (current.accumulatedTime === undefined) {
+          current.accumulatedTime = 0;
+        }
+      }
     }
   }
 
@@ -120,6 +123,10 @@ export const useChatStore = defineStore('chat', () => {
       contact.status = 'in_progress';
       contact.serviceId = newServiceId;
       contact.agentId = currentUser.value.id;
+      contact.accumulatedTime = 0;
+      if (activeContactId.value === contactId) {
+        contact.lastActiveAt = Date.now();
+      }
 
       if (!messagesDb.value[contactId]) messagesDb.value[contactId] = [];
       messagesDb.value[contactId].push({
@@ -131,7 +138,7 @@ export const useChatStore = defineStore('chat', () => {
       });
 
       currentFilter.value = ChatFilter.CHATS;
-      activeContactId.value = contactId;
+      selectContact(contact);
       return newServiceId;
     }
     return null;
@@ -140,8 +147,25 @@ export const useChatStore = defineStore('chat', () => {
   function finalizarChat(contactId: string, reason?: string) {
     const idx = contacts.value.findIndex(c => c.id === contactId);
     if (idx !== -1) {
+      const contact = contacts.value[idx];
+
+      if (!contact) return;
+      const now = Date.now();
+
+      if (contact.lastActiveAt) {
+        contact.accumulatedTime = (contact.accumulatedTime || 0) + (now - contact.lastActiveAt);
+        contact.lastActiveAt = null;
+      }
+
+      const totalSeconds = Math.floor((contact.accumulatedTime || 0) / 1000);
+      const min = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+      const sec = String(totalSeconds % 60).padStart(2, '0');
+      console.log(`Atendimento Finalizado | Tempo Focado: ${min}:${sec} | Motivo: ${reason}`);
+
       contacts.value.splice(idx, 1);
-      activeContactId.value = null;
+      if (activeContactId.value === contactId) {
+        activeContactId.value = null;
+      }
     }
   }
 
@@ -158,7 +182,9 @@ export const useChatStore = defineStore('chat', () => {
         });
       }
       contacts.value.splice(idx, 1);
-      activeContactId.value = null;
+      if (activeContactId.value === contactId) {
+        activeContactId.value = null;
+      }
     }
   }
 
@@ -188,8 +214,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   return {
-    contacts, activeContactId, currentFilter, currentSort, messages, selectedContact, filteredContacts,
-    filaCount, currentUser, setFilter, selectContact, setSearchQuery, sendMessage, assumirChat,
-    finalizarChat, transferirChat, updateContact, linkCustomerToChat
+    contacts, activeContactId, currentFilter, currentSort, messages, selectedContact, filteredContacts, filaCount, currentUser,
+    setFilter, selectContact, setSearchQuery, sendMessage, assumirChat, finalizarChat, transferirChat, updateContact, linkCustomerToChat
   };
 });

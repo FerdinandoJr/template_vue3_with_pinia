@@ -1,5 +1,6 @@
 <template>
     <div class="px-6 py-3 border-b border-slate-200 flex justify-between items-center bg-white z-10 shadow-sm shrink-0">
+
         <div @click="$emit('toggle-profile')"
             class="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 -ml-2 rounded-xl transition-colors group">
             <el-avatar :size="40" :src="contact?.avatar" class="bg-slate-200 text-slate-400">
@@ -17,12 +18,21 @@
             </div>
         </div>
 
-        <div class="flex gap-2" v-if="contact">
+        <div class="flex items-center gap-3" v-if="contact">
+
+            <div v-if="contact.status === 'in_progress'"
+                class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 mr-2">
+                <span
+                    class="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
+                <span class="text-xs font-black text-slate-600 tracking-wider w-10 text-center">{{ displayTime }}</span>
+            </div>
+
             <el-button v-if="isUnsavedContact" @click="$emit('vincular')" type="primary" plain size="small"
                 class="!font-bold">
                 <el-icon class="mr-1">
                     <Plus />
-                </el-icon> Adicionar
+                </el-icon>
+                Adicionar
             </el-button>
 
             <template v-if="contact.status === 'queued'">
@@ -30,7 +40,8 @@
                     class="!font-bold !bg-[#25D366] !border-[#25D366]">
                     <el-icon class="mr-1">
                         <Pointer />
-                    </el-icon> Assumir Chamado
+                    </el-icon>
+                    Assumir Chamado
                 </el-button>
             </template>
 
@@ -38,17 +49,22 @@
                 <el-button @click="$emit('abrir-modal-ticket')" type="warning" plain size="small" class="!font-bold">
                     <el-icon class="mr-1">
                         <Ticket />
-                    </el-icon> Ticket
+                    </el-icon>
+                    Ticket
                 </el-button>
+
                 <el-button @click="$emit('transferir')" plain size="small" class="!font-bold">
                     <el-icon class="mr-1">
                         <Switch />
-                    </el-icon> Transferir
+                    </el-icon>
+                    Transferir
                 </el-button>
+
                 <el-button @click="$emit('finalizar')" type="danger" plain size="small" class="!font-bold">
                     <el-icon class="mr-1">
                         <Check />
-                    </el-icon> Finalizar
+                    </el-icon>
+                    Finalizar
                 </el-button>
             </template>
         </div>
@@ -56,16 +72,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Plus, Check, Pointer, Ticket, Switch } from '@element-plus/icons-vue';
 import type { IContact } from '../../../domain/entities/chat';
 
 const props = defineProps<{ contact?: IContact; }>();
-
 defineEmits(['toggle-profile', 'vincular', 'assumir', 'abrir-modal-ticket', 'transferir', 'finalizar']);
 
 const isUnsavedContact = computed(() => {
     if (!props.contact) return false;
     return props.contact.name === props.contact.phone || String(props.contact.name).includes('+');
+});
+
+const now = ref(Date.now());
+let timerInterval: ReturnType<typeof setInterval>;
+
+onMounted(() => {
+    timerInterval = setInterval(() => {
+        now.value = Date.now();
+    }, 1000);
+});
+
+onUnmounted(() => {
+    clearInterval(timerInterval);
+});
+
+const displayTime = computed(() => {
+    if (!props.contact || props.contact.status !== 'in_progress') return '00:00';
+
+    let totalMs = props.contact.accumulatedTime || 0;
+
+    if (props.contact.lastActiveAt) {
+        totalMs += (now.value - props.contact.lastActiveAt);
+    }
+
+    const totalSeconds = Math.floor(totalMs / 1000);
+    const m = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const s = String(totalSeconds % 60).padStart(2, '0');
+
+    return `${m}:${s}`;
 });
 </script>

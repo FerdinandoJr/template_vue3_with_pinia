@@ -23,8 +23,9 @@ export interface IContact {
   company?: string;
   email?: string;
   tags: string[];
-
   serviceId?: string | null;
   agentId?: string | null;
   customerId?: string | null;
+  accumulatedTime?: number;
+  lastActiveAt?: number | null;
 }
