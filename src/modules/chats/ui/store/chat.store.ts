@@ -11,27 +11,20 @@ export const useChatStore = defineStore('chat', () => {
   const currentSort = ref<ChatSortOption>(ChatSortOption.NEWEST);
   const searchTerm = ref('');
   const currentUser = ref({ id: 'agent_1', name: 'Você' });
+
   const replyingTo = ref<IMessage | null>(null);
 
   const contacts = ref<IContact[]>([
-    {
-      id: '1', name: 'Fernanda Lima', company: 'Tech Solutions', avatar: 'https://i.pravatar.cc/150?u=fernanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_55', unreadCount: 1, email: 'fernanda@tech.com', phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP']
-    },
-    {
-      id: '2', name: 'Roberto Carlos', company: 'Logística S.A', avatar: 'https://i.pravatar.cc/150?u=roberto', channel: ChatChannel.WHATSAPP, lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_102', unreadCount: 0, email: 'roberto@log.com', phone: '(11) 97777-6666', tags: ['Suporte']
-    },
-    {
-      id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil', avatar: 'https://i.pravatar.cc/150?u=amanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem', status: 'queued', serviceId: null, agentId: null, customerId: null, unreadCount: 0, email: 'amanda@eco.com', phone: '(11) 98888-7777', tags: ['Dúvida']
-    },
-    {
-      id: 'novo-numero-123', name: '+55 (47) 99123-4567', company: '', phone: '+55 (47) 99123-4567', avatar: '', status: 'queued', channel: ChatChannel.WHATSAPP, lastMessage: 'Olá, gostaria de um orçamento', lastMessageTime: '09:00', serviceId: null, agentId: null, customerId: null, unreadCount: 1, email: '', tags: []
-    }
+    { id: '1', name: 'Fernanda Lima', company: 'Tech Solutions', avatar: 'https://i.pravatar.cc/150?u=fernanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_55', unreadCount: 1, email: 'fernanda@tech.com', phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP'] },
+    { id: '2', name: 'Roberto Carlos', company: 'Logística S.A', avatar: 'https://i.pravatar.cc/150?u=roberto', channel: ChatChannel.WHATSAPP, lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_102', unreadCount: 0, email: 'roberto@log.com', phone: '(11) 97777-6666', tags: ['Suporte'] },
+    { id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil', avatar: 'https://i.pravatar.cc/150?u=amanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem', status: 'queued', serviceId: null, agentId: null, customerId: null, unreadCount: 0, email: 'amanda@eco.com', phone: '(11) 98888-7777', tags: ['Dúvida'] },
+    { id: 'novo-numero-123', name: '+55 (47) 99123-4567', company: '', phone: '+55 (47) 99123-4567', avatar: '', status: 'queued', channel: ChatChannel.WHATSAPP, lastMessage: 'Olá, gostaria de um orçamento', lastMessageTime: '09:00', serviceId: null, agentId: null, customerId: null, unreadCount: 1, email: '', tags: [] }
   ]);
 
   const messagesDb = ref<Record<string, IMessage[]>>({
     '1': [
       { id: generateUUIDv7(), text: 'Bom dia.', timestamp: '09:55', isMine: false, type: MessageType.TEXT },
-      { id: generateUUIDv7(), text: 'Olá Fernanda!', timestamp: '10:00', isMine: true, type: MessageType.TEXT },
+      { id: generateUUIDv7(), text: 'Olá Fernanda!', timestamp: '10:00', isMine: true, type: MessageType.TEXT, status: 'delivered' },
       { id: generateUUIDv7(), text: 'Pode confirmar o recebimento?', timestamp: '10:42', isMine: false, type: MessageType.TEXT }
     ]
   });
@@ -90,16 +83,20 @@ export const useChatStore = defineStore('chat', () => {
     if (!contactId) return;
 
     const localFileUrl = file ? URL.createObjectURL(file) : undefined;
+    const newMsgId = generateUUIDv7();
+
+    const isSimulatingError = text.toLowerCase().includes('falha');
 
     const newMessage: IMessage = {
-      id: generateUUIDv7(),
+      id: newMsgId,
       text: file ? file.name : text,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMine: true,
       type: type,
       fileUrl: localFileUrl,
       fileName: file?.name,
-      replyTo: replyingTo.value ? { ...replyingTo.value } : undefined
+      replyTo: replyingTo.value ? { ...replyingTo.value } : undefined,
+      status: isSimulatingError ? 'error' : 'sent'
     };
 
     if (!messagesDb.value[contactId]) messagesDb.value[contactId] = [];
@@ -115,6 +112,31 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     clearReplyingTo();
+
+    if (!isSimulatingError && type !== MessageType.NOTE) {
+      setTimeout(() => {
+        // 👇 AQUI: Adicionamos o "?." (Optional Chaining) para blindar contra Undefined
+        const msg = messagesDb.value[contactId]?.find(m => m.id === newMsgId);
+        if (msg && msg.status === 'sent') msg.status = 'delivered';
+      }, 1200);
+    }
+  }
+
+  function retryMessage(contactId: string | null, messageId: string) {
+    if (!contactId) return;
+
+    // 👇 AQUI: Extraímos para uma constante e verificamos se existe
+    const msgList = messagesDb.value[contactId];
+    if (!msgList) return;
+
+    const msg = msgList.find(m => m.id === messageId);
+    if (msg) {
+      msg.status = 'sent';
+
+      setTimeout(() => {
+        msg.status = 'delivered';
+      }, 1500);
+    }
   }
 
   function assumirChat(contactId: string) {
@@ -182,7 +204,8 @@ export const useChatStore = defineStore('chat', () => {
   function setSearchQuery(q: string) { searchTerm.value = q; }
 
   return {
-    contacts, activeContactId, currentFilter, currentSort, messages, selectedContact, filteredContacts, filaCount, currentUser, replyingTo, // Exportando
-    setFilter, selectContact, setSearchQuery, sendMessage, assumirChat, finalizarChat, transferirChat, updateContact, linkCustomerToChat, setReplyingTo, clearReplyingTo // Exportando funções
+    contacts, activeContactId, currentFilter, currentSort, messages, selectedContact, filteredContacts, filaCount, currentUser, replyingTo,
+    setFilter, selectContact, setSearchQuery, sendMessage, assumirChat, finalizarChat, transferirChat, updateContact, linkCustomerToChat, setReplyingTo, clearReplyingTo,
+    retryMessage
   };
 });

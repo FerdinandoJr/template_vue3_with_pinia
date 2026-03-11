@@ -1,6 +1,7 @@
 <template>
     <el-dialog :model-value="isOpen" @update:model-value="!$event && $emit('close')" title="Gestão de Identidade (CRM)"
         width="850px" align-center destroy-on-close class="rounded-lg custom-dialog">
+
         <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-lg mb-6 border border-slate-100">
             <el-avatar :size="50" :src="contactAvatar" class="bg-blue-100 text-blue-600 font-bold text-xl">
                 {{ contactName?.charAt(0).toUpperCase() || '?' }}
@@ -13,10 +14,12 @@
         </div>
 
         <el-tabs type="border-card" class="shadow-sm">
+
             <el-tab-pane>
                 <template #label><span class="flex items-center gap-2"><el-icon>
                             <Search />
                         </el-icon> Vincular Existente</span></template>
+
                 <el-form label-position="top" class="mt-4 p-4">
                     <el-form-item label="Buscar Cliente na Base">
                         <el-select v-model="linkForm.customerUuid" filterable remote
@@ -37,130 +40,139 @@
                         </el-icon> Novo Cadastro Completo</span></template>
 
                 <el-form ref="newCustomerFormRef" :model="newCustomerForm" :rules="formRules" label-position="top"
-                    class="mt-2 p-4 max-h-[450px] overflow-y-auto overflow-x-hidden custom-scroll">
-                    <div class="mb-6">
-                        <h4
-                            class="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">
-                            Dados da Empresa / Pessoa</h4>
-                        <el-row :gutter="20">
-                            <el-col :span="6">
-                                <el-form-item label="Tipo">
-                                    <el-radio-group v-model="newCustomerForm.type" size="default" class="w-full"
-                                        @change="resetDocument">
-                                        <el-radio-button label="PF" value="PF" />
-                                        <el-radio-button label="PJ" value="PJ" />
-                                    </el-radio-group>
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="18">
-                                <el-form-item :label="newCustomerForm.type === 'PJ' ? 'CNPJ' : 'CPF'" prop="document">
-                                    <el-input v-model="newCustomerForm.document" @input="handleDocumentInput"
-                                        :placeholder="newCustomerForm.type === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'"
-                                        :maxlength="newCustomerForm.type === 'PF' ? 14 : 18" />
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="20">
-                            <el-col :span="12">
-                                <el-form-item :label="newCustomerForm.type === 'PJ' ? 'Razão Social' : 'Nome Completo'"
-                                    prop="name">
-                                    <el-input v-model="newCustomerForm.name" />
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="12">
-                                <el-form-item :label="newCustomerForm.type === 'PJ' ? 'Nome Fantasia' : 'Apelido'">
-                                    <el-input v-model="newCustomerForm.tradeName" />
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                    </div>
+                    class="mt-2 p-0">
 
-                    <div class="mb-6">
-                        <h4
-                            class="text-xs font-bold text-blue-600 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">
-                            Canais de Contato</h4>
-                        <el-row :gutter="20">
-                            <el-col :span="12">
-                                <el-form-item label="Telefone / WhatsApp (Vinculado)">
-                                    <el-input v-model="newCustomerForm.phone" disabled class="bg-slate-50">
-                                        <template #prefix><el-icon>
-                                                <Phone />
-                                            </el-icon></template>
-                                    </el-input>
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="12">
-                                <el-form-item label="E-mail Principal" prop="email">
-                                    <el-input v-model="newCustomerForm.email" placeholder="email@exemplo.com">
-                                        <template #prefix><el-icon>
-                                                <Message />
-                                            </el-icon></template>
-                                    </el-input>
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                    </div>
+                    <el-tabs v-model="activeInnerTab" class="enterprise-tabs px-4">
 
-                    <div class="mb-2">
-                        <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-4">
-                            <h4 class="text-xs font-bold text-blue-600 uppercase tracking-widest">Endereço</h4>
-                            <span v-if="isLoadingCep" class="text-xs text-blue-500 font-medium flex items-center gap-1">
-                                <el-icon class="is-loading">
-                                    <Loading />
-                                </el-icon> Buscando...
-                            </span>
-                        </div>
-                        <el-row :gutter="15">
-                            <el-col :span="6">
-                                <el-form-item label="CEP">
-                                    <el-input v-model="newCustomerForm.zipCode" @blur="fetchCep"
-                                        placeholder="00000-000">
-                                        <template #append>
-                                            <el-button @click="fetchCep"><el-icon>
-                                                    <Search />
-                                                </el-icon></el-button>
-                                        </template>
-                                    </el-input>
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="12">
-                                <el-form-item label="Logradouro">
-                                    <el-input v-model="newCustomerForm.street" />
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="6">
-                                <el-form-item label="Número">
-                                    <el-input v-model="newCustomerForm.number" id="numero-input" />
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="15">
-                            <el-col :span="10">
-                                <el-form-item label="Bairro">
-                                    <el-input v-model="newCustomerForm.neighborhood" />
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="10">
-                                <el-form-item label="Cidade">
-                                    <el-input v-model="newCustomerForm.city" />
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="4">
-                                <el-form-item label="UF">
-                                    <el-input v-model="newCustomerForm.state" maxlength="2" />
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                    </div>
+                        <el-tab-pane label="Dados Pessoais" name="personal">
+                            <div class="grid grid-cols-2 gap-4 mt-4 max-h-[320px] overflow-y-auto custom-scroll pr-2">
+                                <div class="col-span-2">
+                                    <el-form-item label="Tipo" class="!mb-2">
+                                        <el-radio-group v-model="newCustomerForm.type" size="default"
+                                            @change="resetDocument">
+                                            <el-radio-button label="PF" value="PF" />
+                                            <el-radio-button label="PJ" value="PJ" />
+                                        </el-radio-group>
+                                    </el-form-item>
+                                </div>
+
+                                <div class="col-span-2">
+                                    <el-form-item
+                                        :label="newCustomerForm.type === 'PJ' ? 'Razão Social' : 'Nome Completo'"
+                                        prop="name" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.name" />
+                                    </el-form-item>
+                                </div>
+
+                                <div v-if="newCustomerForm.type === 'PJ'" class="col-span-2">
+                                    <el-form-item label="Nome Fantasia" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.tradeName" />
+                                    </el-form-item>
+                                </div>
+
+                                <div>
+                                    <el-form-item :label="newCustomerForm.type === 'PJ' ? 'CNPJ' : 'CPF'"
+                                        prop="document" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.document" @input="handleDocumentInput"
+                                            :placeholder="newCustomerForm.type === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'"
+                                            :maxlength="newCustomerForm.type === 'PF' ? 14 : 18" />
+                                    </el-form-item>
+                                </div>
+
+                                <div>
+                                    <el-form-item label="Telefone / WhatsApp (Vinculado)" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.phone" disabled class="bg-slate-50" />
+                                    </el-form-item>
+                                </div>
+
+                                <div>
+                                    <el-form-item label="E-mail" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.email" placeholder="email@exemplo.com" />
+                                    </el-form-item>
+                                </div>
+
+                                <div>
+                                    <el-form-item label="Nascimento" class="!mb-2">
+                                        <el-date-picker v-model="newCustomerForm.birthDate" type="date"
+                                            placeholder="DD/MM/AAAA" format="DD/MM/YYYY" class="!w-full" />
+                                    </el-form-item>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+
+                        <el-tab-pane label="Endereço" name="address">
+                            <div class="grid grid-cols-12 gap-4 mt-4 max-h-[320px] overflow-y-auto custom-scroll pr-2">
+                                <div class="col-span-4">
+                                    <el-form-item label="CEP" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.zipCode" placeholder="00000-000"
+                                            @blur="fetchCep" />
+                                    </el-form-item>
+                                </div>
+
+                                <div class="col-span-8">
+                                    <el-form-item label="Logradouro" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.street" placeholder="Rua das Flores" />
+                                    </el-form-item>
+                                </div>
+
+                                <div class="col-span-4">
+                                    <el-form-item label="Número" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.number" id="numero-input"
+                                            placeholder="123" />
+                                    </el-form-item>
+                                </div>
+
+                                <div class="col-span-8">
+                                    <el-form-item label="Complemento" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.complement" placeholder="Apto 45, Bloco B" />
+                                    </el-form-item>
+                                </div>
+
+                                <div class="col-span-5">
+                                    <el-form-item label="Bairro" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.neighborhood" placeholder="Centro" />
+                                    </el-form-item>
+                                </div>
+
+                                <div class="col-span-5">
+                                    <el-form-item label="Cidade" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.city" placeholder="São Paulo" />
+                                    </el-form-item>
+                                </div>
+
+                                <div class="col-span-2">
+                                    <el-form-item label="UF" class="!mb-2">
+                                        <el-input v-model="newCustomerForm.state" placeholder="SP" maxlength="2" />
+                                    </el-form-item>
+                                </div>
+                            </div>
+                        </el-tab-pane>
+
+                        <el-tab-pane label="Adicionais" name="additional">
+                            <div class="grid grid-cols-1 gap-4 mt-4 max-h-[320px] overflow-y-auto custom-scroll pr-2">
+
+                                <div>
+                                    <label
+                                        class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                        Observações Internas
+                                    </label>
+                                    <el-input v-model="newCustomerForm.notes" type="textarea" :rows="8"
+                                        placeholder="Adicione aqui informações cruciais sobre este cliente (ex: melhor horário para ligar, histórico relevante, etc)..."
+                                        resize="none" class="enterprise-textarea" />
+                                </div>
+                            </div>
+                        </el-tab-pane>
+
+                    </el-tabs>
                 </el-form>
             </el-tab-pane>
         </el-tabs>
 
         <template #footer>
-            <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
+            <div class="flex justify-end gap-3 mt-2">
                 <el-button @click="$emit('close')">Cancelar</el-button>
-                <el-button type="primary" @click="submitCRMAction" :loading="loadingSubmit" class="!font-bold">
-                    Confirmar e Vincular
+                <el-button type="primary" @click="submitCRMAction" :loading="loadingSubmit">
+                    Salvar e Vincular
                 </el-button>
             </div>
         </template>
@@ -169,12 +181,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue';
-import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
-import { Search, Plus, Phone, Message, Loading } from '@element-plus/icons-vue';
+import { Search, Plus } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import { cepService } from '@/core/services/cep.service';
-import { isValidCpfCnpj } from '@/util/helpers';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -183,82 +194,54 @@ const props = defineProps<{
     contactAvatar: string;
 }>();
 
-const emit = defineEmits(['close', 'linked']);
+const emit = defineEmits<{
+    (e: 'close'): void;
+    (e: 'linked', customerData: { id: string, name: string, company?: string }): void;
+}>();
+
 const customerStore = useCustomerStore();
 
 const linkForm = reactive({ customerUuid: '' });
-const searchResults = ref<any[]>([]);
-
 const newCustomerFormRef = ref<FormInstance>();
-const newCustomerForm = reactive({
-    type: 'PF', document: '', name: '', tradeName: '', phone: '', email: '',
-    zipCode: '', street: '', number: '', neighborhood: '', city: '', state: ''
-});
-
 const loadingSearch = ref(false);
+const searchResults = ref<any[]>([]);
 const loadingSubmit = ref(false);
 const isLoadingCep = ref(false);
 
-const checkDocument = (rule: any, value: string, callback: any) => {
-    const cleanValue = value ? value.replace(/\D/g, '') : '';
+const activeInnerTab = ref('personal');
 
-    if (!cleanValue) {
-        callback();
-        return;
-    }
-
-    if (newCustomerForm.type === 'PF' && cleanValue.length !== 11) {
-        callback(new Error('Um CPF precisa ter exatamente 11 números.'));
-        return;
-    }
-
-    if (newCustomerForm.type === 'PJ' && cleanValue.length !== 14) {
-        callback(new Error('Um CNPJ precisa ter exatamente 14 números.'));
-        return;
-    }
-
-    if (!isValidCpfCnpj(value)) {
-        callback(new Error(newCustomerForm.type === 'PJ' ? 'Este CNPJ é inválido.' : 'Este CPF é inválido.'));
-    } else {
-        callback();
-    }
-};
-
-const formRules = reactive<FormRules>({
-    name: [{ required: true, message: 'O nome é obrigatório', trigger: 'blur' }],
-    document: [{ validator: checkDocument, trigger: 'blur' }],
-    email: [{ type: 'email', message: 'E-mail inválido', trigger: 'blur' }]
+const newCustomerForm = reactive({
+    type: 'PF',
+    name: '',
+    tradeName: '',
+    document: '',
+    phone: props.contactPhone || '',
+    email: '',
+    birthDate: '',
+    gender: '',
+    zipCode: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    tags: [],
+    notes: ''
 });
 
-const handleDocumentInput = (value: string) => {
-    let v = value.replace(/\D/g, '');
-
-    if (newCustomerForm.type === 'PF') {
-        v = v.substring(0, 11);
-        newCustomerForm.document = v
-            .replace(/(\d{3})(\d)/, '$1.$2')
-            .replace(/(\d{3})(\d)/, '$1.$2')
-            .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    } else {
-        v = v.substring(0, 14);
-        newCustomerForm.document = v
-            .replace(/^(\d{2})(\d)/, '$1.$2')
-            .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-            .replace(/\.(\d{3})(\d)/, '.$1/$2')
-            .replace(/(\d{4})(\d)/, '$1-$2');
-    }
-};
-
-const resetDocument = () => {
-    newCustomerForm.document = '';
-    newCustomerFormRef.value?.clearValidate('document');
-};
+const formRules = reactive<FormRules>({
+    name: [{ required: true, message: 'Nome é obrigatório', trigger: 'blur' }],
+});
 
 watch(() => props.isOpen, (val) => {
     if (val) {
-        newCustomerForm.phone = props.contactPhone;
-        newCustomerForm.name = props.contactName === props.contactPhone ? '' : props.contactName;
-        newCustomerForm.tradeName = '';
+        linkForm.customerUuid = '';
+        searchResults.value = [];
+        activeInnerTab.value = 'personal';
+        const isNamePhoneNumber = props.contactName?.replace(/\D/g, '') === props.contactPhone?.replace(/\D/g, '');
+        newCustomerForm.name = isNamePhoneNumber ? '' : (props.contactName || '');
+        newCustomerForm.phone = props.contactPhone || '';
         newCustomerForm.document = '';
         newCustomerForm.email = '';
         newCustomerForm.zipCode = '';
@@ -267,26 +250,55 @@ watch(() => props.isOpen, (val) => {
         newCustomerForm.neighborhood = '';
         newCustomerForm.city = '';
         newCustomerForm.state = '';
-        linkForm.customerUuid = '';
-        searchResults.value = [];
-
-        setTimeout(() => newCustomerFormRef.value?.clearValidate(), 50);
+        newCustomerForm.notes = '';
     }
 });
 
+const resetDocument = () => { newCustomerForm.document = ''; };
+
+const handleDocumentInput = (val: string) => {
+    let cleanValue = val.replace(/\D/g, '');
+    if (newCustomerForm.type === 'PF') {
+        cleanValue = cleanValue.substring(0, 11);
+        if (cleanValue.length > 9) cleanValue = cleanValue.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2}).*/, '$1.$2.$3-$4');
+        else if (cleanValue.length > 6) cleanValue = cleanValue.replace(/^(\d{3})(\d{3})(\d{1,3}).*/, '$1.$2.$3');
+        else if (cleanValue.length > 3) cleanValue = cleanValue.replace(/^(\d{3})(\d{1,3}).*/, '$1.$2');
+    } else {
+        cleanValue = cleanValue.substring(0, 14);
+        if (cleanValue.length > 12) cleanValue = cleanValue.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2}).*/, '$1.$2.$3/$4-$5');
+        else if (cleanValue.length > 8) cleanValue = cleanValue.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4}).*/, '$1.$2.$3/$4');
+        else if (cleanValue.length > 5) cleanValue = cleanValue.replace(/^(\d{2})(\d{3})(\d{1,3}).*/, '$1.$2.$3');
+        else if (cleanValue.length > 2) cleanValue = cleanValue.replace(/^(\d{2})(\d{1,3}).*/, '$1.$2');
+    }
+    newCustomerForm.document = cleanValue;
+};
+
 const fetchCep = async () => {
-    const cleanCep = newCustomerForm.zipCode?.replace(/\D/g, '') || '';
+    const cleanCep = newCustomerForm.zipCode.replace(/\D/g, '');
+
     if (cleanCep.length === 8) {
         isLoadingCep.value = true;
         try {
-            const address = await cepService.getAddressByCep(cleanCep);
-            newCustomerForm.street = address.logradouro;
-            newCustomerForm.neighborhood = address.bairro;
-            newCustomerForm.city = address.cidade;
-            newCustomerForm.state = address.uf;
-            setTimeout(() => document.getElementById('numero-input')?.focus(), 100);
+            const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+            const data = await response.json();
+
+            if (!data.erro) {
+                newCustomerForm.street = data.logradouro;
+                newCustomerForm.neighborhood = data.bairro;
+                newCustomerForm.city = data.localidade;
+                newCustomerForm.state = data.uf;
+
+                setTimeout(() => {
+                    document.getElementById('numero-input')?.focus();
+                }, 100);
+
+                ElMessage.success('Endereço localizado!');
+            } else {
+                ElMessage.warning('CEP não encontrado.');
+            }
         } catch (error) {
-            ElMessage.warning('CEP não encontrado.');
+            console.error('Erro ao buscar CEP:', error);
+            ElMessage.error('Falha ao consultar serviço de CEP.');
         } finally {
             isLoadingCep.value = false;
         }
@@ -297,7 +309,7 @@ const remoteSearchCustomer = async (q: string) => {
     if (q) {
         loadingSearch.value = true;
         await customerStore.fetch();
-        searchResults.value = customerStore.items.filter(c =>
+        searchResults.value = customerStore.items.filter((c: any) =>
             c.name.toLowerCase().includes(q.toLowerCase()) ||
             (c.companyName && c.companyName.toLowerCase().includes(q.toLowerCase()))
         );
@@ -309,9 +321,9 @@ const submitCRMAction = async () => {
     if (!linkForm.customerUuid) {
         if (!newCustomerFormRef.value) return;
         const isValid = await newCustomerFormRef.value.validate().catch(() => false);
-
         if (!isValid) {
-            ElMessage.warning('Verifique os campos em vermelho antes de salvar.');
+            ElMessage.warning('Verifique os campos obrigatórios.');
+            activeInnerTab.value = 'personal';
             return;
         }
     }
@@ -320,34 +332,26 @@ const submitCRMAction = async () => {
     try {
         let customerId = linkForm.customerUuid;
         let customerName = '';
-        let customerCompany = '';
 
         if (!customerId) {
             const newCustomerData = {
                 name: newCustomerForm.name,
                 companyName: newCustomerForm.type === 'PJ' ? newCustomerForm.name : '',
-                tradeName: newCustomerForm.tradeName,
                 document: newCustomerForm.document.replace(/\D/g, ''),
                 email: newCustomerForm.email,
                 phone: newCustomerForm.phone,
-                status: 'active',
-                source: 'WhatsApp',
-                avatar: newCustomerForm.name.substring(0, 2).toUpperCase(),
                 zipCode: newCustomerForm.zipCode,
                 street: newCustomerForm.street,
                 number: newCustomerForm.number,
                 neighborhood: newCustomerForm.neighborhood,
                 city: newCustomerForm.city,
                 state: newCustomerForm.state,
-                website: '',
-                complement: ''
             };
             await customerStore.createCustomer(newCustomerData as any);
             const created = customerStore.items[0];
             if (created) {
                 customerId = created.uuid;
                 customerName = created.name;
-                customerCompany = created.companyName;
             }
         } else {
             const found = searchResults.value.find(c => c.uuid === customerId);
@@ -355,16 +359,10 @@ const submitCRMAction = async () => {
         }
 
         if (customerId) {
-            emit('linked', {
-                id: customerId,
-                name: customerName || newCustomerForm.name,
-                company: customerCompany || newCustomerForm.tradeName
-            });
-        } else {
-            ElMessage.error('Erro ao identificar cliente criado.');
+            emit('linked', { id: customerId, name: customerName || newCustomerForm.name });
         }
     } catch (error) {
-        ElMessage.error('Erro ao vincular.');
+        ElMessage.error('Erro ao vincular cliente');
     } finally {
         loadingSubmit.value = false;
     }
@@ -376,13 +374,17 @@ const submitCRMAction = async () => {
     width: 6px;
 }
 
-.custom-scroll::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
 .custom-scroll::-webkit-scrollbar-thumb {
     background: #cbd5e1;
-    border-radius: 4px;
+    border-radius: 10px;
+}
+
+:deep(.enterprise-tabs .el-tabs__item) {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+:deep(.enterprise-tabs .el-tabs__active-bar) {
+    background-color: #3b82f6;
 }
 </style>

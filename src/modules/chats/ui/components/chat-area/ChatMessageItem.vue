@@ -15,7 +15,7 @@
                         class="flex items-center gap-1.5 mb-1.5 text-amber-700 text-[10px] font-black uppercase tracking-widest border-b border-amber-200 pb-1">
                         <el-icon>
                             <Lock />
-                        </el-icon> Nota Interna (Invisível ao Cliente)
+                        </el-icon> Nota Interna
                     </div>
                     <span class="leading-relaxed whitespace-pre-wrap font-medium">{{ message.text }}</span>
                     <div class="text-[10px] font-bold mt-1 text-right text-amber-600">{{ message.timestamp }}</div>
@@ -36,8 +36,12 @@
             </div>
 
             <div class="relative flex items-end max-w-[65%]">
-                <div
-                    :class="['px-3 py-2 rounded-lg text-[14px] shadow-sm flex flex-col', message.isMine ? 'bg-[#dcf8c6] text-slate-800 rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none']">
+
+                <div :class="[
+                    'px-3 py-2 text-[14px] shadow-sm flex flex-col transition-all duration-300',
+                    message.isMine ? 'rounded-lg rounded-tr-none' : 'rounded-lg rounded-tl-none',
+                    message.status === 'error' ? 'bg-red-50 ring-1 ring-red-300 text-slate-800 opacity-90' : (message.isMine ? 'bg-[#dcf8c6] text-slate-800' : 'bg-white text-slate-800')
+                ]">
 
                     <div v-if="message.replyTo"
                         class="bg-black/5 border-l-4 border-blue-500 rounded p-2 mb-1 cursor-pointer hover:bg-black/10 transition-colors">
@@ -93,10 +97,29 @@
                     </template>
 
                     <div
-                        class="text-[10px] text-slate-400 font-semibold mt-1 text-right flex justify-end items-center gap-1">
+                        class="text-[10px] text-slate-400 font-semibold mt-1 text-right flex justify-end items-center gap-1.5">
                         {{ message.timestamp }}
-                        <span v-if="message.isMine" class="text-blue-500 font-black text-[11px]">✓✓</span>
+                        <template v-if="message.isMine">
+                            <el-icon v-if="message.status === 'error'" class="text-red-500 font-black text-[14px]">
+                                <Warning />
+                            </el-icon>
+                            <span v-else-if="message.status === 'delivered'"
+                                class="text-blue-500 font-black text-[13px] leading-none">✓✓</span>
+                            <span v-else class="text-slate-400 font-black text-[13px] leading-none">✓</span>
+                        </template>
                     </div>
+
+                    <div v-if="message.status === 'error'"
+                        class="mt-1.5 pt-1.5 border-t border-red-200 flex justify-end">
+                        <button @click="store.retryMessage(store.activeContactId, message.id)"
+                            class="text-[11px] font-bold text-red-600 hover:text-red-800 flex items-center gap-1 transition-colors active:scale-95">
+                            <el-icon>
+                                <RefreshRight />
+                            </el-icon>
+                            Tentar Novamente
+                        </button>
+                    </div>
+
                 </div>
             </div>
 
@@ -115,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { Lock, Document, Microphone, Picture } from '@element-plus/icons-vue';
+import { Lock, Document, Microphone, Picture, Warning, RefreshRight } from '@element-plus/icons-vue';
 import type { IMessage } from '../../../domain/entities/chat';
 import { useChatStore } from '../../store/chat.store';
 
