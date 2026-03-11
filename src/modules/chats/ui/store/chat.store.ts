@@ -98,12 +98,17 @@ export const useChatStore = defineStore('chat', () => {
     const { contactId, text, type, file } = dto;
     if (!contactId) return;
 
+
+    const localFileUrl = file ? URL.createObjectURL(file) : undefined;
+
     const newMessage: IMessage = {
       id: generateUUIDv7(),
       text: file ? file.name : text,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMine: true,
-      type: type === MessageType.NOTE ? MessageType.NOTE : (file ? MessageType.TEXT : MessageType.TEXT),
+      type: type,
+      fileUrl: localFileUrl,
+      fileName: file?.name
     };
 
     if (!messagesDb.value[contactId]) messagesDb.value[contactId] = [];
@@ -111,7 +116,12 @@ export const useChatStore = defineStore('chat', () => {
 
     const contact = contacts.value.find(c => c.id === contactId);
     if (contact) {
-      contact.lastMessage = type === MessageType.NOTE ? 'Nota interna' : text;
+
+      if (type === MessageType.AUDIO) contact.lastMessage = '🎵 Áudio';
+      else if (type === MessageType.NOTE) contact.lastMessage = '📝 Nota interna';
+      else if (file) contact.lastMessage = '📁 Arquivo anexado';
+      else contact.lastMessage = text;
+
       contact.lastMessageTime = 'Agora';
     }
   }
@@ -123,6 +133,7 @@ export const useChatStore = defineStore('chat', () => {
       contact.status = 'in_progress';
       contact.serviceId = newServiceId;
       contact.agentId = currentUser.value.id;
+
       contact.accumulatedTime = 0;
       if (activeContactId.value === contactId) {
         contact.lastActiveAt = Date.now();
@@ -148,10 +159,9 @@ export const useChatStore = defineStore('chat', () => {
     const idx = contacts.value.findIndex(c => c.id === contactId);
     if (idx !== -1) {
       const contact = contacts.value[idx];
-
       if (!contact) return;
-      const now = Date.now();
 
+      const now = Date.now();
       if (contact.lastActiveAt) {
         contact.accumulatedTime = (contact.accumulatedTime || 0) + (now - contact.lastActiveAt);
         contact.lastActiveAt = null;

@@ -8,7 +8,7 @@ import kanbanRoutes from "@/modules/kanban/ui/router/routes"
 import dashboardRoutes from "@/modules/dashboard/ui/router/routes"
 import chatsRoutes from "@/modules/chats/ui/router/routes"
 import agendaRoutes from "@/modules/calendar/ui/router/routes"
-import kbRoutes from '@/modules/kb/ui/router/routes';
+import kbRoutes from '@/modules/kb/ui/router/routes'
 import reportsRoutes from "@/modules/reports/ui/router/routes"
 import settingsRoutes from "@/modules/settings/ui/router/routes"
 

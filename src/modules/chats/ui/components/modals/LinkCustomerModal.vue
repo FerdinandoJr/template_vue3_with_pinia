@@ -199,9 +199,6 @@ const loadingSearch = ref(false);
 const loadingSubmit = ref(false);
 const isLoadingCep = ref(false);
 
-// ===============================================
-// TRAVA 3: VALIDAÇÃO RESTRITA POR TIPO
-// ===============================================
 const checkDocument = (rule: any, value: string, callback: any) => {
     const cleanValue = value ? value.replace(/\D/g, '') : '';
 
@@ -210,7 +207,6 @@ const checkDocument = (rule: any, value: string, callback: any) => {
         return;
     }
 
-    // Verifica se a quantidade de dígitos bate com a escolha
     if (newCustomerForm.type === 'PF' && cleanValue.length !== 11) {
         callback(new Error('Um CPF precisa ter exatamente 11 números.'));
         return;
@@ -221,7 +217,6 @@ const checkDocument = (rule: any, value: string, callback: any) => {
         return;
     }
 
-    // Se passou no tamanho, verifica a matemática
     if (!isValidCpfCnpj(value)) {
         callback(new Error(newCustomerForm.type === 'PJ' ? 'Este CNPJ é inválido.' : 'Este CPF é inválido.'));
     } else {
@@ -235,21 +230,16 @@ const formRules = reactive<FormRules>({
     email: [{ type: 'email', message: 'E-mail inválido', trigger: 'blur' }]
 });
 
-// ===============================================
-// TRAVA 2: MÁSCARA FORÇADA DE ACORDO COM O TIPO
-// ===============================================
 const handleDocumentInput = (value: string) => {
-    let v = value.replace(/\D/g, ''); // Limpa tudo o que não for número
+    let v = value.replace(/\D/g, '');
 
     if (newCustomerForm.type === 'PF') {
-        // Força máscara de CPF
         v = v.substring(0, 11);
         newCustomerForm.document = v
             .replace(/(\d{3})(\d)/, '$1.$2')
             .replace(/(\d{3})(\d)/, '$1.$2')
             .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
     } else {
-        // Força máscara de CNPJ
         v = v.substring(0, 14);
         newCustomerForm.document = v
             .replace(/^(\d{2})(\d)/, '$1.$2')
