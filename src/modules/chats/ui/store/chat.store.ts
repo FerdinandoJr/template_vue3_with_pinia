@@ -11,6 +11,7 @@ export const useChatStore = defineStore('chat', () => {
   const currentSort = ref<ChatSortOption>(ChatSortOption.NEWEST);
   const searchTerm = ref('');
   const currentUser = ref({ id: 'agent_1', name: 'Você' });
+  const replyingTo = ref<IMessage | null>(null);
 
   const contacts = ref<IContact[]>([
     {
@@ -49,18 +50,10 @@ export const useChatStore = defineStore('chat', () => {
 
     const sortedList = [...list];
     switch (currentSort.value) {
-      case ChatSortOption.NEWEST:
-        sortedList.sort((a, b) => getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime));
-        break;
-      case ChatSortOption.OLDEST:
-        sortedList.sort((a, b) => getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime));
-        break;
-      case ChatSortOption.LONGEST_WAIT:
-      case ChatSortOption.SHORTEST_WAIT:
-        sortedList.sort((a, b) => currentSort.value === ChatSortOption.LONGEST_WAIT ? getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime) : getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime));
-        break;
-      default:
-        sortedList.sort((a, b) => getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime));
+      case ChatSortOption.NEWEST: sortedList.sort((a, b) => getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime)); break;
+      case ChatSortOption.OLDEST: sortedList.sort((a, b) => getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime)); break;
+      case ChatSortOption.LONGEST_WAIT: case ChatSortOption.SHORTEST_WAIT: sortedList.sort((a, b) => currentSort.value === ChatSortOption.LONGEST_WAIT ? getTimeWeight(a.lastMessageTime) - getTimeWeight(b.lastMessageTime) : getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime)); break;
+      default: sortedList.sort((a, b) => getTimeWeight(b.lastMessageTime) - getTimeWeight(a.lastMessageTime));
     }
     return sortedList;
   });
@@ -69,9 +62,11 @@ export const useChatStore = defineStore('chat', () => {
   const messages = computed(() => activeContactId.value ? (messagesDb.value[activeContactId.value] || []) : []);
   const filaCount = computed(() => contacts.value.filter(c => c.status === 'queued').length);
 
+  function setReplyingTo(msg: IMessage) { replyingTo.value = msg; }
+  function clearReplyingTo() { replyingTo.value = null; }
+
   function selectContact(contact: IContact) {
     const now = Date.now();
-
     if (activeContactId.value && activeContactId.value !== contact.id) {
       const previous = contacts.value.find(c => c.id === activeContactId.value);
       if (previous && previous.lastActiveAt) {
@@ -79,25 +74,20 @@ export const useChatStore = defineStore('chat', () => {
         previous.lastActiveAt = null;
       }
     }
-
     activeContactId.value = contact.id;
+    clearReplyingTo();
 
     const current = contacts.value.find(c => c.id === contact.id);
-    if (current) {
-      if (current.status === 'in_progress') {
-        current.unreadCount = 0;
-        current.lastActiveAt = now;
-        if (current.accumulatedTime === undefined) {
-          current.accumulatedTime = 0;
-        }
-      }
+    if (current && current.status === 'in_progress') {
+      current.unreadCount = 0;
+      current.lastActiveAt = now;
+      if (current.accumulatedTime === undefined) current.accumulatedTime = 0;
     }
   }
 
   function sendMessage(dto: SendMessageDTO) {
     const { contactId, text, type, file } = dto;
     if (!contactId) return;
-
 
     const localFileUrl = file ? URL.createObjectURL(file) : undefined;
 
@@ -108,7 +98,8 @@ export const useChatStore = defineStore('chat', () => {
       isMine: true,
       type: type,
       fileUrl: localFileUrl,
-      fileName: file?.name
+      fileName: file?.name,
+      replyTo: replyingTo.value ? { ...replyingTo.value } : undefined
     };
 
     if (!messagesDb.value[contactId]) messagesDb.value[contactId] = [];
@@ -116,14 +107,14 @@ export const useChatStore = defineStore('chat', () => {
 
     const contact = contacts.value.find(c => c.id === contactId);
     if (contact) {
-
       if (type === MessageType.AUDIO) contact.lastMessage = '🎵 Áudio';
       else if (type === MessageType.NOTE) contact.lastMessage = '📝 Nota interna';
       else if (file) contact.lastMessage = '📁 Arquivo anexado';
       else contact.lastMessage = text;
-
       contact.lastMessageTime = 'Agora';
     }
+
+    clearReplyingTo();
   }
 
   function assumirChat(contactId: string) {
@@ -133,20 +124,11 @@ export const useChatStore = defineStore('chat', () => {
       contact.status = 'in_progress';
       contact.serviceId = newServiceId;
       contact.agentId = currentUser.value.id;
-
       contact.accumulatedTime = 0;
-      if (activeContactId.value === contactId) {
-        contact.lastActiveAt = Date.now();
-      }
+      if (activeContactId.value === contactId) contact.lastActiveAt = Date.now();
 
       if (!messagesDb.value[contactId]) messagesDb.value[contactId] = [];
-      messagesDb.value[contactId].push({
-        id: generateUUIDv7(),
-        text: `Atendimento iniciado. Protocolo: #${newServiceId}`,
-        timestamp: 'Agora',
-        isMine: true,
-        type: MessageType.ALERT
-      });
+      messagesDb.value[contactId].push({ id: generateUUIDv7(), text: `Atendimento iniciado. Protocolo: #${newServiceId}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
 
       currentFilter.value = ChatFilter.CHATS;
       selectContact(contact);
@@ -166,16 +148,8 @@ export const useChatStore = defineStore('chat', () => {
         contact.accumulatedTime = (contact.accumulatedTime || 0) + (now - contact.lastActiveAt);
         contact.lastActiveAt = null;
       }
-
-      const totalSeconds = Math.floor((contact.accumulatedTime || 0) / 1000);
-      const min = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
-      const sec = String(totalSeconds % 60).padStart(2, '0');
-      console.log(`Atendimento Finalizado | Tempo Focado: ${min}:${sec} | Motivo: ${reason}`);
-
       contacts.value.splice(idx, 1);
-      if (activeContactId.value === contactId) {
-        activeContactId.value = null;
-      }
+      if (activeContactId.value === contactId) activeContactId.value = null;
     }
   }
 
@@ -183,26 +157,16 @@ export const useChatStore = defineStore('chat', () => {
     const idx = contacts.value.findIndex(c => c.id === contactId);
     if (idx !== -1) {
       if (messagesDb.value[contactId]) {
-        messagesDb.value[contactId].push({
-          id: generateUUIDv7(),
-          text: `Transferido para: ${destination || 'Outro departamento'}`,
-          timestamp: 'Agora',
-          isMine: true,
-          type: MessageType.ALERT
-        });
+        messagesDb.value[contactId].push({ id: generateUUIDv7(), text: `Transferido para: ${destination || 'Outro departamento'}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
       }
       contacts.value.splice(idx, 1);
-      if (activeContactId.value === contactId) {
-        activeContactId.value = null;
-      }
+      if (activeContactId.value === contactId) activeContactId.value = null;
     }
   }
 
   function updateContact(id: string, updates: Partial<IContact>) {
     const contact = contacts.value.find(c => c.id === id);
-    if (contact) {
-      Object.assign(contact, updates);
-    }
+    if (contact) Object.assign(contact, updates);
   }
 
   function linkCustomerToChat(contactId: string, customerData: { id: string, name: string, company?: string }) {
@@ -214,17 +178,11 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function setFilter(f: ChatFilter) {
-    currentFilter.value = f;
-    activeContactId.value = null;
-  }
-
-  function setSearchQuery(q: string) {
-    searchTerm.value = q;
-  }
+  function setFilter(f: ChatFilter) { currentFilter.value = f; activeContactId.value = null; }
+  function setSearchQuery(q: string) { searchTerm.value = q; }
 
   return {
-    contacts, activeContactId, currentFilter, currentSort, messages, selectedContact, filteredContacts, filaCount, currentUser,
-    setFilter, selectContact, setSearchQuery, sendMessage, assumirChat, finalizarChat, transferirChat, updateContact, linkCustomerToChat
+    contacts, activeContactId, currentFilter, currentSort, messages, selectedContact, filteredContacts, filaCount, currentUser, replyingTo, // Exportando
+    setFilter, selectContact, setSearchQuery, sendMessage, assumirChat, finalizarChat, transferirChat, updateContact, linkCustomerToChat, setReplyingTo, clearReplyingTo // Exportando funções
   };
 });

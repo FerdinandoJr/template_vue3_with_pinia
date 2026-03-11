@@ -5,9 +5,11 @@ export interface IMessage {
   text: string;
   timestamp: string;
   isMine: boolean;
-  type: 'text' | 'image' | 'file' | 'audio' | 'alert' | 'note';
+  type: string;
   fileUrl?: string;
   fileName?: string;
+  status?: 'sent' | 'delivered' | 'read' | 'error';
+  replyTo?: IMessage;
 }
 
 export interface IContact {
@@ -28,4 +30,5 @@ export interface IContact {
   customerId?: string | null;
   accumulatedTime?: number;
   lastActiveAt?: number | null;
+  isTyping?: boolean;
 }
