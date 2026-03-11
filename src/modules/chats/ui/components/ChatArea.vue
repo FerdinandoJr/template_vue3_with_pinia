@@ -3,7 +3,7 @@
     <ChatHeader :contact="contact" @toggle-profile="onToggleProfile" @vincular="onVincular" @assumir="onAssumir"
       @abrir-modal-ticket="onAbrirModalTicket" @transferir="onTransferir" @finalizar="onFinalizar" />
 
-    <ChatMessageList :messages="messages || []" />
+    <ChatHistory />
 
     <ChatInput :contact-status="contact?.status" @send="onSend" />
   </div>
@@ -13,9 +13,8 @@
 import type { IContact, IMessage } from '../../domain/entities/chat';
 import { MessageType } from '../../domain/valueObjects/chat-enums';
 import type { SendMessageDTO } from '../../domain/dto/chat.dto';
-
 import ChatHeader from './chat-area/ChatHeader.vue';
-import ChatMessageList from './chat-area/ChatMessageList.vue';
+import ChatHistory from './chat-area/ChatHistory.vue';
 import ChatInput from './chat-area/ChatInput.vue';
 
 const props = defineProps<{

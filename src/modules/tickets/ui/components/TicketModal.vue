@@ -1,6 +1,7 @@
 <template>
     <el-dialog :model-value="isOpen" @update:model-value="!$event && handleClose()" width="1050px" align-center
         destroy-on-close :show-close="false" class="enterprise-ticket-dialog">
+
         <template #header>
             <div
                 class="flex justify-between items-center w-full px-6 py-4 border-b border-slate-200 bg-white rounded-t-xl">
@@ -32,17 +33,16 @@
         </template>
 
         <div class="flex gap-0 h-[680px] max-h-[75vh] w-full bg-white rounded-b-xl overflow-hidden">
-
             <div class="flex-1 flex flex-col border-r border-slate-200 h-full bg-white">
-                <div class="px-8 pt-8 pb-4 shrink-0">
+
+                <div class="px-8 pt-6 pb-3 shrink-0">
                     <textarea v-model="form.title" rows="1"
-                        class="w-full text-3xl font-extrabold text-slate-800 placeholder-slate-300 border-none outline-none bg-transparent resize-none focus:ring-0 leading-tight transition-all hover:bg-slate-50 focus:bg-slate-50 p-2 -ml-2 rounded-lg"
+                        class="w-full text-xl font-bold text-slate-800 placeholder-slate-300 border-none outline-none bg-transparent resize-none focus:ring-0 leading-tight transition-all hover:bg-slate-50 focus:bg-slate-50 p-2 -ml-2 rounded-lg"
                         placeholder="Título do chamado..." @input="autoResize" :disabled="isViewing"></textarea>
                 </div>
 
-                <div class="flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+                <div class="flex-1 flex flex-col min-h-0 overflow-hidden mt-1">
                     <el-tabs v-model="activeTab" class="px-8 enterprise-tabs h-full flex flex-col overflow-hidden">
-
                         <el-tab-pane label="Descrição Geral" name="main" class="h-full flex flex-col overflow-hidden">
                             <div class="flex flex-col h-full pb-6 overflow-hidden mt-2">
                                 <div class="flex-1 overflow-y-auto custom-scroll pr-2">
@@ -59,7 +59,6 @@
                                                 <List />
                                             </el-icon></el-button>
                                     </div>
-
                                     <el-input ref="descriptionInputRef" v-model="form.description" type="textarea"
                                         :rows="10" placeholder="Descreva o problema ou solicitação detalhadamente..."
                                         class="w-full enterprise-textarea" :disabled="isViewing" />
@@ -87,10 +86,8 @@
 
                                     <div v-for="(msg, i) in form.chatHistory" :key="i"
                                         :class="['flex w-full', msg.isAgent ? 'justify-end' : 'justify-start']">
-                                        <div :class="[
-                                            'max-w-[85%] rounded-2xl p-3.5 text-sm shadow-sm relative',
-                                            msg.isAgent ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-sm'
-                                        ]">
+                                        <div
+                                            :class="['max-w-[85%] rounded-2xl p-3.5 text-sm shadow-sm relative', msg.isAgent ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-sm']">
                                             <div class="font-bold text-[11px] mb-1.5 uppercase tracking-wide"
                                                 :class="msg.isAgent ? 'text-blue-200' : 'text-slate-400'">
                                                 {{ msg.sender }}
@@ -154,6 +151,7 @@
                                             </el-icon>
                                         </el-button>
                                     </div>
+
                                     <div v-if="form.attachments.length === 0"
                                         class="col-span-2 text-center py-12 text-sm text-slate-400 font-medium border-2 border-dashed border-slate-100 rounded-xl">
                                         Nenhum documento anexado a este ticket.
@@ -173,10 +171,9 @@
                     <el-select v-model="form.status" class="w-full enterprise-select" :disabled="isViewing"
                         size="large">
                         <template #prefix>
-                            <div :class="['w-2.5 h-2.5 rounded-full mr-1 shadow-sm', getStatusColor(form.status)]">
-                            </div>
+                            <div :class="['w-2 h-2 rounded-full', getStatusColor(form.status)]"></div>
                         </template>
-                        <el-option label="Aberto (Aguardando)" value="open" />
+                        <el-option label="Aberto (Novo)" value="open" />
                         <el-option label="Em Andamento" value="in-progress" />
                         <el-option label="Resolvido (Finalizado)" value="resolved" />
                     </el-select>
@@ -211,27 +208,29 @@
 
                 <TicketTagsSelector v-model:selected-tags="form.tags" :readonly="isViewing" />
 
-                <div class="mt-auto pt-6 flex flex-col gap-3">
+                <div class="mt-auto pt-6 flex gap-3">
+                    <el-button
+                        class="flex-1 !ml-0 !h-10 !font-bold !text-[13px] !rounded-lg !text-slate-600 !border-slate-300 hover:!bg-slate-100 hover:!border-slate-400 transition-colors"
+                        @click="handleClose">
+                        Fechar
+                    </el-button>
+
                     <el-button v-if="!isViewing" type="primary"
-                        class="w-full !ml-0 !h-12 !font-bold !text-sm !rounded-lg shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                        class="flex-1 !ml-0 !h-10 !font-bold !text-[13px] !rounded-lg shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5"
                         @click="submit" :loading="loading">
-                        SALVAR TICKET
+                        Salvar Ticket
                     </el-button>
 
                     <el-button v-if="isViewing" type="primary"
-                        class="w-full !ml-0 !h-12 !font-bold !text-sm !rounded-lg shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                        class="flex-1 !ml-0 !h-10 !font-bold !text-[13px] !rounded-lg shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5"
                         @click="$emit('switch-edit')">
-                        <el-icon class="mr-2 text-base">
+                        <el-icon class="mr-1 text-base">
                             <Edit />
-                        </el-icon> EDITAR DADOS
-                    </el-button>
-
-                    <el-button
-                        class="w-full !ml-0 !h-12 !font-bold !text-sm !rounded-lg !text-slate-600 !border-slate-300 hover:!bg-slate-100 hover:!border-slate-400 transition-colors"
-                        @click="handleClose">
-                        FECHAR
+                        </el-icon>
+                        Editar Ticket
                     </el-button>
                 </div>
+
             </div>
         </div>
     </el-dialog>
@@ -265,7 +264,6 @@ const loading = ref(false);
 const isEditing = ref(false);
 const activeTab = ref('main');
 const descriptionInputRef = ref();
-
 const newChatMessage = ref('');
 
 interface ChecklistItem { text: string; done: boolean; }
@@ -305,7 +303,6 @@ watch(() => props.isOpen, (val) => {
             form.customer = props.ticket.customer;
             form.status = props.ticket.status;
             form.priority = props.ticket.priority;
-
             form.description = (props.ticket as any).description || '';
             form.assignees = (props.ticket as any).assignees || ['1'];
             form.tags = (props.ticket as any).tags || [];
@@ -344,7 +341,6 @@ watch(() => props.isOpen, (val) => {
 
 const sendChatMessage = () => {
     if (!newChatMessage.value.trim()) return;
-
     const now = new Date();
     const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
@@ -354,7 +350,6 @@ const sendChatMessage = () => {
         time: timeString,
         isAgent: true
     });
-
     newChatMessage.value = '';
 
     setTimeout(() => {
@@ -384,11 +379,7 @@ const removeAttachment = (idx: number) => form.attachments.splice(idx, 1);
 
 const getTeamMemberName = (id: string) => teamMembers.value.find(u => u.id === id)?.name || '?';
 
-const getStatusColor = (s: string) => ({
-    'open': 'bg-amber-400',
-    'in-progress': 'bg-blue-500',
-    'resolved': 'bg-green-500'
-}[s] || 'bg-slate-400');
+const getStatusColor = (s: string) => ({ 'open': 'bg-amber-400', 'in-progress': 'bg-blue-500', 'resolved': 'bg-green-500' }[s] || 'bg-slate-400');
 
 const getPriorityStyle = (p: string) => ({
     'low': 'bg-white text-slate-700',
@@ -398,12 +389,7 @@ const getPriorityStyle = (p: string) => ({
 }[p] || '');
 
 const getPriorityName = (p: string) => {
-    return {
-        'low': 'Baixa',
-        'medium': 'Normal',
-        'high': 'Alta',
-        'urgent': 'Crítica'
-    }[p] || p;
+    return { 'low': 'Baixa', 'medium': 'Normal', 'high': 'Alta', 'urgent': 'Crítica' }[p] || p;
 };
 
 const handleClose = () => {

@@ -64,7 +64,6 @@
         <el-button type="danger" @click="submitFinish">Finalizar</el-button>
       </template>
     </el-dialog>
-
   </div>
 </template>
 
@@ -73,7 +72,6 @@ import { ref, reactive } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../store/chat.store';
 import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
-
 import { ChatLineSquare } from '@element-plus/icons-vue';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
 
@@ -82,7 +80,6 @@ import ChatArea from '../components/ChatArea.vue';
 import ChatProfile from '../components/ChatProfile.vue';
 import LinkCustomerModal from '../components/modals/LinkCustomerModal.vue';
 import TicketModal from '@/modules/tickets/ui/components/TicketModal.vue';
-
 import type { SendMessageDTO } from '../../domain/dto/chat.dto';
 
 const store = useChatStore();
@@ -117,11 +114,7 @@ const handleCustomerLinked = (customerData: { id: string, name: string, company?
 };
 
 const finishFormRef = ref<FormInstance>();
-const finishForm = reactive({
-  reason: '',
-  description: ''
-});
-
+const finishForm = reactive({ reason: '', description: '' });
 const finishRules = reactive<FormRules>({
   reason: [{ required: true, message: 'Por favor, selecione um motivo.', trigger: 'change' }]
 });
@@ -130,9 +123,7 @@ const openFinishModal = () => {
   finishForm.reason = '';
   finishForm.description = '';
   isFinishModalOpen.value = true;
-  setTimeout(() => {
-    finishFormRef.value?.clearValidate();
-  }, 50);
+  setTimeout(() => { finishFormRef.value?.clearValidate(); }, 50);
 };
 
 const submitFinish = async () => {
@@ -154,17 +145,14 @@ const handleSelectContact = (contact: any) => {
 
 const handleSendMessage = (payload: Omit<SendMessageDTO, 'contactId'>) => {
   if (selectedContact.value) {
-    store.sendMessage({
-      contactId: selectedContact.value.id,
-      ...payload
-    });
+    store.sendMessage({ contactId: selectedContact.value.id, ...payload });
   }
 };
 
 const handleAssumirChat = () => {
   if (selectedContact.value) {
     store.assumirChat(selectedContact.value.id);
-    ElMessage.success('Você assumiu este atendimento!');
+    ElMessage.success('Você assumiu o atendimento!');
   }
 };
 
@@ -176,29 +164,49 @@ const isTicketModalOpen = ref(false);
 const ticketInitialData = ref<any>(null);
 
 const openTicketModal = () => {
-  if (!selectedContact.value) return;
+  const contact = selectedContact.value;
+  if (!contact) return;
+
+  let lastStartIndex = -1;
+  const msgs = messages.value || [];
+
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const msg = msgs[i];
+
+    if (msg && msg.type === 'alert' && msg.text?.includes('Atendimento iniciado')) {
+      lastStartIndex = i;
+      break;
+    }
+  }
+
+  const currentSessionMessages = lastStartIndex !== -1
+    ? msgs.slice(lastStartIndex)
+    : msgs;
+
+  const history = currentSessionMessages.map(m => ({
+    sender: m.isMine ? 'Atendente' : contact.name,
+    text: m.text || '',
+    time: m.timestamp,
+    isAgent: m.isMine
+  }));
+
+  const protocoloStr = contact.serviceId ? ` #${contact.serviceId}` : '';
 
   ticketInitialData.value = {
-    title: `Atendimento: ${selectedContact.value.name}`,
-    customer: selectedContact.value.company ? `${selectedContact.value.name} - ${selectedContact.value.company}` : selectedContact.value.name,
-    chatHistory: messages.value.map(m => ({
-      sender: m.isMine ? 'Agente' : selectedContact.value!.name,
-      text: m.text,
-      time: m.timestamp,
-      isAgent: m.isMine
-    }))
+    customer: contact.name,
+    description: `Ticket gerado a partir do protocolo de atendimento${protocoloStr} via WhatsApp.\nPor favor, descreva o problema abaixo.`,
+    chatHistory: history
   };
 
   isTicketModalOpen.value = true;
 };
 
-const submitTicket = async (data: any) => {
-  try {
-    await ticketsStore.createTicket(data);
-    ElMessage.success('Ticket criado e enviado para a gestão com sucesso!');
-    isTicketModalOpen.value = false;
-  } catch (error) {
-    ElMessage.error('Erro ao enviar o ticket.');
-  }
+const submitTicket = async (ticketData: any) => {
+  await ticketsStore.createTicket({
+    ...ticketData,
+    chatHistory: ticketData.chatHistory
+  });
+  ElMessage.success('Ticket aberto com sucesso!');
+  isTicketModalOpen.value = false;
 };
 </script>
