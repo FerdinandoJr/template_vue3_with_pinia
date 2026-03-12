@@ -1,5 +1,13 @@
 export enum ServiceStatus {
-  ACTIVE = "active",
-  INACTIVE = "inactive",
-  PENDING = "pending"
+  IN_PROGRESS = 'in_progress',
+  PAUSED = 'paused',
+  FINISHED = 'finished',
+  CANCELED = 'canceled'
+}
+
+export enum ServicePriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  URGENT = 'urgent'
 }

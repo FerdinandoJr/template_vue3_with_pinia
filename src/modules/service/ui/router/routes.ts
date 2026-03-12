@@ -5,9 +5,9 @@ export default [
     path: '/atendimentos',
     name: 'Atendimentos',
     component: ServicePage,
-    meta: { 
-      title: 'Atendimentos', 
-      subtitle: 'Gestão de registros de atendimento' 
+    meta: {
+      title: 'Atendimentos',
+      subtitle: 'Gestão de registros de atendimento'
     }
   }
 ];

@@ -1,5 +1,6 @@
 <template>
-  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex-1 flex flex-col">
+  <div
+    class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[calc(100vh-300px)]">
     <el-table :data="clients" style="width: 100%; height: 100%;" @row-click="handleRowClick"
       row-class-name="cursor-pointer hover:bg-slate-50 transition-colors" highlight-current-row>
       <el-table-column label="Cliente / Empresa" min-width="250">
@@ -13,14 +14,14 @@
                 {{ scope.row.tradeName || scope.row.companyName }}
               </p>
               <p class="text-[11px] text-slate-500 font-bold mt-0.5">
-                {{ scope.row.document || 'Sem CNPJ' }}
+                {{ scope.row.document || 'Sem NIF/CNPJ' }}
               </p>
             </div>
           </div>
         </template>
       </el-table-column>
 
-      <el-table-column label="Contato Responsável" min-width="200">
+      <el-table-column label="Contacto Responsável" min-width="200">
         <template #default="scope">
           <p class="font-bold text-slate-700">{{ scope.row.name }}</p>
           <div class="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
@@ -28,7 +29,7 @@
               <Phone />
             </el-icon>
             <span>
-              {{ formatPhone(scope.row.phone) || scope.row.email || 'Sem contato' }}
+              {{ formatPhone(scope.row.phone) || scope.row.email || 'Sem contacto' }}
             </span>
           </div>
         </template>
@@ -42,7 +43,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="Status" width="120">
+      <el-table-column label="Estado" width="120">
         <template #default="scope">
           <el-tag :type="scope.row.status === 'active' ? 'success' : 'danger'" effect="light" round>
             {{ scope.row.status === 'active' ? 'Ativo' : 'Inativo' }}
@@ -76,6 +77,17 @@
         </div>
       </template>
     </el-table>
+
+    <div
+      class="p-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+      <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">
+        Página {{ currentPage }} de {{ Math.ceil(total / pageSize) || 1 }}
+      </span>
+
+      <el-pagination :current-page="currentPage" :page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
+        layout="sizes, prev, pager, next" background @size-change="$emit('update:pageSize', $event)"
+        @current-change="$emit('update:currentPage', $event)" />
+    </div>
   </div>
 </template>
 
@@ -83,8 +95,14 @@
 import { Edit, Delete, Phone, FolderDelete } from '@element-plus/icons-vue'
 import type { ICustomer } from '../../domain/entities/customer'
 
-defineProps<{ clients: ICustomer[] }>()
-const emit = defineEmits(['select', 'edit', 'delete'])
+defineProps<{
+  clients: ICustomer[];
+  total: number;
+  currentPage: number;
+  pageSize: number;
+}>()
+
+const emit = defineEmits(['select', 'edit', 'delete', 'update:currentPage', 'update:pageSize'])
 
 const handleRowClick = (row: ICustomer) => {
   emit('select', row.uuid)
@@ -92,17 +110,13 @@ const handleRowClick = (row: ICustomer) => {
 
 const formatPhone = (phone?: string) => {
   if (!phone) return null
-
   const cleaned = phone.replace(/\D/g, '')
-
   if (cleaned.length === 11) {
     return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
   }
-
   if (cleaned.length === 10) {
     return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`
   }
-
   return phone
 }
 </script>
@@ -119,5 +133,10 @@ const formatPhone = (phone?: string) => {
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.05em;
+}
+
+:deep(.el-pagination.is-background .el-pager li.is-active) {
+  background-color: #2563eb;
+  font-weight: bold;
 }
 </style>

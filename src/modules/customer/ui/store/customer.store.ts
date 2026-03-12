@@ -9,6 +9,8 @@ interface CustomerState {
     items: ICustomer[]
     filter: CustomerFilter
     loading: boolean
+    currentPage: number
+    pageSize: number
 }
 
 export const useCustomerStore = defineStore('customer', {
@@ -17,12 +19,19 @@ export const useCustomerStore = defineStore('customer', {
         total: 0,
         filteredTotal: 0,
         loading: false,
-        filter: {}
+        filter: {},
+        currentPage: 1,  // Página atual default
+        pageSize: 10     // Quantidade de clientes por página default
     }),
+
     actions: {
         async fetch() {
             this.loading = true
             try {
+                // Injeta a página e o limite no filtro antes de chamar a API
+                this.filter.page = this.currentPage;
+                this.filter.limit = this.pageSize;
+
                 const { total, filteredTotal, items } = await customerServices.list(this.filter)
                 this.total = total
                 this.filteredTotal = filteredTotal
@@ -32,6 +41,23 @@ export const useCustomerStore = defineStore('customer', {
             } finally {
                 this.loading = false
             }
+        },
+
+        async setPage(page: number) {
+            this.currentPage = page;
+            await this.fetch();
+        },
+
+        async setPageSize(size: number) {
+            this.pageSize = size;
+            this.currentPage = 1; // Volta pra primeira página ao alterar quantidade
+            await this.fetch();
+        },
+
+        async setQuery(query: string) {
+            this.filter.query = query;
+            this.currentPage = 1; // Reseta a paginação ao realizar uma nova pesquisa
+            await this.fetch();
         },
 
         async fetchById(uuid: string): Promise<ICustomer | undefined> {
@@ -44,11 +70,6 @@ export const useCustomerStore = defineStore('customer', {
             } finally {
                 this.loading = false;
             }
-        },
-
-        async setQuery(query: string) {
-            this.filter.query = query;
-            await this.fetch();
         },
 
         async createCustomer(data: Omit<ICustomer, 'uuid' | 'lastInteraction' | 'openTickets' | 'csat'>) {

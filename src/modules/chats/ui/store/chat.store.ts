@@ -99,8 +99,12 @@ export const useChatStore = defineStore('chat', () => {
       status: isSimulatingError ? 'error' : 'sent'
     };
 
-    if (!messagesDb.value[contactId]) messagesDb.value[contactId] = [];
-    messagesDb.value[contactId].push(newMessage);
+    let msgs = messagesDb.value[contactId];
+    if (!msgs) {
+      msgs = [];
+      messagesDb.value[contactId] = msgs;
+    }
+    msgs.push(newMessage);
 
     const contact = contacts.value.find(c => c.id === contactId);
     if (contact) {
@@ -115,7 +119,6 @@ export const useChatStore = defineStore('chat', () => {
 
     if (!isSimulatingError && type !== MessageType.NOTE) {
       setTimeout(() => {
-        // 👇 AQUI: Adicionamos o "?." (Optional Chaining) para blindar contra Undefined
         const msg = messagesDb.value[contactId]?.find(m => m.id === newMsgId);
         if (msg && msg.status === 'sent') msg.status = 'delivered';
       }, 1200);
@@ -125,7 +128,6 @@ export const useChatStore = defineStore('chat', () => {
   function retryMessage(contactId: string | null, messageId: string) {
     if (!contactId) return;
 
-    // 👇 AQUI: Extraímos para uma constante e verificamos se existe
     const msgList = messagesDb.value[contactId];
     if (!msgList) return;
 
@@ -149,8 +151,12 @@ export const useChatStore = defineStore('chat', () => {
       contact.accumulatedTime = 0;
       if (activeContactId.value === contactId) contact.lastActiveAt = Date.now();
 
-      if (!messagesDb.value[contactId]) messagesDb.value[contactId] = [];
-      messagesDb.value[contactId].push({ id: generateUUIDv7(), text: `Atendimento iniciado. Protocolo: #${newServiceId}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
+      let msgs = messagesDb.value[contactId];
+      if (!msgs) {
+        msgs = [];
+        messagesDb.value[contactId] = msgs;
+      }
+      msgs.push({ id: generateUUIDv7(), text: `Atendimento iniciado. Protocolo: #${newServiceId}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
 
       currentFilter.value = ChatFilter.CHATS;
       selectContact(contact);
@@ -159,8 +165,9 @@ export const useChatStore = defineStore('chat', () => {
     return null;
   }
 
-  function finalizarChat(contactId: string, reason?: string) {
-    const idx = contacts.value.findIndex(c => c.id === contactId);
+  function finalizarChat(contactOrServiceId: string, reason?: string) {
+    const idx = contacts.value.findIndex(c => c.id === contactOrServiceId || c.serviceId === contactOrServiceId);
+
     if (idx !== -1) {
       const contact = contacts.value[idx];
       if (!contact) return;
@@ -170,17 +177,40 @@ export const useChatStore = defineStore('chat', () => {
         contact.accumulatedTime = (contact.accumulatedTime || 0) + (now - contact.lastActiveAt);
         contact.lastActiveAt = null;
       }
-      contacts.value.splice(idx, 1);
-      if (activeContactId.value === contactId) activeContactId.value = null;
+
+      (contact as any).status = 'finished';
+
+      let msgs = messagesDb.value[contact.id];
+      if (!msgs) {
+        msgs = [];
+        messagesDb.value[contact.id] = msgs;
+      }
+
+      msgs.push({
+        id: generateUUIDv7(),
+        text: `🔒 Atendimento encerrado${reason ? '. Resolução: ' + reason : ' via painel de Atendimentos.'}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isMine: false,
+        type: MessageType.ALERT
+      });
+
+      contact.lastMessage = 'Atendimento encerrado.';
+      contact.lastMessageTime = 'Agora';
+
+      if (activeContactId.value === contact.id) activeContactId.value = null;
     }
   }
+
+  const finishChat = finalizarChat;
 
   function transferirChat(contactId: string, destination?: string) {
     const idx = contacts.value.findIndex(c => c.id === contactId);
     if (idx !== -1) {
-      if (messagesDb.value[contactId]) {
-        messagesDb.value[contactId].push({ id: generateUUIDv7(), text: `Transferido para: ${destination || 'Outro departamento'}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
+      const msgs = messagesDb.value[contactId];
+      if (msgs) {
+        msgs.push({ id: generateUUIDv7(), text: `Transferido para: ${destination || 'Outro departamento'}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
       }
+
       contacts.value.splice(idx, 1);
       if (activeContactId.value === contactId) activeContactId.value = null;
     }
@@ -206,6 +236,7 @@ export const useChatStore = defineStore('chat', () => {
   return {
     contacts, activeContactId, currentFilter, currentSort, messages, selectedContact, filteredContacts, filaCount, currentUser, replyingTo,
     setFilter, selectContact, setSearchQuery, sendMessage, assumirChat, finalizarChat, transferirChat, updateContact, linkCustomerToChat, setReplyingTo, clearReplyingTo,
-    retryMessage
+    retryMessage,
+    finishChat
   };
 });

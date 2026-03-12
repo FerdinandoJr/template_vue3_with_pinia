@@ -1,13 +1,15 @@
-import type { ServiceStatus } from "../valueObjects/service-status.enum";
+import { ServiceStatus, ServicePriority } from '@/modules/service/domain/valueObjects/service-status.enum'
 
-export interface IServiceRecord {
+export interface IServiceItem {
   id: string;
-  companyName: string;
-  cnpj: string;
-  dateTime: string;
-  agentName: string;
+  protocol: string;
+  customerName: string;
+  subject: string;
+  description: string;
   status: ServiceStatus;
-  reason?: string;
-  description?: string;
-  duration?: string;
+  priority: ServicePriority;
+  startedAt: number;
+  finishedAt?: number;
+  accumulatedTime: number;
+  lastResumedAt?: number;
 }

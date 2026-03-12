@@ -1,5 +1,6 @@
 <template>
   <div class="flex flex-col gap-6 h-full p-6">
+
     <div class="flex justify-between items-center bg-white rounded-2xl p-4 shadow-sm border border-slate-100 shrink-0">
       <div class="relative flex-1 max-w-md">
         <el-input v-model="searchQuery" @input="handleSearch" placeholder="Pesquisar clientes ou empresas..."
@@ -11,7 +12,6 @@
           </template>
         </el-input>
       </div>
-
       <el-button type="primary" size="large" @click="openCreateModal" class="!rounded-xl !font-bold">
         <el-icon class="mr-2">
           <Plus />
@@ -22,11 +22,13 @@
 
     <ClientStats :total="total" />
 
-    <div v-if="loading" class="flex justify-center p-10 flex-1">
+    <div v-if="loading && items.length === 0" class="flex justify-center p-10 flex-1 items-center">
       <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
     </div>
 
-    <ClientTable v-else :clients="items" @select="goToDetails" @edit="openEditModal" @delete="promptDeleteCustomer" />
+    <ClientTable v-else :clients="items" :total="filteredTotal" :current-page="store.currentPage"
+      :page-size="store.pageSize" @update:current-page="store.setPage" @update:page-size="store.setPageSize"
+      @select="goToDetails" @edit="openEditModal" @delete="promptDeleteCustomer" />
 
     <CustomerFormModal v-if="isFormModalOpen" :is-open="isFormModalOpen" :customer-data="customerToEdit"
       @close="isFormModalOpen = false" @save="handleSaveCustomer" />
@@ -65,12 +67,14 @@ import CustomerFormModal from '../components/CustomerFormModal.vue'
 
 const store = useCustomerStore()
 const router = useRouter()
-const { items, total, loading } = storeToRefs(store)
+// Agora estamos trazendo filteredTotal do estado para injetar a quantidade real no rodapé da paginação
+const { items, total, filteredTotal, loading } = storeToRefs(store)
 
 const isFormModalOpen = ref(false)
 const customerToEdit = ref<Partial<ICustomer> | null>(null)
 const isDeleteModalOpen = ref(false)
 const customerUuidToDelete = ref<string | null>(null)
+
 const searchQuery = ref('')
 let searchTimeout: ReturnType<typeof setTimeout>
 
@@ -102,7 +106,6 @@ const handleSaveCustomer = async (data: any) => {
     await store.createCustomer(data)
   }
   isFormModalOpen.value = false
-  store.fetch()
 }
 
 const promptDeleteCustomer = (uuid: string) => {
@@ -113,7 +116,6 @@ const promptDeleteCustomer = (uuid: string) => {
 const confirmDeleteCustomer = async () => {
   if (customerUuidToDelete.value) {
     await store.deleteCustomer(customerUuidToDelete.value)
-    store.fetch()
   }
   isDeleteModalOpen.value = false
   customerUuidToDelete.value = null
