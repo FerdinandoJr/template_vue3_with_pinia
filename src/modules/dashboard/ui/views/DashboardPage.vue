@@ -1,6 +1,7 @@
 <template>
   <div class="p-6 h-full flex flex-col" v-loading.fullscreen.lock="loading"
     element-loading-text="Atualizando Dashboard...">
+
     <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
       <div>
         <h2 class="text-2xl font-black text-slate-800">Visão Geral</h2>
@@ -10,19 +11,22 @@
     </div>
 
     <template v-if="stats && !loading">
-
       <el-row :gutter="24" class="mb-6">
         <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-          <StatCard title="Total Clientes" :value="stats.totalCustomers" :icon="User" color="bg-blue-500" />
+          <StatCard title="Total Clientes" :value="stats.totalCustomers" :icon="User" border-color="!border-l-blue-500"
+            icon-color="text-blue-500" />
         </el-col>
         <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-          <StatCard title="Tickets Ativos" :value="stats.activeTickets" :icon="Ticket" color="bg-amber-500" />
+          <StatCard title="Tickets Ativos" :value="stats.activeTickets" :icon="Ticket"
+            border-color="!border-l-amber-500" icon-color="text-amber-500" />
         </el-col>
         <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-          <StatCard title="Resolvidos Hoje" :value="stats.resolvedToday" :icon="Check" color="bg-green-500" />
+          <StatCard title="Resolvidos Hoje" :value="stats.resolvedToday" :icon="Check"
+            border-color="!border-l-green-500" icon-color="text-green-500" />
         </el-col>
         <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-          <StatCard title="Tempo Médio" :value="stats.averageResponseTime" :icon="Timer" color="bg-purple-500" />
+          <StatCard title="Tempo Médio" :value="stats.averageResponseTime" :icon="Timer"
+            border-color="!border-l-purple-500" icon-color="text-purple-500" />
         </el-col>
       </el-row>
 
@@ -34,7 +38,6 @@
           <StatusChart :data="stats.ticketDistribution" />
         </el-col>
       </el-row>
-
     </template>
   </div>
 </template>

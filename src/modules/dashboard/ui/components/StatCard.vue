@@ -1,15 +1,15 @@
 <template>
-  <el-card shadow="hover" class="border-none shadow-sm !rounded-[24px] h-full"
-    :body-style="{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '24px' }">
-    <div
-      :class="[color, 'w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg shrink-0']">
-      <el-icon :size="24">
-        <component :is="icon" />
-      </el-icon>
-    </div>
-    <div>
-      <p class="text-sm font-bold text-slate-400 uppercase tracking-wider">{{ title }}</p>
-      <p class="text-2xl font-black text-slate-800">{{ value }}</p>
+  <el-card shadow="hover" :class="['stats-card !border-l-4', borderColor]">
+    <div class="flex items-center justify-between w-full">
+
+      <el-statistic :value="value" :title="title" class="flex-1" />
+
+      <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+        <el-icon :size="24" :class="iconColor">
+          <component :is="icon" />
+        </el-icon>
+      </div>
+
     </div>
   </el-card>
 </template>
@@ -21,6 +21,40 @@ defineProps<{
   title: string;
   value: string | number;
   icon: Component;
-  color: string
+  borderColor: string;
+  iconColor: string;
 }>();
 </script>
+
+<style scoped>
+.stats-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+}
+
+:deep(.el-statistic__content) {
+  font-size: 26px;
+  font-weight: 900;
+  color: #1e293b;
+  line-height: 1;
+}
+
+:deep(.el-statistic__head) {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+</style>
