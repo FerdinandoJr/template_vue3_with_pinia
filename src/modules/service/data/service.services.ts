@@ -1,8 +1,11 @@
-import type { IServiceRecord } from "../domain/entities/service-record";
-import { ServiceStatus } from "../domain/valueObjects/service-status.enum";
+import type { IServiceItem } from "../domain/entities/service.entity"
+import { ServiceStatus, ServicePriority } from "../domain/valueObjects/service.enum"
 
 export interface ServiceFilter {
   query?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface Paginated<T> {
@@ -11,45 +14,134 @@ export interface Paginated<T> {
   items: T[];
 }
 
-const mock: IServiceRecord[] = [
-  { id: '012452', companyName: 'Tech Solutions Ltda', cnpj: '57.156.369/0001-05', dateTime: '13/02/2026 - 14:02', agentName: 'Lorenzo Assunção', status: ServiceStatus.ACTIVE, reason: 'Suporte', duration: '15m' },
-  { id: '132566', companyName: 'Robrits Solutions Ltda', cnpj: '87.854.821/0001-73', dateTime: '09/02/2026 - 16:10', agentName: 'Carla Ferreira', status: ServiceStatus.ACTIVE, reason: 'Financeiro', duration: '10m' },
-];
+let mock: IServiceItem[] = [
+  {
+    id: '1',
+    protocol: '20261012-0014',
+    customerName: 'TechCorp Solutions',
+    document: 'CNPJ: 12.345.678/0001-90',
+    email: 'contato@techcorp.com.br',
+    subject: 'Falha na emissão de NFe',
+    lastAction: 'Aguardando retorno do setor fiscal',
+    status: ServiceStatus.IN_PROGRESS,
+    priority: ServicePriority.HIGH,
+    timeElapsed: '02:14:32',
+    accumulatedTime: 8072000,
+    lastResumedAt: Date.now(),
+    description: 'Cliente relatou erro 403 ao tentar emitir nota fiscal de devolução. Precisa de atenção urgente.',
+    createdAt: '12/03/2026 às 08:30',
+    history: [
+      { date: '12/03/2026 10:44', title: 'Apontamento Interno', description: 'Repassado para o setor fiscal validar as alíquotas.', author: 'João Silva', type: 'warning' },
+      { date: '12/03/2026 09:15', title: 'Resposta ao Cliente', description: 'Solicitado envio do XML com erro para análise técnica.', author: 'Maria Souza', type: 'primary' },
+      { date: '12/03/2026 08:30', title: 'Protocolo Gerado', description: 'Abertura de chamado pelo portal.', author: 'Sistema', color: '#10b981' }
+    ]
+  },
+  {
+    id: '2',
+    protocol: '20261012-0088',
+    customerName: 'Distribuidora Alvorada',
+    document: 'CNPJ: 98.765.432/0001-10',
+    email: 'financeiro@alvorada.com.br',
+    subject: 'Dúvida sobre relatório de vendas',
+    lastAction: 'Cliente enviou mensagem',
+    status: ServiceStatus.WAITING,
+    priority: ServicePriority.MEDIUM,
+    timeElapsed: '00:45:10',
+    accumulatedTime: 2710000,
+    description: 'Onde encontro o filtro por filial no novo dashboard?',
+    createdAt: '12/03/2026 às 09:10',
+    history: [
+      { date: '12/03/2026 09:55', title: 'Mensagem Recebida', description: 'Onde encontro o filtro por filial no novo dashboard?', author: 'Cliente', type: 'info' },
+      { date: '12/03/2026 09:10', title: 'Protocolo Gerado', description: 'Abertura via portal de autoatendimento.', author: 'Sistema', color: '#10b981' }
+    ]
+  }
+]
 
-export const serviceDeskServices = {
-  async list(filter: ServiceFilter): Promise<Paginated<IServiceRecord>> {
+for (let i = 3; i <= 45; i++) {
+  mock.push({
+    id: i.toString(),
+    protocol: `20261012-0${i.toString().padStart(3, '0')}`,
+    customerName: `Empresa Parceira ${i} S/A`,
+    document: `CNPJ: 00.000.000/0001-${i.toString().padStart(2, '0')}`,
+    email: `contato${i}@empresa.com.br`,
+    subject: i % 2 === 0 ? 'Dúvida no faturamento' : 'Instabilidade de conexão API',
+    lastAction: 'Atualizado pelo sistema',
+    status: i % 3 === 0 ? ServiceStatus.FINISHED : (i % 2 === 0 ? ServiceStatus.WAITING : ServiceStatus.IN_PROGRESS),
+    priority: i % 4 === 0 ? ServicePriority.URGENT : (i % 2 === 0 ? ServicePriority.HIGH : ServicePriority.LOW),
+    timeElapsed: '00:00:00',
+    accumulatedTime: i * 150000,
+    description: 'Descrição automática gerada para simular o chamado de número ' + i,
+    createdAt: '12/03/2026 às 10:00',
+    history: [
+      { date: '12/03/2026 10:00', title: 'Protocolo Gerado', description: 'Abertura automática no sistema.', author: 'Sistema', color: '#10b981' }
+    ]
+  });
+}
+
+export const serviceServices = {
+  async list(filter: ServiceFilter): Promise<Paginated<IServiceItem>> {
     return new Promise((resolve) => {
       setTimeout(() => {
         let filtered = [...mock];
-        
+
+        if (filter.status && filter.status !== 'all') {
+          filtered = filtered.filter(s => s.status === filter.status);
+        }
+
         if (filter.query) {
           const q = filter.query.toLowerCase();
-          filtered = filtered.filter(r => 
-            r.companyName.toLowerCase().includes(q) || 
-            r.id.includes(q)
+          filtered = filtered.filter(s =>
+            s.protocol.toLowerCase().includes(q) ||
+            s.customerName.toLowerCase().includes(q) ||
+            s.subject.toLowerCase().includes(q)
           );
         }
+
+        const page = filter.page || 1;
+        const limit = filter.limit || 10;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+
+        const paginatedItems = filtered.slice(startIndex, endIndex);
 
         resolve({
           total: mock.length,
           filteredTotal: filtered.length,
-          items: filtered
+          items: paginatedItems
         });
       }, 300);
     });
   },
 
-  async create(record: Omit<IServiceRecord, 'id' | 'dateTime'>): Promise<void> {
-    return new Promise((resolve) => {
+  async updateStatus(id: string, newStatus: string, resolutionDetails?: string): Promise<IServiceItem> {
+    return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const newRecord: IServiceRecord = {
-          ...record,
-          id: Math.floor(100000 + Math.random() * 900000).toString(),
-          dateTime: new Date().toISOString()
-        };
-        mock.unshift(newRecord);
-        resolve();
-      }, 300);
+        const service = mock.find(s => s.id === id);
+
+        if (!service) return reject(new Error("Atendimento não encontrado"));
+
+        service.status = newStatus;
+
+        if (newStatus === ServiceStatus.FINISHED) {
+          service.lastAction = 'Atendimento finalizado';
+          service.history.unshift({
+            date: new Date().toLocaleString('pt-BR'),
+            title: 'Atendimento Concluído',
+            description: resolutionDetails || 'Encerrado pelo atendente',
+            author: 'Você (Atendente)',
+            type: 'success'
+          });
+        } else if (newStatus === ServiceStatus.IN_PROGRESS) {
+          service.lastResumedAt = Date.now();
+        } else if (newStatus === ServiceStatus.PAUSED) {
+          if (service.lastResumedAt) {
+            service.accumulatedTime = (service.accumulatedTime || 0) + (Date.now() - service.lastResumedAt);
+            service.lastResumedAt = undefined;
+          }
+        }
+
+        resolve(service);
+      }, 400);
     });
   }
-};
+}

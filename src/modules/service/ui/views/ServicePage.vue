@@ -8,13 +8,13 @@
         <div class="flex-1 min-w-[200px]">
           <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Buscar
             Chamado</label>
-          <el-input v-model="filters.search" placeholder="Protocolo, cliente..." clearable :prefix-icon="Search"
-            size="large" class="custom-input" />
+          <el-input v-model="filters.search" @input="handleSearch" placeholder="Protocolo, cliente..." clearable
+            :prefix-icon="Search" size="large" class="custom-input" />
         </div>
 
         <div class="w-48">
           <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Status</label>
-          <el-select v-model="filters.status" size="large" class="w-full custom-input">
+          <el-select v-model="filters.status" @change="handleFilterChange" size="large" class="w-full custom-input">
             <el-option label="Todos" value="all" />
             <el-option label="Em Andamento" value="in_progress" />
             <el-option label="Aguardando" value="waiting" />
@@ -43,27 +43,26 @@
         <div class="col-span-1 text-center">Status</div>
       </div>
 
-      <ul class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2" v-infinite-scroll="store.loadMoreServices"
-        :infinite-scroll-disabled="store.loading">
-        <li v-for="service in filteredServices" :key="service.id" @click="openServiceDetails(service)"
-          class="grid grid-cols-12 gap-4 items-center px-4 py-4 bg-white border border-slate-100 hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-md rounded-xl cursor-pointer transition-all group">
+      <div v-if="store.loading && store.services.length === 0" class="flex justify-center p-10 flex-1 items-center">
+        <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
 
+      <ul v-else class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+        <li v-for="service in store.services" :key="service.id" @click="openServiceDetails(service)"
+          class="grid grid-cols-12 gap-4 items-center px-4 py-4 bg-white border border-slate-100 hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-md rounded-xl cursor-pointer transition-all group">
           <div class="col-span-2 flex items-center gap-3">
             <div class="w-1.5 h-10 rounded-full" :class="getStatusBarColor(service.status)"></div>
             <span class="font-mono text-sm font-black text-slate-600 group-hover:text-blue-600 tracking-tight">#{{
               service.protocol }}</span>
           </div>
-
           <div class="col-span-3 truncate pr-4">
             <p class="text-sm font-bold text-slate-800 truncate">{{ service.customerName }}</p>
             <p class="text-[10px] font-bold text-slate-400 uppercase">{{ service.document }}</p>
           </div>
-
           <div class="col-span-4 truncate pr-4">
             <p class="text-sm font-semibold text-slate-700 truncate">{{ service.subject }}</p>
             <p class="text-xs text-slate-500 truncate mt-0.5 font-medium italic">{{ service.lastAction }}</p>
           </div>
-
           <div class="col-span-2 flex items-center gap-2">
             <el-icon :size="18"
               :class="service.status === 'in_progress' ? 'text-emerald-500 animate-spin-slow' : 'text-slate-300'">
@@ -71,7 +70,6 @@
             </el-icon>
             <span class="text-sm font-mono font-bold text-slate-700">{{ service.timeElapsed }}</span>
           </div>
-
           <div class="col-span-1 flex justify-center">
             <el-tag :type="getStatusTag(service.status).type" effect="dark" size="small"
               class="!border-none !font-black px-3 !rounded-md">
@@ -79,26 +77,43 @@
             </el-tag>
           </div>
         </li>
-        <div v-if="store.loading" class="flex justify-center py-4"><el-icon class="animate-spin text-blue-500"
-            :size="24">
-            <Loading />
-          </el-icon></div>
+
+        <div v-if="!store.loading && store.services.length === 0" class="py-12 text-center text-slate-500">
+          <el-icon :size="40" class="mb-2 block mx-auto">
+            <Document />
+          </el-icon>
+          <p>Nenhum atendimento encontrado.</p>
+        </div>
       </ul>
+
+      <div
+        class="p-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+        <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">
+          Página {{ store.currentPage }} de {{ Math.ceil(store.filteredTotal / store.pageSize) || 1 }}
+        </span>
+
+        <el-pagination :current-page="store.currentPage" :page-size="store.pageSize" :page-sizes="[10, 20, 50, 100]"
+          :total="store.filteredTotal" layout="sizes, prev, pager, next" background @size-change="store.setPageSize"
+          @current-change="store.setPage" />
+      </div>
     </div>
 
     <el-dialog v-model="isModalOpen" width="1000px" top="5vh" class="!rounded-[24px] overflow-hidden"
       :show-close="false">
       <template #header>
-        <div class="flex justify-between items-center pb-4 border-b border-slate-100">
-          <div class="flex items-center gap-5">
-            <el-button circle @click="isModalOpen = false" class="!border-none hover:bg-slate-100" size="large"><el-icon
-                :size="20">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div class="flex items-center gap-4">
+            <el-button circle @click="isModalOpen = false" class="!border-none !bg-slate-100 hover:!bg-slate-200">
+              <el-icon>
                 <ArrowLeft />
-              </el-icon></el-button>
+              </el-icon>
+            </el-button>
             <div>
+              <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Detalhes do
+                Atendimento</span>
               <div class="flex items-center gap-3">
                 <h2 class="text-2xl font-black text-slate-800 font-mono tracking-tighter">#{{ selectedService?.protocol
-                }}</h2>
+                  }}</h2>
                 <el-tag :type="getStatusTag(selectedService?.status).type" effect="dark"
                   class="!font-black !border-none px-4 !rounded-lg">
                   {{ getStatusTag(selectedService?.status).label }}
@@ -140,7 +155,6 @@
             </el-timeline>
           </div>
         </div>
-
         <div class="col-span-1 border-l border-slate-100 pl-8 flex flex-col">
           <div class="bg-blue-50 p-6 rounded-3xl border border-blue-100 mb-8">
             <h3 class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3">TEMPO ATIVO</h3>
@@ -151,13 +165,12 @@
               <span class="text-4xl font-mono font-black tracking-tighter">{{ selectedService.timeElapsed }}</span>
             </div>
           </div>
-
           <div class="space-y-6">
             <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">DADOS DO CLIENTE</h3>
             <div class="flex items-center gap-4">
               <el-avatar :size="50" class="!bg-blue-600 font-black">{{
                 selectedService.customerName.charAt(0).toUpperCase()
-              }}</el-avatar>
+                }}</el-avatar>
               <div>
                 <p class="font-black text-slate-800 leading-tight">{{ selectedService.customerName }}</p>
                 <p class="text-xs font-bold text-slate-400 font-mono tracking-tight">{{ selectedService.document }}</p>
@@ -175,15 +188,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
-import { Search, Timer, Document, Loading, Printer, Check, ArrowLeft } from '@element-plus/icons-vue';
+import { ref, reactive, onMounted } from 'vue';
+import { Search, Timer, Document, Printer, Check, ArrowLeft, Loading } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useServiceStore } from '../store/service.store';
 
 const store = useServiceStore();
+
 const filters = reactive({ search: '', status: 'all', dateRange: null });
 const isModalOpen = ref(false);
 const selectedService = ref<any>(null);
+
+let searchTimeout: ReturnType<typeof setTimeout>;
+
+const handleSearch = () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    store.setFilter({ query: filters.search });
+  }, 300);
+};
+
+const handleFilterChange = () => {
+  store.setFilter({ status: filters.status });
+};
 
 const shortcuts = [
   { text: 'Hoje', value: () => [new Date(), new Date()] },
@@ -195,7 +222,8 @@ const getStatusTag = (s: string) => {
   const m: any = {
     in_progress: { label: 'EM ANDAMENTO', type: 'success' },
     waiting: { label: 'AGUARDANDO', type: 'warning' },
-    finished: { label: 'CONCLUÍDO', type: 'info' }
+    finished: { label: 'CONCLUÍDO', type: 'info' },
+    paused: { label: 'PAUSADO', type: 'warning' }
   };
   return m[s] || { label: 'N/A', type: 'info' };
 };
@@ -204,32 +232,30 @@ const getStatusBarColor = (status: string) => {
   if (status === 'in_progress') return 'bg-emerald-500';
   if (status === 'waiting') return 'bg-orange-400';
   if (status === 'finished') return 'bg-slate-400';
+  if (status === 'paused') return 'bg-amber-400';
   return 'bg-slate-300';
 };
 
-const getPriorityColor = (p: string) => p === 'urgent' ? 'bg-red-500' : p === 'high' ? 'bg-orange-400' : 'bg-slate-300';
-
-const openServiceDetails = (s: any) => { selectedService.value = s; isModalOpen.value = true; };
-
-const filteredServices = computed(() => {
-  let list = store.services;
-  if (filters.status !== 'all') list = list.filter(s => s.status === filters.status);
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    list = list.filter(s => s.protocol.toLowerCase().includes(q) || s.customerName.toLowerCase().includes(q));
-  }
-  return list;
-});
+const openServiceDetails = (s: any) => {
+  selectedService.value = s;
+  isModalOpen.value = true;
+};
 
 const handleFinishService = () => {
-  ElMessageBox.prompt('Descrição da resolução:', 'Finalizar', { confirmButtonText: 'Finalizar', inputType: 'textarea' })
-    .then(({ value }) => {
-      store.finishService(selectedService.value.id, value);
-      isModalOpen.value = false;
-      ElMessage.success('Finalizado com sucesso!');
-    });
+  ElMessageBox.prompt('Descrição da resolução:', 'Finalizar', {
+    confirmButtonText: 'Finalizar',
+    inputType: 'textarea'
+  }).then(({ value }) => {
+    store.finishService(selectedService.value.id, value);
+    isModalOpen.value = false;
+  }).catch(() => { });
 };
+
 const handlePrint = () => window.print();
+
+onMounted(() => {
+  store.fetchServices();
+});
 </script>
 
 <style scoped>
