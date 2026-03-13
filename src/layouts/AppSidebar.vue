@@ -16,13 +16,20 @@
       <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 px-2">Menu Principal</div>
 
       <router-link v-for="item in menuItems" :key="item.path" :to="item.path"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group"
+        class="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all group"
         :class="$route.path === item.path ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400 hover:bg-slate-800 hover:text-white'">
-        <component :is="item.icon" class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" />
-        {{ item.label }}
 
-        <span v-if="item.badge" class="ml-auto bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{{
-          item.badge }}</span>
+        <div class="flex items-center gap-3">
+          <component :is="item.icon" class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" />
+          {{ item.label }}
+        </div>
+
+        <el-badge v-if="item.id === 'chats' && chatStore.filaCount > 0" :value="chatStore.filaCount" :max="99"
+          type="danger" class="menu-badge" />
+
+        <span v-else-if="item.badge" class="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+          {{ item.badge }}
+        </span>
       </router-link>
     </nav>
 
@@ -51,21 +58,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
-import {
-  LayoutDashboard,
-  Calendar,
-  Users,
-  MessageSquare,
-  Ticket,
-  Phone,
-  BarChart3,
-  BookOpen,
-  KanbanSquare,
-  Settings,
-  LogOut
-} from 'lucide-vue-next';
+import { useChatStore } from '@/modules/chats/ui/store/chat.store';
+import { LayoutDashboard, Calendar, Users, MessageSquare, Ticket, Phone, BarChart3, BookOpen, KanbanSquare, Settings, LogOut } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
+const chatStore = useChatStore();
 
 const userName = computed(() => {
   const fullName = authStore.user?.name;
@@ -80,21 +77,34 @@ const handleLogout = () => {
   window.location.href = '/login';
 };
 
-const menuItems = [
-  { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { label: 'Agenda', path: '/calendar', icon: Calendar },
-  { label: 'Clientes', path: '/customer', icon: Users },
-  { label: 'Chats', path: '/chats', icon: MessageSquare, badge: '12' },
-  { label: 'Tickets', path: '/tickets', icon: Ticket },
-  { label: 'Atendimento', path: '/atendimentos', icon: Phone },
-  { label: 'Relatórios', path: '/relatorios', icon: BarChart3 },
-  { label: 'Base de conhecimento', path: '/kb', icon: BookOpen },
-  { label: 'KanBan', path: '/kanban', icon: KanbanSquare },
-  { label: 'Configurações', path: '/configuracoes', icon: Settings },
+interface MenuItem { id: string; label: string; path: string; icon: any; badge?: string | number; }
+
+const menuItems: MenuItem[] = [
+  { id: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { id: 'calendar', label: 'Agenda', path: '/calendar', icon: Calendar },
+  { id: 'customer', label: 'Clientes', path: '/customer', icon: Users },
+  { id: 'chats', label: 'Chats', path: '/chats', icon: MessageSquare },
+  { id: 'tickets', label: 'Tickets', path: '/tickets', icon: Ticket },
+  { id: 'atendimentos', label: 'Atendimento', path: '/atendimentos', icon: Phone },
+  { id: 'kanban', label: 'KanBan', path: '/kanban', icon: KanbanSquare },
+  { id: 'kb', label: 'Base de conhecimento', path: '/kb', icon: BookOpen },
+  { id: 'relatorios', label: 'Relatórios', path: '/relatorios', icon: BarChart3 },
+  { id: 'configuracoes', label: 'Configurações', path: '/configuracoes', icon: Settings },
 ];
 </script>
 
 <style scoped>
+:deep(.menu-badge .el-badge__content) {
+  position: static;
+  transform: none;
+  font-weight: 900;
+  border: none;
+}
+
+.router-link-active :deep(.menu-badge .el-badge__content) {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }

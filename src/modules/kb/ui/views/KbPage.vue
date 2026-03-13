@@ -4,7 +4,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 shrink-0">
       <div>
         <h2 class="text-2xl font-black text-slate-800 tracking-tight">Base de Conhecimento</h2>
-        <p class="text-slate-500 text-sm font-medium mt-1">Consulte documentações, roteiros e documentações.</p>
+        <p class="text-slate-500 text-sm font-medium mt-1">Consulte documentações, roteiros e políticas</p>
       </div>
 
       <div class="flex items-center gap-3">
@@ -58,8 +58,26 @@
 
     <div class="flex-1 flex flex-col min-h-0">
       <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-        <div v-if="store.loading" class="flex justify-center items-center h-full">
-          <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+
+        <div v-if="store.loading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-4">
+          <div v-for="i in 8" :key="i"
+            class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm h-[220px] flex flex-col">
+            <el-skeleton animated class="h-full flex flex-col">
+              <template #template>
+                <div class="flex justify-between items-start mb-4">
+                  <el-skeleton-item variant="image" style="width: 48px; height: 48px; border-radius: 12px;" />
+                  <el-skeleton-item variant="text" style="width: 60px; height: 24px; border-radius: 8px;" />
+                </div>
+                <el-skeleton-item variant="h3" style="width: 80%; margin-bottom: 8px; height: 20px;" />
+                <el-skeleton-item variant="text" style="width: 100%; margin-bottom: 4px;" />
+                <el-skeleton-item variant="text" style="width: 60%; margin-bottom: 24px;" />
+                <div class="mt-auto flex justify-between items-center pt-4 border-t border-slate-100">
+                  <el-skeleton-item variant="text" style="width: 80px;" />
+                  <el-skeleton-item variant="text" style="width: 60px;" />
+                </div>
+              </template>
+            </el-skeleton>
+          </div>
         </div>
 
         <div v-else-if="store.articles.length === 0"
@@ -111,6 +129,7 @@ import { storeToRefs } from 'pinia';
 import { useKbStore } from '../store/kb.store';
 import { Plus, Search, Filter, DocumentDelete, Setting } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
+
 import ArticleCard from '../components/ArticleCard.vue';
 import ArticleFormModal from '../components/ArticleFormModal.vue';
 import ArticleViewModal from '../components/ArticleViewModal.vue';
@@ -167,6 +186,7 @@ const promptDelete = async (article: any) => {
     );
     await store.removeArticle(article.id);
   } catch {
+    // Ação cancelada pelo utilizador
   }
 };
 
