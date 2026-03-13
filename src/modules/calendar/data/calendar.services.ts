@@ -24,9 +24,9 @@ const mockEvents: ICalendarEvent[] = [
 ];
 
 const mockClosedDays: IClosedDay[] = [
-  { date: '2026-03-01' },
-  { date: '2026-03-08' },
-  { date: '2026-03-15' }
+  { id: 'c1', date: '2026-03-01' },
+  { id: 'c2', date: '2026-03-08' },
+  { id: 'c3', date: '2026-03-15' }
 ];
 
 export const agendaServices = {

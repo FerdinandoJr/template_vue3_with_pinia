@@ -6,21 +6,21 @@ const mockContacts: IContact[] = [
     id: '1', name: 'Fernanda Lima', company: 'Tech Solutions',
     avatar: 'https://i.pravatar.cc/150?u=fernanda', channel: ChatChannel.WHATSAPP,
     lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42',
-    status: 'waiting', unreadCount: 1, email: 'fernanda@tech.com',
+    status: 'queued', unreadCount: 1, email: 'fernanda@tech.com',
     phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP']
   },
   {
     id: '2', name: 'Roberto Carlos', company: 'Logística S.A',
     avatar: 'https://i.pravatar.cc/150?u=roberto', channel: ChatChannel.WHATSAPP,
     lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15',
-    status: 'waiting', unreadCount: 0, email: 'roberto@log.com',
+    status: 'queued', unreadCount: 0, email: 'roberto@log.com',
     phone: '(11) 97777-6666', tags: ['Suporte']
   },
   {
     id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil',
     avatar: 'https://i.pravatar.cc/150?u=amanda', channel: ChatChannel.WHATSAPP,
     lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem',
-    status: 'waiting', unreadCount: 0, email: 'amanda@eco.com',
+    status: 'queued', unreadCount: 0, email: 'amanda@eco.com',
     phone: '(11) 98888-7777', tags: ['Dúvida']
   },
   {
