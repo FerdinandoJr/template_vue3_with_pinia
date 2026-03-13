@@ -1,7 +1,5 @@
 <template>
-  <div class="p-6 h-full flex flex-col" v-loading.fullscreen.lock="loading"
-    element-loading-text="Atualizando Dashboard...">
-
+  <div class="p-6 h-full flex flex-col">
     <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
       <div>
         <h2 class="text-2xl font-black text-slate-800">Visão Geral</h2>
@@ -10,35 +8,71 @@
       <DashboardFilters :current="currentPeriod" @update:period="handlePeriodChange" />
     </div>
 
-    <template v-if="stats && !loading">
-      <el-row :gutter="24" class="mb-6">
-        <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-          <StatCard title="Total Clientes" :value="stats.totalCustomers" :icon="User" border-color="!border-l-blue-500"
-            icon-color="text-blue-500" />
-        </el-col>
-        <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-          <StatCard title="Tickets Ativos" :value="stats.activeTickets" :icon="Ticket"
-            border-color="!border-l-amber-500" icon-color="text-amber-500" />
-        </el-col>
-        <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-          <StatCard title="Resolvidos Hoje" :value="stats.resolvedToday" :icon="Check"
-            border-color="!border-l-green-500" icon-color="text-green-500" />
-        </el-col>
-        <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-          <StatCard title="Tempo Médio" :value="stats.averageResponseTime" :icon="Timer"
-            border-color="!border-l-purple-500" icon-color="text-purple-500" />
-        </el-col>
-      </el-row>
+    <el-skeleton :loading="loading" animated>
+      <template #template>
+        <el-row :gutter="24" class="mb-6">
+          <el-col :xs="24" :sm="12" :lg="6" v-for="i in 4" :key="i" class="mb-4 lg:mb-0">
+            <el-card class="!rounded-[16px] border-none shadow-sm h-[100px] flex items-center">
+              <div class="flex justify-between items-center w-full">
+                <div class="flex flex-col gap-2">
+                  <el-skeleton-item variant="text" style="width: 80px; height: 12px" />
+                  <el-skeleton-item variant="h1" style="width: 50px; height: 24px" />
+                </div>
+                <el-skeleton-item variant="circle" style="width: 48px; height: 48px" />
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :xs="24" :lg="12" class="mb-4 lg:mb-0">
+            <el-card class="!rounded-[24px] border-none shadow-sm h-[380px]">
+              <el-skeleton-item variant="rect" style="width: 100%; height: 100%" />
+            </el-card>
+          </el-col>
+          <el-col :xs="24" :lg="12">
+            <el-card class="!rounded-[24px] border-none shadow-sm h-[380px]">
+              <el-skeleton-item variant="rect" style="width: 100%; height: 100%" />
+            </el-card>
+          </el-col>
+        </el-row>
+      </template>
 
-      <el-row :gutter="24">
-        <el-col :xs="24" :lg="12" class="mb-4 lg:mb-0">
-          <VolumeChart :data="stats.revenueData" />
-        </el-col>
-        <el-col :xs="24" :lg="12">
-          <StatusChart :data="stats.ticketDistribution" />
-        </el-col>
-      </el-row>
-    </template>
+      <template #default>
+        <template v-if="stats">
+          <el-row :gutter="24" class="mb-6">
+            <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
+              <StatCard title="Total Clientes" :value="stats.totalCustomers" :icon="User"
+                border-color="!border-l-blue-500" icon-color="text-blue-500"
+                tooltip="Número total de clientes ativos na base" />
+            </el-col>
+            <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
+              <StatCard title="Tickets Ativos" :value="stats.activeTickets" :icon="Ticket"
+                border-color="!border-l-amber-500" icon-color="text-amber-500"
+                tooltip="Soma dos tickets nas etapas: A fazer e Em Progresso" />
+            </el-col>
+            <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
+              <StatCard title="Resolvidos Hoje" :value="stats.resolvedToday" :icon="Check"
+                border-color="!border-l-green-500" icon-color="text-green-500"
+                tooltip="Tickets marcados como resolvidos no dia atual" />
+            </el-col>
+            <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
+              <StatCard title="Tempo Médio" :value="stats.averageResponseTime" :icon="Timer"
+                border-color="!border-l-purple-500" icon-color="text-purple-500"
+                tooltip="Calculado com base na diferença entre a abertura e a 1ª resposta" />
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="24">
+            <el-col :xs="24" :lg="12" class="mb-4 lg:mb-0">
+              <VolumeChart :data="stats.revenueData" />
+            </el-col>
+            <el-col :xs="24" :lg="12">
+              <StatusChart :data="stats.ticketDistribution" />
+            </el-col>
+          </el-row>
+        </template>
+      </template>
+    </el-skeleton>
   </div>
 </template>
 
