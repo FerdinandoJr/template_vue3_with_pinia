@@ -1,78 +1,260 @@
 <template>
-  <div class="h-[calc(100vh-4rem)] overflow-y-auto custom-scrollbar bg-[#f8fafd] p-8">
-    <div class="max-w-7xl mx-auto space-y-8">
-      
-      <div class="bg-[#1a56db] rounded-[24px] p-10 text-center relative overflow-hidden shadow-lg shadow-blue-200/50">
-        <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3"></div>
-        <div class="absolute bottom-0 left-0 w-40 h-40 bg-white opacity-5 rounded-full translate-y-1/3 -translate-x-1/4"></div>
-        
-        <div class="relative z-10 max-w-2xl mx-auto">
-          <h1 class="text-3xl font-black text-white mb-3">Base de Conhecimento</h1>
-          <p class="text-blue-100 text-sm font-medium mb-8">
-            Encontre scripts, tutoriais e políticas para agilizar o seu atendimento.
-          </p>
-          
-          <div class="relative">
-            <input 
-              v-model="searchInput"
-              @input="handleSearch"
-              type="text" 
-              placeholder="Pesquise por uma palavra-chave (ex: Reembolso, Script)..." 
-              class="w-full bg-white rounded-2xl pl-12 pr-6 py-4 text-sm font-medium text-slate-700 outline-none shadow-sm focus:ring-4 focus:ring-blue-400/30 transition-all placeholder:text-slate-400" 
-            />
-            <span class="absolute left-5 top-4 text-slate-400 text-lg">🔍</span>
+  <div class="p-6 h-full flex flex-col bg-slate-50">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 shrink-0">
+      <div>
+        <h2 class="text-2xl font-black text-slate-800 tracking-tight">Base de Conhecimento</h2>
+        <p class="text-slate-500 text-sm font-medium mt-1">Consulte documentações, roteiros e documentações.</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <el-button plain size="large" class="!rounded-lg" @click="isCategoryModalOpen = true" title="Gerir Assuntos">
+          <el-icon>
+            <Setting />
+          </el-icon>
+        </el-button>
+
+        <el-button type="primary" size="large" class="!font-bold !rounded-lg shadow-sm px-5" @click="openFormModal()">
+          <el-icon class="mr-2">
+            <Plus />
+          </el-icon> Novo Artigo
+        </el-button>
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-4 mb-8 shrink-0">
+
+      <div class="flex-1 w-full relative">
+        <el-input v-model="localSearch" @input="handleSearch"
+          placeholder="Pesquisar por palavras-chave, títulos ou conteúdos..." class="premium-input w-full" clearable>
+          <template #prefix>
+            <el-icon class="text-slate-400 text-lg ml-1">
+              <Search />
+            </el-icon>
+          </template>
+        </el-input>
+      </div>
+
+      <div class="w-full sm:w-[280px] shrink-0">
+        <el-select :model-value="selectedCategory" @update:model-value="store.setCategory"
+          placeholder="Filtrar por assunto" class="premium-select w-full" filterable>
+          <template #prefix>
+            <el-icon class="text-slate-400 text-lg ml-1">
+              <Filter />
+            </el-icon>
+          </template>
+          <el-option v-for="catName in store.availableCategoryNames" :key="catName"
+            :label="catName === 'Todas' ? 'Todos os Assuntos' : catName" :value="catName">
+            <div class="flex items-center justify-between w-full">
+              <span :class="selectedCategory === catName ? 'font-bold text-blue-600' : 'font-medium text-slate-600'">
+                {{ catName === 'Todas' ? 'Todos os Assuntos' : catName }}
+              </span>
+              <span v-if="selectedCategory === catName" class="w-2 h-2 rounded-full bg-blue-500"></span>
+            </div>
+          </el-option>
+        </el-select>
+      </div>
+    </div>
+
+    <div class="flex-1 flex flex-col min-h-0">
+      <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        <div v-if="store.loading" class="flex justify-center items-center h-full">
+          <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        </div>
+
+        <div v-else-if="store.articles.length === 0"
+          class="flex flex-col items-center justify-center h-full text-slate-400">
+          <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+            <el-icon :size="32" class="text-slate-400">
+              <DocumentDelete />
+            </el-icon>
           </div>
+          <h3 class="text-lg font-bold text-slate-600 mb-1">Nenhum artigo encontrado</h3>
+          <p class="text-sm">Tente ajustar a sua busca ou limpar os filtros.</p>
+          <el-button v-if="localSearch || selectedCategory !== 'Todas'" @click="clearFilters" plain
+            class="mt-4 !rounded-lg">
+            Limpar Filtros
+          </el-button>
+        </div>
+
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-4">
+          <ArticleCard v-for="article in store.articles" :key="article.id" :article="article" @read="openViewModal"
+            @edit="openFormModal" @delete="promptDelete" />
         </div>
       </div>
 
-      <div class="flex items-center gap-3 overflow-x-auto pb-2 custom-scrollbar">
-        <button 
-          v-for="cat in store.availableCategories" :key="cat"
-          @click="store.setCategory(cat as any)"
-          :class="[
-            'px-5 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest whitespace-nowrap transition-all shadow-sm',
-            store.selectedCategory === cat 
-              ? 'bg-blue-600 text-white border border-transparent' 
-              : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-          ]"
-        >
-          {{ cat }}
-        </button>
-      </div>
+      <div class="mt-4 pt-4 border-t border-slate-200/60 flex justify-between items-center shrink-0">
+        <span class="text-sm font-medium text-slate-500">
+          A mostrar <strong class="text-slate-800">{{ store.articles.length }}</strong> de <strong
+            class="text-slate-800">{{
+              store.total }}</strong> registos
+        </span>
 
-      <div v-if="store.filteredArticles.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <ArticleCard 
-          v-for="article in store.filteredArticles" 
-          :key="article.id" 
-          :article="article" 
-        />
+        <el-pagination v-if="store.total > store.limit" :current-page="store.currentPage" :page-size="store.limit"
+          :total="store.total" @current-change="store.setPage" layout="prev, pager, next" background
+          class="custom-pagination" />
       </div>
-
-      <div v-else class="bg-white p-12 rounded-3xl border border-slate-200 text-center shadow-sm">
-        <span class="text-6xl mb-4 opacity-20 block">📄</span>
-        <h3 class="text-lg font-black text-slate-800 mb-1">Nenhum artigo encontrado</h3>
-        <p class="text-sm font-medium text-slate-400">
-          Tente pesquisar com termos diferentes ou mude a categoria.
-        </p>
-      </div>
-
     </div>
+
+    <ArticleFormModal :is-open="isFormModalOpen" :article="articleToEdit" @close="isFormModalOpen = false"
+      @save="handleSave" />
+
+    <ArticleViewModal :is-open="isViewModalOpen" :article="articleToView" @close="isViewModalOpen = false" />
+
+    <CategoryManagerModal :is-open="isCategoryModalOpen" @close="isCategoryModalOpen = false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useKbStore } from '../store/kb.store';
+import { Plus, Search, Filter, DocumentDelete, Setting } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
 import ArticleCard from '../components/ArticleCard.vue';
+import ArticleFormModal from '../components/ArticleFormModal.vue';
+import ArticleViewModal from '../components/ArticleViewModal.vue';
+import CategoryManagerModal from '../components/CategoryManagerModal.vue';
 
 const store = useKbStore();
-const searchInput = ref('');
+const { selectedCategory } = storeToRefs(store);
 
-const handleSearch = () => {
-  store.setSearchQuery(searchInput.value);
+const localSearch = ref('');
+let searchTimeout: any;
+
+const isFormModalOpen = ref(false);
+const articleToEdit = ref<any>(null);
+
+const isViewModalOpen = ref(false);
+const articleToView = ref<any>(null);
+
+const isCategoryModalOpen = ref(false);
+
+const handleSearch = (val: string) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    store.setSearchQuery(val);
+  }, 300);
+};
+
+const clearFilters = () => {
+  localSearch.value = '';
+  store.setSearchQuery('');
+  store.setCategory('Todas');
+};
+
+const openFormModal = (article?: any) => {
+  articleToEdit.value = article ? { ...article } : null;
+  isFormModalOpen.value = true;
+};
+
+const openViewModal = (article: any) => {
+  articleToView.value = article;
+  isViewModalOpen.value = true;
+};
+
+const handleSave = async (data: any) => {
+  await store.saveArticle(data, data.id);
+  isFormModalOpen.value = false;
+};
+
+const promptDelete = async (article: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `Tem a certeza que deseja excluir o artigo "${article.title}"?`,
+      'Excluir Artigo',
+      { confirmButtonText: 'Excluir', cancelButtonText: 'Cancelar', type: 'error' }
+    );
+    await store.removeArticle(article.id);
+  } catch {
+  }
 };
 
 onMounted(() => {
+  store.fetchCategories();
   store.fetchArticles();
 });
 </script>
+
+<style scoped>
+:deep(.premium-input),
+:deep(.premium-select) {
+  height: 52px;
+}
+
+:deep(.premium-input .el-input__wrapper),
+:deep(.premium-select .el-select__wrapper) {
+  min-height: 52px;
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px #e2e8f0 inset !important;
+  transition: all 0.2s ease-in-out;
+  padding: 0 16px;
+}
+
+:deep(.premium-input .el-input__wrapper:hover),
+:deep(.premium-select .el-select__wrapper:hover) {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 0 0 1px #cbd5e1 inset !important;
+}
+
+:deep(.premium-input .el-input__wrapper.is-focus),
+:deep(.premium-select .el-select__wrapper.is-focused) {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 0 0 2px #3b82f6 inset !important;
+  background-color: #ffffff;
+}
+
+:deep(.premium-input .el-input__inner),
+:deep(.premium-select .el-select__placeholder) {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+:deep(.premium-input .el-input__inner::placeholder) {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 10px;
+}
+
+:deep(.custom-pagination .el-pager li) {
+  background-color: transparent !important;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+:deep(.custom-pagination .el-pager li:hover) {
+  color: #3b82f6;
+  background-color: #f1f5f9 !important;
+}
+
+:deep(.custom-pagination .el-pager li.is-active) {
+  background-color: #1e293b !important;
+  color: #ffffff;
+}
+
+:deep(.custom-pagination .btn-prev),
+:deep(.custom-pagination .btn-next) {
+  background-color: transparent !important;
+  border-radius: 0.5rem;
+  color: #64748b;
+}
+
+:deep(.custom-pagination .btn-prev:hover),
+:deep(.custom-pagination .btn-next:hover) {
+  color: #3b82f6;
+  background-color: #f1f5f9 !important;
+}
+</style>

@@ -1,6 +1,7 @@
 export enum ArticleCategory {
-  TUTORIAL = "Tutorial",
-  SCRIPT = "Script de Atendimento",
-  POLICY = "Política Interna",
-  FAQ = "Perguntas Frequentes"
+  FAQ = 'FAQ',
+  TUTORIAL = 'Tutorial',
+  POLICY = 'Política',
+  SCRIPT = 'Script',
+  DOCUMENTATION = 'Documentação'
 }
