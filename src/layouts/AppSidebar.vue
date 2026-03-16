@@ -43,7 +43,7 @@
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-sm font-bold text-white truncate">{{ userName }}</div>
-          <div class="text-xs text-slate-500 truncate">Administrador</div>
+          <div class="text-xs text-slate-500 truncate">{{ userRoleLabel }}</div>
         </div>
 
         <button @click="handleLogout"
@@ -70,27 +70,50 @@ const userName = computed(() => {
   return fullName.split(' ')[0];
 });
 
-const userInitials = computed(() => userName.value.charAt(0).toUpperCase());
+const userInitials = computed(() => (userName.value || 'U').charAt(0).toUpperCase());
+
+const userRoleLabel = computed(() => {
+  const roleMap: Record<string, string> = {
+    'ADMIN': 'Administrador Geral',
+    'MANAGER': 'Gerente da Base',
+    'AGENT': 'Atendente'
+  };
+  return roleMap[authStore.user?.role || 'AGENT'] || 'Usuário';
+});
 
 const handleLogout = () => {
   authStore.logout();
   window.location.href = '/login';
 };
 
-interface MenuItem { id: string; label: string; path: string; icon: any; badge?: string | number; }
+interface MenuItem {
+  id: string;
+  label: string;
+  path: string;
+  icon: any;
+  badge?: string | number;
+  roles?: string[];
+}
 
-const menuItems: MenuItem[] = [
+const allMenuItems: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard },
   { id: 'calendar', label: 'Agenda', path: '/calendar', icon: Calendar },
-  { id: 'customer', label: 'Clientes', path: '/customer', icon: Users },
+  { id: 'customer', label: 'Clientes', path: '/customer', icon: Users, roles: ['ADMIN', 'MANAGER'] },
   { id: 'chats', label: 'Chats', path: '/chats', icon: MessageSquare },
   { id: 'tickets', label: 'Tickets', path: '/tickets', icon: Ticket },
   { id: 'atendimentos', label: 'Atendimento', path: '/atendimentos', icon: Phone },
   { id: 'kanban', label: 'KanBan', path: '/kanban', icon: KanbanSquare },
   { id: 'kb', label: 'Base de conhecimento', path: '/kb', icon: BookOpen },
-  { id: 'relatorios', label: 'Relatórios', path: '/relatorios', icon: BarChart3 },
-  { id: 'configuracoes', label: 'Configurações', path: '/configuracoes', icon: Settings },
+  { id: 'relatorios', label: 'Relatórios', path: '/relatorios', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
+  { id: 'configuracoes', label: 'Configurações', path: '/configuracoes', icon: Settings, roles: ['ADMIN'] },
 ];
+
+const menuItems = computed(() => {
+  const currentUserRole = authStore.user?.role || 'AGENT';
+  return allMenuItems.filter(item => {
+    return !item.roles || item.roles.includes(currentUserRole);
+  });
+});
 </script>
 
 <style scoped>

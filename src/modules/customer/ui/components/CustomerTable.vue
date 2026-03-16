@@ -59,7 +59,8 @@
                 <Edit />
               </el-icon>
             </el-button>
-            <el-button type="danger" circle plain size="small" @click="$emit('delete', scope.row.uuid)">
+            <el-button v-permission="['ADMIN']" type="danger" circle plain size="small"
+              @click="$emit('delete', scope.row.uuid)">
               <el-icon>
                 <Delete />
               </el-icon>
@@ -83,7 +84,6 @@
       <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">
         Página {{ currentPage }} de {{ Math.ceil(total / pageSize) || 1 }}
       </span>
-
       <el-pagination :current-page="currentPage" :page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
         layout="sizes, prev, pager, next" background @size-change="$emit('update:pageSize', $event)"
         @current-change="$emit('update:currentPage', $event)" />

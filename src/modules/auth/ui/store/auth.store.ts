@@ -1,10 +1,18 @@
 import { defineStore } from 'pinia';
 import { authServices } from '../../data/auth.services';
 
+export interface IUser {
+    id?: string;
+    name: string;
+    email: string;
+    role: 'ADMIN' | 'MANAGER' | 'AGENT';
+    permissions: string[];
+}
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         token: localStorage.getItem('token') || null,
-        user: JSON.parse(localStorage.getItem('user') || 'null'),
+        user: JSON.parse(localStorage.getItem('user') || 'null') as IUser | null,
         loading: false,
         error: null as string | null,
     }),

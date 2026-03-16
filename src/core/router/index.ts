@@ -11,6 +11,7 @@ import agendaRoutes from "@/modules/calendar/ui/router/routes"
 import kbRoutes from '@/modules/kb/ui/router/routes'
 import reportsRoutes from "@/modules/reports/ui/router/routes"
 import settingsRoutes from "@/modules/settings/ui/router/routes"
+import { useAuthStore } from "@/modules/auth/ui/store/auth.store"
 
 const routes = [
   {
@@ -48,17 +49,29 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore();
   const isAuthenticated = !!localStorage.getItem('token');
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login');
+    return;
   }
-  else if (to.path === '/login' && isAuthenticated) {
+
+  if (to.path === '/login' && isAuthenticated) {
     next('/');
+    return;
   }
-  else {
-    next();
+
+  if (to.meta.roles && Array.isArray(to.meta.roles)) {
+    const userRole = authStore.user?.role;
+
+    if (!userRole || !to.meta.roles.includes(userRole)) {
+      next('/');
+      return;
+    }
   }
+
+  next();
 });
 
 export default router

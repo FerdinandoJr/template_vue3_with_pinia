@@ -8,6 +8,7 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import ptBr from 'element-plus/es/locale/lang/pt-br'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import { permissionDirective } from './core/directives/permission'
 
 const app = createApp(App)
 
@@ -18,6 +19,8 @@ app.use(VueApexCharts)
 app.use(ElementPlus, {
     locale: ptBr,
 })
+
+app.directive('permission', permissionDirective)
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
