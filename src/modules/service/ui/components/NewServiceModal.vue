@@ -1,12 +1,17 @@
 <template>
-    <el-dialog :model-value="isOpen" title="Novo Atendimento" width="500px" @close="$emit('close')" destroy-on-close
-        align-center>
+    <el-dialog :model-value="isOpen" title="Novo Atendimento" width="95%" style="max-width: 500px;"
+        @close="$emit('close')" destroy-on-close align-center>
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
             <el-form-item label="Cliente / Contato" prop="customerName">
-                <el-input v-model="form.customerName" placeholder="Ex: Maria Silva ou Empresa S.A" size="large" />
+                <el-select v-model="form.customerName" filterable placeholder="Selecione o Cliente..." size="large"
+                    class="w-full">
+                    <el-option v-for="client in customerStore.items" :key="client.uuid"
+                        :label="client.tradeName || client.companyName || client.name"
+                        :value="client.tradeName || client.companyName || client.name" />
+                </el-select>
             </el-form-item>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-0 sm:gap-4">
                 <el-form-item label="Assunto" prop="subject">
                     <el-input v-model="form.subject" placeholder="Ex: Suporte de Acesso" />
                 </el-form-item>
@@ -25,22 +30,34 @@
                     resize="none" />
             </el-form-item>
         </el-form>
-
         <template #footer>
-            <el-button @click="$emit('close')">Cancelar</el-button>
-            <el-button type="primary" class="!font-bold" @click="submit">Gerar Protocolo e Iniciar</el-button>
+            <div class="flex flex-col sm:flex-row justify-end gap-3">
+                <el-button @click="$emit('close')" class="w-full sm:w-auto !ml-0">Cancelar</el-button>
+                <el-button type="primary" class="!font-bold w-full sm:w-auto !ml-0" @click="submit">Gerar Protocolo e
+                    Iniciar</el-button>
+            </div>
         </template>
     </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import type { FormInstance } from 'element-plus';
+import { useCustomerStore } from '@/modules/customer/ui/store/customer.store'; // Importando a Store
 
 defineProps<{ isOpen: boolean }>();
 const emit = defineEmits(['close', 'create']);
-
 const formRef = ref<FormInstance>();
+
+// Inicializando a store de clientes
+const customerStore = useCustomerStore();
+
+onMounted(() => {
+    if (customerStore.items.length === 0) {
+        customerStore.fetch();
+    }
+});
+
 const form = reactive({
     customerName: '',
     subject: '',
@@ -49,7 +66,7 @@ const form = reactive({
 });
 
 const rules = {
-    customerName: [{ required: true, message: 'Obrigatório', trigger: 'blur' }],
+    customerName: [{ required: true, message: 'Obrigatório', trigger: 'change' }],
     subject: [{ required: true, message: 'Obrigatório', trigger: 'blur' }]
 };
 

@@ -41,22 +41,22 @@
         <template v-if="stats">
           <el-row :gutter="24" class="mb-6">
             <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-              <StatCard title="Total Clientes" :value="stats.totalCustomers" :icon="User"
+              <StatCard title="Total Clientes" :value="stats.totalCustomers" :icon="RawUser"
                 border-color="!border-l-blue-500" icon-color="text-blue-500"
                 tooltip="Número total de clientes ativos na base" />
             </el-col>
             <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-              <StatCard title="Tickets Ativos" :value="stats.activeTickets" :icon="Ticket"
+              <StatCard title="Tickets Ativos" :value="stats.activeTickets" :icon="RawTicket"
                 border-color="!border-l-amber-500" icon-color="text-amber-500"
                 tooltip="Soma dos tickets nas etapas: A fazer e Em Progresso" />
             </el-col>
             <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-              <StatCard title="Resolvidos Hoje" :value="stats.resolvedToday" :icon="Check"
+              <StatCard title="Resolvidos Hoje" :value="stats.resolvedToday" :icon="RawCheck"
                 border-color="!border-l-green-500" icon-color="text-green-500"
                 tooltip="Tickets marcados como resolvidos no dia atual" />
             </el-col>
             <el-col :xs="24" :sm="12" :lg="6" class="mb-4 lg:mb-0">
-              <StatCard title="Tempo Médio" :value="stats.averageResponseTime" :icon="Timer"
+              <StatCard title="Tempo Médio" :value="stats.averageResponseTime" :icon="RawTimer"
                 border-color="!border-l-purple-500" icon-color="text-purple-500"
                 tooltip="Calculado com base na diferença entre a abertura e a 1ª resposta" />
             </el-col>
@@ -64,10 +64,10 @@
 
           <el-row :gutter="24">
             <el-col :xs="24" :lg="12" class="mb-4 lg:mb-0">
-              <VolumeChart :data="stats.revenueData" />
+              <VolumeChart v-if="renderCharts" :data="stats.revenueData" />
             </el-col>
             <el-col :xs="24" :lg="12">
-              <StatusChart :data="stats.ticketDistribution" />
+              <StatusChart v-if="renderCharts" :data="stats.ticketDistribution" />
             </el-col>
           </el-row>
         </template>
@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { ref, onMounted, markRaw, nextTick, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDashboardStore } from '../store/dashboard.store';
 import { DashboardPeriod } from '../../domain/valueObjects/dashboard-period.enum';
@@ -90,8 +90,29 @@ import StatusChart from '../components/StatusChart.vue';
 const store = useDashboardStore();
 const { stats, loading, currentPeriod } = storeToRefs(store);
 
+// Controle de renderização segura para ApexCharts
+const renderCharts = ref(false);
+
+const RawUser = markRaw(User);
+const RawTicket = markRaw(Ticket);
+const RawCheck = markRaw(Check);
+const RawTimer = markRaw(Timer);
+
+// Monitora o estado de loading para liberar os gráficos apenas quando o DOM estiver pronto
+watch(loading, async (newVal) => {
+  if (!newVal) {
+    await nextTick(); // Espera o Vue remover o skeleton e injetar os containers
+    renderCharts.value = true;
+  } else {
+    renderCharts.value = false;
+  }
+}, { immediate: true });
+
 const handlePeriodChange = (newPeriod: DashboardPeriod) => {
-  store.setPeriod(newPeriod);
+  if (newPeriod !== currentPeriod.value) {
+    renderCharts.value = false; // Reseta gráficos antes de buscar novos dados
+    store.setPeriod(newPeriod);
+  }
 };
 
 onMounted(() => {

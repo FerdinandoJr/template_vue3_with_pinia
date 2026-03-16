@@ -1,65 +1,42 @@
-<script setup lang="ts">
-import type { IKanbanCard } from '../../domain/entities/kanban-card';
-
-const props = defineProps<{ 
-  card: IKanbanCard 
-}>();
-
-const onDragStart = (event: DragEvent) => {
-  if (event.dataTransfer) {
-    event.dataTransfer.setData('cardId', String(props.card.id));
-    event.dataTransfer.effectAllowed = 'move';
-    
-    // Feedback visual suave ao começar a arrastar
-    const target = event.target as HTMLElement;
-    target.style.opacity = '0.5';
-  }
-};
-
-const onDragEnd = (event: DragEvent) => {
-  const target = event.target as HTMLElement;
-  target.style.opacity = '1';
-};
-</script>
-
 <template>
-  <div 
-    draggable="true"
-    @dragstart="onDragStart"
-    @dragend="onDragEnd"
-    class="bg-white p-5 rounded-[20px] shadow-sm border border-slate-100 cursor-grab active:cursor-grabbing hover:shadow-md transition-all mb-4 select-none group"
-  >
-    <div class="flex gap-2 mb-3">
-      <span 
-        v-for="tag in card.tags" 
-        :key="tag.label"
-        :class="['px-3 py-0.5 rounded-full text-[10px] font-bold', tag.colorClass]"
-      >
-        {{ tag.label }}
-      </span>
+  <div
+    class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-grab hover:shadow-md hover:border-blue-300 active:cursor-grabbing transition-all relative group">
+
+    <div class="flex justify-between items-start mb-2">
+      <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">#{{ ticket.id }}</span>
+      <el-tag size="small" :type="getPriorityType(ticket.priority)" effect="plain" class="font-semibold border-none">
+        {{ getPriorityLabel(ticket.priority) }}
+      </el-tag>
     </div>
-    
-    <h4 class="text-[15px] font-extrabold text-slate-800 mb-1 leading-tight group-hover:text-blue-600 transition-colors">
-      {{ card.title }}
+
+    <h4 class="font-bold text-slate-800 text-sm mb-2 leading-tight line-clamp-2">
+      {{ ticket.title }}
     </h4>
-    <p class="text-[13px] text-slate-400 font-medium line-clamp-2 mb-4">
-      {{ card.description }}
-    </p>
-    
-    <div class="flex justify-between items-center pt-2">
-      <div class="flex -space-x-2">
-        <div 
-          v-for="(avatar, index) in card.avatars" 
-          :key="index"
-          class="w-7 h-7 rounded-full border-2 border-white bg-blue-600 flex items-center justify-center text-[10px] text-white font-bold"
-        >
-          {{ avatar }}
-        </div>
+
+    <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+      <div class="flex items-center gap-2">
+        <el-avatar :size="24" class="bg-blue-50 text-blue-600 text-xs font-bold">
+          {{ ticket.customer.charAt(0).toUpperCase() }}
+        </el-avatar>
+        <span class="text-xs font-medium text-slate-600 truncate max-w-[120px]">{{ ticket.customer }}</span>
       </div>
-      
-      <span class="text-[11px] font-bold text-slate-400">
-        {{ card.dateDisplay }}
-      </span>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import type { ITicket } from '@/modules/tickets/domain/entities/Ticket';
+import { TicketPriority } from '@/modules/tickets/domain/valueObjects/ticket-priority.enum';
+
+defineProps<{ ticket: ITicket }>();
+
+const getPriorityType = (priority: string) => {
+  const map: Record<string, string> = { low: 'info', medium: 'primary', high: 'warning', urgent: 'danger' };
+  return map[priority] || 'info';
+};
+
+const getPriorityLabel = (priority: string) => {
+  const map: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta', urgent: 'Urgente' };
+  return map[priority] || priority;
+};
+</script>

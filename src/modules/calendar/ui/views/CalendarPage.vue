@@ -1,10 +1,9 @@
 <template>
   <div class="flex h-full w-full bg-[#f8fafc] overflow-hidden">
-    <AgendaSidebar @date-change="handleDateChange" />
+    <AgendaSidebar class="hidden lg:flex" @date-change="handleDateChange" />
 
     <div
       class="flex-1 flex flex-col min-w-0 bg-white shadow-xl shadow-slate-200/50 m-3 rounded-2xl border border-slate-200 overflow-hidden relative">
-
       <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0 z-20">
         <div class="flex items-center gap-4">
           <div class="flex flex-col">
@@ -14,7 +13,7 @@
             </h2>
           </div>
 
-          <div class="flex gap-1 bg-slate-50 p-1 rounded-lg ml-4 border border-slate-100">
+          <div class="flex gap-1 bg-slate-50 p-1 rounded-lg ml-4 border border-slate-100 hidden sm:flex">
             <el-button :icon="ArrowLeft" @click="handlePrev" circle size="small" />
             <el-button @click="handleToday" size="small" class="!font-bold !px-4">Hoje</el-button>
             <el-button :icon="ArrowRight" @click="handleNext" circle size="small" />
@@ -22,17 +21,17 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <el-radio-group v-model="viewMode" size="default" class="custom-radio-group">
-            <el-radio-button label="dayGridMonth">Mês</el-radio-button>
-            <el-radio-button label="timeGridWeek">Semana</el-radio-button>
-            <el-radio-button label="timeGridDay">Dia</el-radio-button>
+          <el-radio-group v-model="viewMode" size="default" class="custom-radio-group hidden md:inline-flex">
+            <el-radio-button value="dayGridMonth">Mês</el-radio-button>
+            <el-radio-button value="timeGridWeek">Semana</el-radio-button>
+            <el-radio-button value="timeGridDay">Dia</el-radio-button>
           </el-radio-group>
 
           <el-button type="primary" size="large" class="custom-primary-btn" @click="openCreateModal()">
             <el-icon class="mr-2">
               <Plus />
             </el-icon>
-            Novo Agendamento
+            <span class="hidden sm:inline">Novo Agendamento</span>
           </el-button>
         </div>
       </div>
@@ -53,7 +52,6 @@ import { ref, onMounted } from 'vue';
 import { useCalendarStore } from '../store/calendar.store';
 import { Plus, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-
 import ProfessionalCalendar from '../components/ProfessionalCalendar.vue';
 import AgendaSidebar from '../components/CalendarSidebar.vue';
 import EventModal from '../components/EventModal.vue';
@@ -62,7 +60,6 @@ const store = useCalendarStore();
 const viewMode = ref('dayGridMonth');
 const currentTitle = ref('');
 const calendarComponentRef = ref<any>(null);
-
 const isModalOpen = ref(false);
 const currentEvent = ref<any>(null);
 
@@ -154,25 +151,10 @@ onMounted(() => {
   box-shadow: none !important;
 }
 
-.custom-radio-group :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-  border-radius: 6px;
-}
-
 .custom-primary-btn {
-  border-radius: 0.75rem !important;
-  padding-left: 1.5rem !important;
-  padding-right: 1.5rem !important;
-  border: none !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  background-color: rgb(51, 126, 204);
-  transition: all 0.2s;
-}
-
-.custom-primary-btn:hover {
-  filter: brightness(1.1);
-}
-
-.custom-primary-btn:active {
-  transform: scale(0.95);
+  background-color: rgb(51, 126, 204) !important;
+  border-color: rgb(51, 126, 204) !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
 }
 </style>

@@ -1,8 +1,22 @@
 <template>
   <div class="flex w-full items-center">
-    <div>
-      <h1 v-if="pageTitle" class="text-xl font-bold text-slate-800">{{ pageTitle }}</h1>
-      <p v-if="pageSubtitle" class="text-sm text-slate-500 mt-0.5">{{ pageSubtitle }}</p>
+
+    <div class="flex items-center gap-3">
+      <button @click="$emit('toggle-sidebar')"
+        class="lg:hidden p-2 -ml-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+
+      <div>
+        <h1 v-if="pageTitle" class="text-xl font-bold text-slate-800 truncate max-w-[180px] sm:max-w-full">{{ pageTitle
+          }}</h1>
+        <p v-if="pageSubtitle" class="text-sm text-slate-500 mt-0.5 hidden sm:block">{{ pageSubtitle }}</p>
+      </div>
     </div>
 
     <div class="flex-1 flex items-center justify-end gap-4">
@@ -67,7 +81,7 @@
                   <p class="text-xs text-slate-600 leading-snug mb-2">{{ notif.message }}</p>
                   <span class="text-[10px] font-bold text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded-md">Hoje às {{
                     notif.time
-                    }}</span>
+                  }}</span>
                 </div>
 
                 <button @click="notificationStore.markAsRead(notif.id)"
@@ -95,6 +109,8 @@ import { useNotificationStore } from '@/core/store/notifications.store'
 const route = useRoute()
 const notificationStore = useNotificationStore()
 
+defineEmits(['toggle-sidebar']) // Adicionamos o Emits para permitir a comunicação com o Layout
+
 const pageTitle = computed(() => route.meta.title as string || '')
 const pageSubtitle = computed(() => route.meta.subtitle as string || '')
 
@@ -102,30 +118,3 @@ onMounted(() => {
   notificationStore.checkTodayEvents()
 })
 </script>
-
-<style scoped>
-.animate-bounce-short {
-  animation: bounce-short 1s ease-in-out 3;
-}
-
-@keyframes bounce-short {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-25%);
-  }
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-</style>

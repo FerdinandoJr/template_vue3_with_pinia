@@ -34,36 +34,36 @@
           <template #title>
             <div class="flex items-center text-[12px] font-bold px-5 tracking-wide uppercase w-full"
               style="color: rgb(51, 126, 204);">
-              Adicionar Pessoa
+              Agendas
             </div>
           </template>
 
           <div class="px-4 pb-3">
-            <el-input v-model="searchQuery" placeholder="Buscar membro..." :prefix-icon="Search" clearable
+            <el-input v-model="searchQuery" placeholder="Buscar profissional..." :prefix-icon="Search" clearable
               class="modern-search" />
           </div>
 
-          <div class="overflow-y-auto custom-scrollbar max-h-[350px] px-2 pb-4">
-            <div v-for="user in filteredUsers" :key="user.id" @click="store.toggleUserFilter(user.id)"
-              class="group flex items-center gap-3 px-3 py-1.5 mx-2 rounded-md cursor-pointer transition-all duration-200 select-none"
-              :class="store.selectedUserIds.includes(user.id)
-                ? 'bg-indigo-50 shadow-[inset_2px_0_0_#4f46e5]'
-                : 'hover:bg-slate-50'">
-              <el-checkbox :model-value="store.selectedUserIds.includes(user.id)"
-                class="!mr-0 pointer-events-none custom-checkbox" />
+          <el-checkbox-group v-model="store.selectedUserIds"
+            class="overflow-y-auto custom-scrollbar max-h-[350px] px-2 pb-4 flex flex-col">
 
-              <span class="text-[13px] transition-colors duration-200 truncate"
-                :class="store.selectedUserIds.includes(user.id) ? 'text-indigo-700 font-semibold' : 'text-slate-600 group-hover:text-slate-900'">
-                {{ user.name }}
-              </span>
-            </div>
+            <el-checkbox v-for="user in filteredUsers" :key="user.id" :label="user.id" :value="user.id"
+              class="group flex items-center px-3 py-1.5 mx-2 rounded-md cursor-pointer transition-all duration-200 select-none !mr-0 !h-auto w-auto"
+              :class="store.selectedUserIds.includes(user.id) ? 'bg-indigo-50 shadow-[inset_2px_0_0_#4f46e5]' : 'hover:bg-slate-50'">
+              <div class="flex items-center gap-3">
+                <span class="text-[13px] transition-colors duration-200 truncate"
+                  :class="store.selectedUserIds.includes(user.id) ? 'text-indigo-700 font-semibold' : 'text-slate-600 group-hover:text-slate-900'">
+                  {{ user.name }}
+                </span>
+              </div>
+            </el-checkbox>
 
             <div v-if="filteredUsers.length === 0" class="text-center py-4">
               <span class="text-[11px] text-slate-400 font-medium bg-slate-50 px-3 py-1 rounded-full">
                 Nenhum membro encontrado
               </span>
             </div>
-          </div>
+
+          </el-checkbox-group>
         </el-collapse-item>
       </el-collapse>
     </div>
@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useCalendarStore } from '../store/calendar.store';
 import { Search, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 
@@ -80,6 +80,13 @@ const emit = defineEmits(['date-change']);
 
 const activeCollapse = ref(['people']);
 const searchQuery = ref('');
+
+// Garante que, caso a store não tenha ids marcados por defeito, ela marque todos no início
+onMounted(() => {
+  if (store.selectedUserIds.length === 0 && store.availableUsers.length > 0) {
+    store.selectedUserIds = store.availableUsers.map(u => u.id);
+  }
+});
 
 const filteredUsers = computed(() => {
   if (!searchQuery.value) return store.availableUsers;
@@ -200,16 +207,9 @@ const nextMonth = () => {
   background: #fff;
 }
 
-:deep(.custom-checkbox .el-checkbox__inner) {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  border-color: #cbd5e1;
-}
-
-:deep(.custom-checkbox.is-checked .el-checkbox__inner) {
-  background-color: #4f46e5;
-  border-color: #4f46e5;
+:deep(.el-checkbox__label) {
+  padding-left: 8px;
+  width: 100%;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

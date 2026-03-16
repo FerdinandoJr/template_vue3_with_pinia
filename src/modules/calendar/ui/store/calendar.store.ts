@@ -1,118 +1,58 @@
-import { defineStore } from "pinia";
-import type { ICalendarEvent, IClosedDay } from "../../domain/entities/calendar";
-import { CalendarDomainService } from "../../domain/services/calendar.domain.service";
-import { generateUUIDv7 } from "@/util/helpers";
-import { useAuthStore } from "@/modules/auth/ui/store/auth.store";
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
 
-interface ICalendarUser {
-  id: string;
-  name: string;
-  avatar: string;
-  color: string;
-}
+export const useCalendarStore = defineStore('calendar', () => {
+  const allEvents = ref<any[]>([]);
 
-const MOCK_USERS: ICalendarUser[] = [
-  { id: 'u1', name: 'Wesley Silva', avatar: 'WS', color: '#4f46e5' },
-  { id: 'u2', name: 'Ana Souza', avatar: 'AS', color: '#db2777' },
-  { id: 'u3', name: 'Carlos Lima', avatar: 'CL', color: '#059669' },
-  { id: 'u4', name: 'Equipe Dev', avatar: 'DV', color: '#d97706' }
-];
+  // Utilizadores com cores definidas para identificar os eventos visualmente
+  const availableUsers = ref([
+    { id: '1', name: 'Você', color: '#2563eb', avatar: 'https://ui-avatars.com/api/?name=Você' },
+    { id: '2', name: 'Atendente Alpha', color: '#10b981', avatar: 'https://ui-avatars.com/api/?name=Alpha' },
+    { id: '3', name: 'Gestor', color: '#8b5cf6', avatar: 'https://ui-avatars.com/api/?name=Gestor' }
+  ]);
 
-const GUEST_USER: ICalendarUser = { id: 'guest', name: 'Convidado', avatar: 'G', color: '#94a3b8' };
+  // CORREÇÃO: Inicia com todos os IDs marcados por padrão
+  const selectedUserIds = ref<string[]>(['1', '2', '3']);
+  const selectedDate = ref(new Date());
 
-export const useCalendarStore = defineStore('calendar', {
-  state: () => {
-    return {
-      allEvents: [] as ICalendarEvent[],
-      closedDays: [] as IClosedDay[],
-      loading: false,
-      selectedDate: new Date(),
-      availableUsers: MOCK_USERS,
-      selectedUserIds: [] as string[]
-    };
-  },
-  getters: {
-    currentUser(): ICalendarUser {
-      const authStore = useAuthStore();
-      if (authStore.user) {
-        return {
-          id: authStore.user.id || 'u1',
-          name: authStore.user.name,
-          avatar: authStore.user.name.substring(0, 2).toUpperCase(),
-          color: '#4f46e5'
-        };
-      }
-      return GUEST_USER;
-    },
+  // Computa apenas os eventos dos utilizadores selecionados na barra lateral
+  const filteredEvents = computed(() => {
+    if (!selectedUserIds.value || selectedUserIds.value.length === 0) return [];
+    return allEvents.value.filter(event => selectedUserIds.value.includes(event.userId));
+  });
 
-    filteredEvents(state): ICalendarEvent[] {
-      const activeIds = state.selectedUserIds.length > 0
-        ? state.selectedUserIds
-        : [this.currentUser.id];
+  const fetchAgendaData = async () => {
+    // Aqui virá a requisição real no futuro
+  };
 
-      return state.allEvents.filter((event) => {
-        const ownerId = event.userId || this.currentUser.id;
-        return activeIds.includes(ownerId);
-      });
-    }
-  },
-  actions: {
-    async fetchAgendaData() {
-      this.allEvents = [];
-      if (this.selectedUserIds.length === 0 && this.currentUser.id !== 'guest') {
-        this.selectedUserIds.push(this.currentUser.id);
-      }
-    },
-    setSelectedDate(date: Date) {
-      this.selectedDate = date;
-    },
-    toggleUserFilter(userId: string) {
-      if (this.selectedUserIds.includes(userId)) {
-        this.selectedUserIds = this.selectedUserIds.filter(id => id !== userId);
-      } else {
-        this.selectedUserIds.push(userId);
-      }
-    },
-    addEvent(event: Partial<ICalendarEvent> & { isRecurring?: boolean }) {
-      const startTime = event.time || '09:00';
-      const endTime = event.endTime || CalendarDomainService.addOneHour(startTime);
-      const safeUser = this.currentUser || GUEST_USER;
+  const addEvent = (event: any) => {
+    if (!event.id) event.id = 'evt-' + Date.now().toString();
+    allEvents.value.push(event);
+  };
 
-      const baseEvent: ICalendarEvent = {
-        id: generateUUIDv7(),
-        date: event.date || (new Date().toISOString().split('T')[0] ?? ''),
-        time: startTime,
-        endTime: endTime,
-        title: event.title || 'Sem título',
-        client: event.client || 'Sem cliente',
-        userId: event.userId || safeUser.id,
-        assigneeName: event.assigneeName || safeUser.name,
-        assigneeInitials: (event.assigneeName || safeUser.name).substring(0, 2).toUpperCase(),
-        colorClass: event.colorClass || 'text-blue-600',
-        dotClass: event.dotClass || 'bg-blue-400',
-        description: event.description || '',
-        participants: event.participants || [],
-        createdBy: safeUser.name,
-        recurrenceType: event.recurrenceType,
-        recurrenceEndDate: event.recurrenceEndDate,
-        recurrenceDays: event.recurrenceDays
-      };
+  const updateEvent = (event: any) => {
+    const index = allEvents.value.findIndex(e => e.id === event.id);
+    if (index !== -1) allEvents.value[index] = event;
+  };
 
-      if (event.isRecurring && event.recurrenceType) {
-        const recurringEvents = CalendarDomainService.generateRecurringEvents(baseEvent);
-        this.allEvents.push(...recurringEvents);
-      } else {
-        this.allEvents.push(baseEvent);
-      }
-    },
-    updateEvent(event: ICalendarEvent) {
-      const index = this.allEvents.findIndex(e => e.id === event.id);
-      if (index !== -1) {
-        this.allEvents[index] = { ...event };
-      }
-    },
-    deleteEvent(eventId: string) {
-      this.allEvents = this.allEvents.filter(e => e.id !== eventId);
-    }
-  }
+  const deleteEvent = (id: string) => {
+    allEvents.value = allEvents.value.filter(e => e.id !== id);
+  };
+
+  const setSelectedDate = (date: Date) => {
+    selectedDate.value = date;
+  };
+
+  return {
+    allEvents,
+    availableUsers,
+    selectedUserIds,
+    selectedDate,
+    filteredEvents,
+    fetchAgendaData,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+    setSelectedDate
+  };
 });

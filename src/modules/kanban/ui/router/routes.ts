@@ -5,6 +5,9 @@ export default [
     path: '/kanban',
     name: 'Kanban',
     component: KanbanPage,
-    meta: { title: 'Fluxo de Trabalho', subtitle: 'Gestão visual de tarefas' }
+    meta: {
+      title: 'Kanban',
+      subtitle: 'Acompanhamento do ciclo de vida dos tickets'
+    }
   }
 ];

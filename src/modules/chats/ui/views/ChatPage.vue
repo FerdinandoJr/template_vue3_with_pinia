@@ -1,37 +1,56 @@
 <template>
   <div class="flex h-full w-full bg-white overflow-hidden relative border-t border-slate-200">
-    <ContactList :selectedId="selectedContact?.id" @select="handleSelectContact" />
+
+    <ContactList :selectedId="selectedContact?.id" @select="handleSelectContact"
+      :class="{ 'hidden md:flex': selectedContact }" />
 
     <template v-if="selectedContact">
-      <ChatArea :contact="selectedContact" :messages="messages" @send="handleSendMessage" @assumir="handleAssumirChat"
-        @finalizar="openFinishModal" @transferir="isTransferModalOpen = true" @vincular="openLinkModal"
-        @abrir-modal-ticket="openTicketModal" @toggle-profile="toggleProfile" />
+      <div class="flex-1 flex w-full h-full relative"
+        :class="{ 'flex': selectedContact, 'hidden md:flex': !selectedContact }">
 
-      <div :class="[
-        'transition-all duration-300 ease-in-out overflow-hidden h-full shrink-0 bg-white z-20 border-l border-slate-200',
-        isProfileOpen ? 'w-[320px] opacity-100' : 'w-0 opacity-0'
-      ]">
-        <div class="w-[320px] h-full">
-          <ChatProfile :contact="selectedContact" />
+        <button @click="handleBackToList"
+          class="md:hidden absolute top-3 left-3 z-[60] bg-white border border-slate-200 shadow-md rounded-full p-1.5 text-slate-600 hover:bg-slate-50 flex items-center justify-center transition-all">
+          <el-icon :size="20">
+            <ArrowLeft />
+          </el-icon>
+        </button>
+
+        <ChatArea class="w-full" :contact="selectedContact" :messages="messages" @send="handleSendMessage"
+          @assumir="handleAssumirChat" @finalizar="openFinishModal" @transferir="isTransferModalOpen = true"
+          @vincular="openLinkModal" @abrir-modal-ticket="openTicketModal" @toggle-profile="toggleProfile" />
+
+        <div :class="[
+          'transition-all duration-300 ease-in-out overflow-hidden h-full shrink-0 bg-white z-50 border-l border-slate-200 absolute right-0 md:relative',
+          isProfileOpen ? 'w-full md:w-[320px] opacity-100' : 'w-0 opacity-0'
+        ]">
+          <button v-if="isProfileOpen" @click="toggleProfile"
+            class="md:hidden absolute top-4 left-4 z-50 bg-slate-100 p-2 rounded-full text-slate-600">
+            <el-icon>
+              <Close />
+            </el-icon>
+          </button>
+          <div class="w-full md:w-[320px] h-full">
+            <ChatProfile :contact="selectedContact" />
+          </div>
         </div>
       </div>
     </template>
 
-    <div v-else class="flex-1 flex flex-col items-center justify-center bg-[#f8fafd] text-slate-400">
+    <div v-else class="flex-1 hidden md:flex flex-col items-center justify-center bg-[#f8fafd] text-slate-400">
       <el-icon :size="80" class="mb-4 text-slate-300">
         <ChatLineSquare />
       </el-icon>
-      <span class="font-medium text-[13px]">Selecione um contato para iniciar uma conversa</span>
+      <span class="font-medium text-[13px]">Selecione um contacto para iniciar uma conversa</span>
     </div>
 
     <LinkCustomerModal :is-open="isLinkModalOpen" :contact-phone="selectedContact?.phone || ''"
       :contact-name="selectedContact?.name || ''" :contact-avatar="selectedContact?.avatar || ''"
       @close="isLinkModalOpen = false" @linked="handleCustomerLinked" />
-
     <TicketModal :is-open="isTicketModalOpen" :ticket="null" :initial-data="ticketInitialData"
       @close="isTicketModalOpen = false" @save="submitTicket" />
 
-    <el-dialog v-model="isTransferModalOpen" title="Transferir Atendimento" width="400px" align-center>
+    <el-dialog v-model="isTransferModalOpen" title="Transferir Atendimento" width="95%" style="max-width: 400px;"
+      align-center>
       <p class="text-sm text-slate-600 mb-4">Transferir para:</p>
       <el-select v-model="transferDest" class="w-full mb-4" placeholder="Selecione">
         <el-option label="Financeiro" value="financeiro" />
@@ -43,7 +62,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="isFinishModalOpen" title="Finalizar Atendimento" width="500px">
+    <el-dialog v-model="isFinishModalOpen" title="Finalizar Atendimento" width="95%" style="max-width: 500px;">
       <el-form ref="finishFormRef" :model="finishForm" :rules="finishRules" label-position="top">
         <el-form-item label="Motivo da Finalização" prop="reason">
           <el-select v-model="finishForm.reason" class="w-full" placeholder="Selecione um motivo...">
@@ -72,9 +91,8 @@ import { ref, reactive } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../store/chat.store';
 import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
-import { ChatLineSquare } from '@element-plus/icons-vue';
+import { ChatLineSquare, ArrowLeft, Close } from '@element-plus/icons-vue';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-
 import ContactList from '../components/ContactList.vue';
 import ChatArea from '../components/ChatArea.vue';
 import ChatProfile from '../components/ChatProfile.vue';
@@ -91,6 +109,11 @@ const isFinishModalOpen = ref(false);
 const isLinkModalOpen = ref(false);
 const isProfileOpen = ref(false);
 const transferDest = ref('');
+
+const handleBackToList = () => {
+  store.selectContact(null as any);
+  isProfileOpen.value = false;
+};
 
 const confirmTransfer = () => {
   if (!selectedContact.value || !transferDest.value) return;
@@ -135,6 +158,7 @@ const submitFinish = async () => {
         ElMessage.success('Atendimento finalizado!');
       }
       isFinishModalOpen.value = false;
+      handleBackToList();
     }
   });
 };
@@ -169,19 +193,14 @@ const openTicketModal = () => {
 
   let lastStartIndex = -1;
   const msgs = messages.value || [];
-
   for (let i = msgs.length - 1; i >= 0; i--) {
     const msg = msgs[i];
-
     if (msg && msg.type === 'alert' && msg.text?.includes('Atendimento iniciado')) {
       lastStartIndex = i;
       break;
     }
   }
-
-  const currentSessionMessages = lastStartIndex !== -1
-    ? msgs.slice(lastStartIndex)
-    : msgs;
+  const currentSessionMessages = lastStartIndex !== -1 ? msgs.slice(lastStartIndex) : msgs;
 
   const history = currentSessionMessages.map(m => ({
     sender: m.isMine ? 'Atendente' : contact.name,
@@ -191,21 +210,16 @@ const openTicketModal = () => {
   }));
 
   const protocoloStr = contact.serviceId ? ` #${contact.serviceId}` : '';
-
   ticketInitialData.value = {
     customer: contact.name,
     description: `Ticket gerado a partir do protocolo de atendimento${protocoloStr} via WhatsApp.\nPor favor, descreva o problema abaixo.`,
     chatHistory: history
   };
-
   isTicketModalOpen.value = true;
 };
 
 const submitTicket = async (ticketData: any) => {
-  await ticketsStore.createTicket({
-    ...ticketData,
-    chatHistory: ticketData.chatHistory
-  });
+  await ticketsStore.createTicket({ ...ticketData, chatHistory: ticketData.chatHistory });
   ElMessage.success('Ticket aberto com sucesso!');
   isTicketModalOpen.value = false;
 };

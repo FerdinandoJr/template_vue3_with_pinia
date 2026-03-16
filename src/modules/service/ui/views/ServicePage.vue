@@ -6,8 +6,9 @@
 
       <div class="flex flex-col md:flex-row gap-4 items-end">
         <div class="flex-1 min-w-[200px]">
-          <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Buscar
-            Chamado</label>
+          <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">
+            Buscar Chamado
+          </label>
           <el-input v-model="filters.search" @input="handleSearch" placeholder="Protocolo, cliente..." clearable
             :prefix-icon="Search" size="large" class="custom-input" />
         </div>
@@ -23,12 +24,17 @@
         </div>
 
         <div class="w-80">
-          <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Período de
-            Abertura</label>
+          <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">
+            Período de Abertura
+          </label>
           <el-date-picker v-model="filters.dateRange" type="daterange" unlink-panels range-separator="até"
             start-placeholder="Início" end-placeholder="Fim" :shortcuts="shortcuts" format="DD/MM/YY"
             value-format="DD/MM/YYYY" size="large" class="!w-full custom-date-picker" />
         </div>
+
+        <el-button :icon="Refresh" @click="resetFilters" size="large" class="!rounded-xl font-bold">
+          Limpar
+        </el-button>
       </div>
     </div>
 
@@ -50,19 +56,24 @@
       <ul v-else class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
         <li v-for="service in store.services" :key="service.id" @click="openServiceDetails(service)"
           class="grid grid-cols-12 gap-4 items-center px-4 py-4 bg-white border border-slate-100 hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-md rounded-xl cursor-pointer transition-all group">
+
           <div class="col-span-2 flex items-center gap-3">
             <div class="w-1.5 h-10 rounded-full" :class="getStatusBarColor(service.status)"></div>
-            <span class="font-mono text-sm font-black text-slate-600 group-hover:text-blue-600 tracking-tight">#{{
-              service.protocol }}</span>
+            <span class="font-mono text-sm font-black text-slate-600 group-hover:text-blue-600 tracking-tight">
+              #{{ service.protocol }}
+            </span>
           </div>
+
           <div class="col-span-3 truncate pr-4">
             <p class="text-sm font-bold text-slate-800 truncate">{{ service.customerName }}</p>
             <p class="text-[10px] font-bold text-slate-400 uppercase">{{ service.document }}</p>
           </div>
+
           <div class="col-span-4 truncate pr-4">
             <p class="text-sm font-semibold text-slate-700 truncate">{{ service.subject }}</p>
             <p class="text-xs text-slate-500 truncate mt-0.5 font-medium italic">{{ service.lastAction }}</p>
           </div>
+
           <div class="col-span-2 flex items-center gap-2">
             <el-icon :size="18"
               :class="service.status === 'in_progress' ? 'text-emerald-500 animate-spin-slow' : 'text-slate-300'">
@@ -70,6 +81,7 @@
             </el-icon>
             <span class="text-sm font-mono font-bold text-slate-700">{{ service.timeElapsed }}</span>
           </div>
+
           <div class="col-span-1 flex justify-center">
             <el-tag :type="getStatusTag(service.status).type" effect="dark" size="small"
               class="!border-none !font-black px-3 !rounded-md">
@@ -108,15 +120,17 @@
                 <ArrowLeft />
               </el-icon>
             </el-button>
-            <div>
-              <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Detalhes do
-                Atendimento</span>
+            <div v-if="selectedService">
+              <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                Detalhes do Atendimento
+              </span>
               <div class="flex items-center gap-3">
-                <h2 class="text-2xl font-black text-slate-800 font-mono tracking-tighter">#{{ selectedService?.protocol
-                  }}</h2>
-                <el-tag :type="getStatusTag(selectedService?.status).type" effect="dark"
+                <h2 class="text-2xl font-black text-slate-800 font-mono tracking-tighter">
+                  #{{ selectedService.protocol }}
+                </h2>
+                <el-tag :type="getStatusTag(selectedService.status).type" effect="dark"
                   class="!font-black !border-none px-4 !rounded-lg">
-                  {{ getStatusTag(selectedService?.status).label }}
+                  {{ getStatusTag(selectedService.status).label }}
                 </el-tag>
               </div>
             </div>
@@ -125,7 +139,9 @@
             <el-button type="info" plain :icon="Printer" @click="handlePrint"
               class="!rounded-xl font-bold">Imprimir</el-button>
             <el-button type="success" :icon="Check" v-if="selectedService?.status !== 'finished'"
-              @click="handleFinishService" class="!rounded-xl !font-black !bg-emerald-500 px-8">FINALIZAR</el-button>
+              @click="handleFinishService" class="!rounded-xl !font-black !bg-emerald-500 px-8">
+              FINALIZAR
+            </el-button>
           </div>
         </div>
       </template>
@@ -146,8 +162,9 @@
                   class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm transition-all hover:border-blue-200">
                   <div class="flex justify-between items-start mb-2">
                     <h4 class="text-base font-black text-slate-800 leading-tight">{{ event.title }}</h4>
-                    <span class="text-[10px] font-black px-2 py-1 rounded bg-slate-100 text-slate-500 uppercase">{{
-                      event.author }}</span>
+                    <span class="text-[10px] font-black px-2 py-1 rounded bg-slate-100 text-slate-500 uppercase">
+                      {{ event.author }}
+                    </span>
                   </div>
                   <p class="text-sm text-slate-600 font-medium leading-relaxed">{{ event.description }}</p>
                 </div>
@@ -155,6 +172,7 @@
             </el-timeline>
           </div>
         </div>
+
         <div class="col-span-1 border-l border-slate-100 pl-8 flex flex-col">
           <div class="bg-blue-50 p-6 rounded-3xl border border-blue-100 mb-8">
             <h3 class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3">TEMPO ATIVO</h3>
@@ -168,9 +186,9 @@
           <div class="space-y-6">
             <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">DADOS DO CLIENTE</h3>
             <div class="flex items-center gap-4">
-              <el-avatar :size="50" class="!bg-blue-600 font-black">{{
-                selectedService.customerName.charAt(0).toUpperCase()
-                }}</el-avatar>
+              <el-avatar :size="50" class="!bg-blue-600 font-black">
+                {{ selectedService.customerName?.charAt(0).toUpperCase() }}
+              </el-avatar>
               <div>
                 <p class="font-black text-slate-800 leading-tight">{{ selectedService.customerName }}</p>
                 <p class="text-xs font-bold text-slate-400 font-mono tracking-tight">{{ selectedService.document }}</p>
@@ -189,17 +207,22 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { Search, Timer, Document, Printer, Check, ArrowLeft, Loading } from '@element-plus/icons-vue';
+import { Search, Timer, Document, Printer, Check, ArrowLeft, Refresh } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useServiceStore } from '../store/service.store';
 
 const store = useServiceStore();
 
-const filters = reactive({ search: '', status: 'all', dateRange: null });
+const filters = reactive({
+  search: '',
+  status: 'all',
+  dateRange: null as [string, string] | null
+});
+
 const isModalOpen = ref(false);
 const selectedService = ref<any>(null);
 
-let searchTimeout: ReturnType<typeof setTimeout>;
+let searchTimeout: any = null;
 
 const handleSearch = () => {
   clearTimeout(searchTimeout);
@@ -210,6 +233,14 @@ const handleSearch = () => {
 
 const handleFilterChange = () => {
   store.setFilter({ status: filters.status });
+};
+
+const resetFilters = () => {
+  filters.search = '';
+  filters.status = 'all';
+  filters.dateRange = null;
+  store.setFilter({ query: '', status: 'all' });
+  ElMessage.success('Filtros limpos');
 };
 
 const shortcuts = [
@@ -242,12 +273,16 @@ const openServiceDetails = (s: any) => {
 };
 
 const handleFinishService = () => {
-  ElMessageBox.prompt('Descrição da resolução:', 'Finalizar', {
+  if (!selectedService.value) return;
+
+  ElMessageBox.prompt('Descrição da resolução:', 'Finalizar Atendimento', {
     confirmButtonText: 'Finalizar',
+    cancelButtonText: 'Cancelar',
     inputType: 'textarea'
   }).then(({ value }) => {
     store.finishService(selectedService.value.id, value);
     isModalOpen.value = false;
+    ElMessage.success('Atendimento finalizado com sucesso!');
   }).catch(() => { });
 };
 
@@ -259,6 +294,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Estilos originais preservados */
 :deep(.custom-input .el-input__wrapper),
 :deep(.custom-input .el-select__wrapper) {
   background-color: #f8fafc !important;
@@ -303,5 +339,16 @@ onMounted(() => {
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-container {
+    padding: 0 !important;
+    background: white !important;
+  }
 }
 </style>

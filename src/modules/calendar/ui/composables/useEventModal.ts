@@ -1,23 +1,30 @@
-import { reactive, watch, computed, ref, onMounted } from 'vue';
+import { ref, reactive, watch, computed } from 'vue';
 import { useCalendarStore } from '../store/calendar.store';
-import type { FormInstance, FormRules } from 'element-plus';
+import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import { ElMessage } from 'element-plus';
 import { cepService } from '@/core/services/cep.service';
-import type { ICalendarEvent } from '../../domain/entities/calendar';
 
-export function useEventModal(
-    props: { isOpen: boolean, eventData?: Partial<ICalendarEvent> },
-    emit: (event: 'close' | 'save' | 'delete', ...args: any[]) => void
-) {
+export function useEventModal(props: any, emit: any) {
     const store = useCalendarStore();
-    const ruleFormRef = ref<FormInstance>();
+    const customerStore = useCustomerStore();
+
+    const ruleFormRef = ref<any>(null);
     const activeTab = ref('general');
-    const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+
+    const loadingClients = ref(false);
+    const clientOptions = ref<{ id: string; name: string }[]>([]);
 
     const isEditing = computed(() => !!props.eventData?.id);
 
-    const clientOptions = ref<{ id: string, name: string }[]>([]);
-    const loadingClients = ref(false);
+    const eventTypes = [
+        { hex: '#f8fafc', dot: 'bg-slate-400' },
+        { hex: '#eff6ff', dot: 'bg-blue-400' },
+        { hex: '#f0fdf4', dot: 'bg-green-400' },
+        { hex: '#fef2f2', dot: 'bg-red-400' },
+        { hex: '#fffbeb', dot: 'bg-yellow-400' },
+        { hex: '#f5f3ff', dot: 'bg-purple-400' }
+    ];
 
     const form = reactive({
         id: '',
@@ -28,127 +35,134 @@ export function useEventModal(
         time: '',
         endTime: '',
         description: '',
-        cep: '',
         address: '',
-        createdBy: '',
-        colorClass: 'text-blue-600',
+        cep: '',
+        createdBy: 'Você',
+        colorClass: 'text-blue-700',
         dotClass: 'bg-blue-400',
+        type: 'meeting',
         isRecurring: false,
         recurrenceType: 'weekly',
         recurrenceDays: [] as number[],
-        recurrenceEndDate: ''
+        recurrenceEndDate: '',
+        hasBilling: false
     });
 
-    const rules = reactive<FormRules>({
-        title: [{ required: true, message: 'Informe o título do evento', trigger: 'blur' }],
+    const rules = {
+        title: [{ required: true, message: 'O título é obrigatório', trigger: 'blur' }],
         userId: [{ required: true, message: 'Selecione o profissional', trigger: 'change' }],
-        client: [{ required: true, message: 'Selecione um cliente', trigger: 'change' }],
-        date: [{ required: true, message: 'Selecione a data', trigger: 'change' }],
-        time: [{ required: true, message: 'Horário obrigatório', trigger: 'change' }],
-        endTime: [{ required: true, message: 'Horário obrigatório', trigger: 'change' }],
-    });
-
-    const eventTypes = [
-        { hex: '#34d399', dot: 'bg-emerald-400', text: 'text-emerald-700' },
-        { hex: '#fbbf24', dot: 'bg-amber-400', text: 'text-amber-600' },
-        { hex: '#60a5fa', dot: 'bg-blue-400', text: 'text-blue-600' },
-        { hex: '#f87171', dot: 'bg-red-400', text: 'text-red-600' },
-        { hex: '#a78bfa', dot: 'bg-purple-400', text: 'text-purple-600' }
-    ];
-
-    const formatAndSearchCep = async (value: string) => {
-        let cep = value.replace(/\D/g, '');
-        if (cep.length > 5) form.cep = cep.replace(/^(\d{5})(\d)/, '$1-$2');
-        else form.cep = cep;
-
-        if (cep.length === 8) {
-            try {
-                const address = await cepService.getAddressByCep(cep);
-                form.address = `${address.logradouro}, nº - ${address.bairro}, ${address.cidade} - ${address.uf}`;
-                ElMessage.success({ message: 'Endereço encontrado!', grouping: true });
-            } catch (error: any) {
-                ElMessage.warning(error.message || 'Erro ao buscar o CEP.');
-            }
-        }
+        date: [{ required: true, message: 'A data é obrigatória', trigger: 'blur' }],
+        time: [{ required: true, message: 'O horário é obrigatório', trigger: 'blur' }],
+        client: [{ required: true, message: 'O cliente é obrigatório', trigger: 'change' }],
+        description: [{ required: true, message: 'A descrição é obrigatória', trigger: 'blur' }]
     };
 
-    const handleStartTimeChange = (newTime: string) => {
-        if (!newTime) return;
-        const parts = newTime.split(':');
-        const h = Number(parts[0] || '0');
-        const m = Number(parts[1] || '0');
-        const d = new Date();
-        d.setHours(h + 1, m);
-        form.endTime = d.toTimeString().substring(0, 5);
-    };
-
-    const searchClients = (query: string) => {
-        loadingClients.value = true;
-        setTimeout(() => {
-            clientOptions.value = [
-                { id: '1', name: 'Empresa Tech Solutions' },
-                { id: '2', name: 'Supermercado Modelo' },
-                { id: '3', name: 'Consultoria ABC' }
-            ];
-            loadingClients.value = false;
-        }, 300);
-    };
-
-    onMounted(() => searchClients(''));
-
-    watch(() => props.isOpen, (val) => {
-        if (val) {
+    watch(() => props.isOpen, (isOpen) => {
+        if (isOpen) {
             activeTab.value = 'general';
-            setTimeout(() => ruleFormRef.value?.clearValidate(), 50);
+
+            Object.assign(form, {
+                id: '',
+                title: '',
+                userId: store.availableUsers[0]?.id || '',
+                client: '',
+                date: new Date().toISOString().split('T')[0],
+                time: '09:00',
+                endTime: '10:00',
+                description: '',
+                address: '',
+                cep: '',
+                createdBy: 'Você',
+                colorClass: 'text-blue-700',
+                dotClass: 'bg-blue-400',
+                type: 'meeting',
+                isRecurring: false,
+                recurrenceType: 'weekly',
+                recurrenceDays: [],
+                recurrenceEndDate: '',
+                hasBilling: false
+            });
+            clientOptions.value = [];
 
             if (props.eventData) {
-                const defaultDate = new Date();
-                const defaultCreator = store.currentUser?.name ?? 'Desconhecido';
+                Object.assign(form, props.eventData);
 
-                Object.assign(form, {
-                    id: props.eventData.id || '',
-                    title: props.eventData.title || '',
-                    userId: props.eventData.userId || store.currentUser?.id || '',
-                    client: props.eventData.client || '',
-                    date: props.eventData.date || defaultDate.toISOString().split('T')[0],
-                    time: props.eventData.time || '09:00',
-                    endTime: props.eventData.endTime || (props.eventData.time ? (() => {
-                        const parts = props.eventData.time.split(':');
-                        const h = Number(parts[0] || '0');
-                        const m = Number(parts[1] || '0');
-                        const d = new Date();
-                        d.setHours(h + 1, m);
-                        return d.toTimeString().substring(0, 5);
-                    })() : '10:00'),
-                    description: props.eventData.description || '',
-                    cep: props.eventData.cep || '',
-                    address: props.eventData.address || '',
-                    createdBy: props.eventData.createdBy || defaultCreator,
-                    dotClass: props.eventData.dotClass || 'bg-blue-400',
-                    isRecurring: !!props.eventData.groupId,
-                    recurrenceType: props.eventData.recurrenceType || 'weekly',
-                    recurrenceDays: props.eventData.recurrenceDays || [new Date(props.eventData.date || new Date()).getDay()]
-                });
-
-                if (!form.endTime && form.time) handleStartTimeChange(form.time);
+                if (form.client) {
+                    clientOptions.value = [{ id: form.client, name: form.client }];
+                }
             }
         }
     });
+
+    const searchClients = async (query: string) => {
+        loadingClients.value = true;
+
+        if (customerStore.items.length === 0) {
+            await customerStore.fetch();
+        }
+
+        if (query) {
+            const lowerQuery = query.toLowerCase();
+            clientOptions.value = customerStore.items
+                .filter((c: any) => {
+                    const name = c.tradeName || c.companyName || c.name || '';
+                    return name.toLowerCase().includes(lowerQuery);
+                })
+                .map((c: any) => ({
+                    id: c.uuid,
+                    name: c.tradeName || c.companyName || c.name
+                }));
+        } else {
+            clientOptions.value = customerStore.items.slice(0, 50).map((c: any) => ({
+                id: c.uuid,
+                name: c.tradeName || c.companyName || c.name
+            }));
+        }
+
+        loadingClients.value = false;
+    };
+
+    const handleStartTimeChange = (val: string) => {
+        if (!val) return;
+        const [hours = 0, minutes = 0] = val.split(':').map(Number);
+        const date = new Date();
+        date.setHours(hours + 1, minutes);
+        form.endTime = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    };
+
+    const formatAndSearchCep = async (val: string) => {
+        let v = val.replace(/\D/g, '');
+        if (v.length > 5) v = v.replace(/^(\d{5})(\d)/, '$1-$2');
+        form.cep = v;
+
+        if (v.length === 9) {
+            const cleanCep = v.replace('-', '');
+            try {
+                const address = await cepService.getAddressByCep(cleanCep);
+                form.address = `${address.logradouro}, ${address.bairro}, ${address.cidade} - ${address.uf}`;
+                ElMessage.success('Endereço preenchido!');
+            } catch (error) {
+                ElMessage.warning('CEP não encontrado');
+            }
+        }
+    };
 
     const selectType = (type: any) => {
         form.dotClass = type.dot;
-        form.colorClass = type.text;
     };
 
-    const handleClose = () => emit('close');
+    const handleClose = () => {
+        emit('close');
+    };
 
     const submitForm = async () => {
         if (!ruleFormRef.value) return;
-        await ruleFormRef.value.validate().then((valid) => {
-            if (valid) emit('save', { ...form });
-        }).catch(() => {
-            ElMessage.warning('Preencha os campos obrigatórios na aba "Geral".');
-            activeTab.value = 'general';
+        await ruleFormRef.value.validate((valid: boolean) => {
+            if (valid) {
+                emit('save', { ...form });
+            } else {
+                ElMessage.warning('Preencha todos os campos obrigatórios (verifique as abas Geral e Detalhes).');
+            }
         });
     };
 

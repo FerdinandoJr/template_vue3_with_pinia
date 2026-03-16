@@ -9,7 +9,7 @@ export const permissionDirective = {
         const userRole = authStore.user?.role;
 
         if (!userRole || !allowedRoles.includes(userRole)) {
-            el.parentNode?.removeChild(el);
+            el.style.display = 'none';
         }
     }
 }
