@@ -50,17 +50,18 @@ const calendarOptions = computed(() => ({
         const user = store.availableUsers.find(u => u.id === e.userId);
         const theme = user?.theme || { primary: '#3b82f6', light: '#eff6ff', dark: '#1e40af' };
 
-        // Aplica a cor escolhida no modal (se existir), caso contrário usa a cor pastel do tema do profissional
         const eventBgColor = e.color ? e.color : theme.light;
         const eventBorderColor = e.color ? e.color : theme.primary;
         const eventTextColor = e.color ? '#ffffff' : theme.dark;
 
+        // AQUI IDENTIFICAMOS SE É UM BLOQUEIO DE AGENDA
         const baseEvent = {
             id: e.id,
-            title: e.title,
-            backgroundColor: eventBgColor,
-            borderColor: eventBorderColor,
-            textColor: eventTextColor,
+            title: e.isBlocker ? `🔒 ${e.title}` : e.title,
+            backgroundColor: e.isBlocker ? '#f8fafc' : eventBgColor,
+            borderColor: e.isBlocker ? '#94a3b8' : eventBorderColor,
+            textColor: e.isBlocker ? '#475569' : eventTextColor,
+            classNames: e.isBlocker ? ['is-blocked-slot'] : [],
             extendedProps: { ...e, theme }
         };
 
@@ -116,7 +117,6 @@ const handleEventDropOrResize = (calendarEvent: any) => {
 .custom-calendar .fc-event {
     cursor: pointer !important;
     border-radius: 4px !important;
-    /* Garante que apenas a borda esquerda aparece, seja cor sólida ou pastel */
     border-left-width: 4px !important;
     border-top: none !important;
     border-right: none !important;
@@ -129,6 +129,34 @@ const handleEventDropOrResize = (calendarEvent: any) => {
 .custom-calendar .fc-event:hover {
     transform: translateY(-1px) !important;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 🔒 CSS MÁGICO PARA EVENTOS BLOQUEADOS 🔒 */
+.custom-calendar .is-blocked-slot {
+    background: repeating-linear-gradient(45deg,
+            #f8fafc,
+            #f8fafc 8px,
+            #f1f5f9 8px,
+            #f1f5f9 16px) !important;
+    border-left: 4px solid #94a3b8 !important;
+    border: 1px dashed #94a3b8 !important;
+    color: #475569 !important;
+    opacity: 0.8 !important;
+}
+
+.custom-calendar .is-blocked-slot:hover {
+    opacity: 1 !important;
+    background: repeating-linear-gradient(45deg,
+            #f1f5f9,
+            #f1f5f9 8px,
+            #e2e8f0 8px,
+            #e2e8f0 16px) !important;
+}
+
+.custom-calendar .is-blocked-slot .fc-event-title {
+    font-weight: 800 !important;
+    font-style: italic !important;
+    letter-spacing: 0.03em;
 }
 
 .custom-calendar .fc-daygrid-event-dot {

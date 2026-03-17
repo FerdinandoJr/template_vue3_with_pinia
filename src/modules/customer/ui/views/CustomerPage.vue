@@ -1,6 +1,5 @@
 <template>
   <div class="flex flex-col gap-6 h-full p-6">
-
     <div class="flex justify-between items-center bg-white rounded-2xl p-4 shadow-sm border border-slate-100 shrink-0">
       <div class="relative flex-1 max-w-md">
         <el-input v-model="searchQuery" @input="handleSearch" placeholder="Pesquisar clientes ou empresas..."
@@ -12,12 +11,22 @@
           </template>
         </el-input>
       </div>
-      <el-button type="primary" size="large" @click="openCreateModal" class="!rounded-xl !font-bold">
-        <el-icon class="mr-2">
-          <Plus />
-        </el-icon>
-        Novo Cliente
-      </el-button>
+
+      <div class="flex gap-2">
+        <el-button type="info" plain size="large" class="!px-3 !rounded-xl" @click="isSourceModalOpen = true"
+          title="Gerir Origens">
+          <el-icon>
+            <Setting />
+          </el-icon>
+        </el-button>
+
+        <el-button type="primary" size="large" @click="openCreateModal" class="!rounded-xl !font-bold">
+          <el-icon class="mr-2">
+            <Plus />
+          </el-icon>
+          Novo Cliente
+        </el-button>
+      </div>
     </div>
 
     <ClientStats :total="total" />
@@ -32,6 +41,8 @@
 
     <CustomerFormModal v-if="isFormModalOpen" :is-open="isFormModalOpen" :customer-data="customerToEdit"
       @close="isFormModalOpen = false" @save="handleSaveCustomer" />
+
+    <CustomerSourceSettingsModal :is-open="isSourceModalOpen" @close="isSourceModalOpen = false" />
 
     <el-dialog v-model="isDeleteModalOpen" title="Excluir Empresa?" width="400px" align-center>
       <div class="text-center">
@@ -58,23 +69,27 @@
 import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { Search, Plus, Delete } from '@element-plus/icons-vue'
+import { Search, Plus, Delete, Setting } from '@element-plus/icons-vue' // Adicionado o Setting
 import { useCustomerStore } from '../store/customer.store'
 import type { ICustomer } from '../../domain/entities/customer'
 import ClientStats from '../components/CustomerStats.vue'
 import ClientTable from '../components/CustomerTable.vue'
 import CustomerFormModal from '../components/CustomerFormModal.vue'
 
+// Importado o novo componente
+import CustomerSourceSettingsModal from '../components/CustomerSourceSettingsModal.vue'
+
 const store = useCustomerStore()
 const router = useRouter()
-// Agora estamos trazendo filteredTotal do estado para injetar a quantidade real no rodapé da paginação
+
 const { items, total, filteredTotal, loading } = storeToRefs(store)
 
 const isFormModalOpen = ref(false)
+const isSourceModalOpen = ref(false) // Nova variável de controle
+
 const customerToEdit = ref<Partial<ICustomer> | null>(null)
 const isDeleteModalOpen = ref(false)
 const customerUuidToDelete = ref<string | null>(null)
-
 const searchQuery = ref('')
 let searchTimeout: ReturnType<typeof setTimeout>
 

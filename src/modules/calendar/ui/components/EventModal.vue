@@ -1,18 +1,39 @@
 <template>
-    <el-dialog :model-value="isOpen" :title="isEditing ? 'Editar Evento' : 'Novo Agendamento'" width="650px"
+    <el-dialog :model-value="isOpen" :title="isEditing ? 'Editar Registo' : 'Novo Agendamento'" width="650px"
         @close="handleClose" destroy-on-close :close-on-click-modal="false"
         class="rounded-xl overflow-hidden custom-event-modal">
 
         <el-form ref="ruleFormRef" :model="form" :rules="rules" label-position="top" status-icon>
+
+            <div class="mx-6 mt-4 mb-2 bg-slate-100 p-1 rounded-xl flex shadow-inner">
+                <div @click="form.isBlocker = false"
+                    :class="!form.isBlocker ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'"
+                    class="flex-1 text-center py-2.5 rounded-lg font-black text-[11px] uppercase tracking-widest cursor-pointer transition-all flex items-center justify-center gap-2">
+                    <el-icon>
+                        <Calendar />
+                    </el-icon> Agendamento
+                </div>
+                <div @click="form.isBlocker = true"
+                    :class="form.isBlocker ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'"
+                    class="flex-1 text-center py-2.5 rounded-lg font-black text-[11px] uppercase tracking-widest cursor-pointer transition-all flex items-center justify-center gap-2">
+                    <el-icon>
+                        <Lock />
+                    </el-icon> Bloqueio de Horário
+                </div>
+            </div>
+
             <el-tabs v-model="activeTab" class="px-2">
                 <el-tab-pane label="Geral" name="general">
                     <div class="mt-2">
                         <div class="flex gap-4 items-end">
-                            <el-form-item label="Título" prop="title" class="flex-1 !mb-4">
-                                <el-input v-model="form.title" placeholder="Ex: Reunião Comercial" size="large" />
+                            <el-form-item :label="form.isBlocker ? 'Motivo do Bloqueio' : 'Título'" prop="title"
+                                class="flex-1 !mb-4">
+                                <el-input v-model="form.title"
+                                    :placeholder="form.isBlocker ? 'Ex: Horário de Almoço, Feriado...' : 'Ex: Reunião Comercial'"
+                                    size="large" />
                             </el-form-item>
 
-                            <el-form-item label="Cor" class="!mb-4">
+                            <el-form-item v-if="!form.isBlocker" label="Cor" class="!mb-4">
                                 <el-popover placement="bottom-end" :width="240" trigger="click">
                                     <template #reference>
                                         <div
@@ -48,7 +69,8 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
-                            <el-form-item label="Agendar para (Profissional)" prop="userId">
+                            <el-form-item label="Aplicar à agenda de:" prop="userId"
+                                :class="form.isBlocker ? 'col-span-2' : ''">
                                 <el-select v-model="form.userId" class="!w-full"
                                     placeholder="Selecione de quem é a agenda">
                                     <template #prefix><el-icon>
@@ -59,7 +81,7 @@
                                 </el-select>
                             </el-form-item>
 
-                            <el-form-item label="Cliente" prop="client">
+                            <el-form-item v-if="!form.isBlocker" label="Cliente" prop="client">
                                 <el-select v-model="form.client" placeholder="Selecione o Cliente" filterable remote
                                     :remote-method="searchClients" :loading="loadingClients" class="!w-full">
                                     <template #prefix><el-icon>
@@ -94,51 +116,53 @@
 
                 <el-tab-pane label="Detalhes" name="details">
                     <div class="mt-2">
-                        <el-form-item label="Descrição" prop="description">
+                        <el-form-item label="Descrição / Notas" prop="description">
                             <el-input v-model="form.description" type="textarea" :rows="3"
-                                placeholder="Detalhes adicionais do compromisso..." />
+                                placeholder="Detalhes adicionais..." />
                         </el-form-item>
 
-                        <el-form-item label="Faturamento">
-                            <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200 w-full transition-all duration-300"
-                                :class="form.hasBilling ? 'bg-green-50 border-green-200' : ''">
-                                <el-switch v-model="form.hasBilling" active-color="#10b981" />
-                                <span v-if="form.hasBilling"
-                                    class="text-sm font-medium text-green-700 transition-colors">
-                                    <el-icon class="mr-1 translate-y-[2px]">
-                                        <Money />
-                                    </el-icon>
-                                    Este agendamento gerará uma cobrança ao cliente.
-                                </span>
-                                <span v-else class="text-sm font-medium text-slate-500 transition-colors">
-                                    <el-icon class="mr-1 translate-y-[2px]">
-                                        <Money />
-                                    </el-icon>
-                                    Sem cobrança associada.
-                                </span>
+                        <template v-if="!form.isBlocker">
+                            <el-form-item label="Faturamento">
+                                <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200 w-full transition-all duration-300"
+                                    :class="form.hasBilling ? 'bg-green-50 border-green-200' : ''">
+                                    <el-switch v-model="form.hasBilling" active-color="#10b981" />
+                                    <span v-if="form.hasBilling"
+                                        class="text-sm font-medium text-green-700 transition-colors">
+                                        <el-icon class="mr-1 translate-y-[2px]">
+                                            <Money />
+                                        </el-icon>
+                                        Este agendamento gerará uma cobrança ao cliente.
+                                    </span>
+                                    <span v-else class="text-sm font-medium text-slate-500 transition-colors">
+                                        <el-icon class="mr-1 translate-y-[2px]">
+                                            <Money />
+                                        </el-icon>
+                                        Sem cobrança associada.
+                                    </span>
+                                </div>
+                            </el-form-item>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                                <el-form-item label="CEP (Opcional)" class="md:col-span-1">
+                                    <el-input v-model="form.cep" placeholder="00000-000" @input="formatAndSearchCep"
+                                        maxlength="9">
+                                        <template #prefix><el-icon>
+                                                <Search />
+                                            </el-icon></template>
+                                    </el-input>
+                                </el-form-item>
+
+                                <el-form-item label="Local / Endereço" class="md:col-span-2">
+                                    <el-input v-model="form.address" placeholder="Ex: Rua, Número, ou Link do Meet">
+                                        <template #prefix><el-icon>
+                                                <Location />
+                                            </el-icon></template>
+                                    </el-input>
+                                </el-form-item>
                             </div>
-                        </el-form-item>
+                        </template>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                            <el-form-item label="CEP (Opcional)" class="md:col-span-1">
-                                <el-input v-model="form.cep" placeholder="00000-000" @input="formatAndSearchCep"
-                                    maxlength="9">
-                                    <template #prefix><el-icon>
-                                            <Search />
-                                        </el-icon></template>
-                                </el-input>
-                            </el-form-item>
-
-                            <el-form-item label="Local / Endereço" class="md:col-span-2">
-                                <el-input v-model="form.address" placeholder="Ex: Rua, Número, ou Link do Meet">
-                                    <template #prefix><el-icon>
-                                            <Location />
-                                        </el-icon></template>
-                                </el-input>
-                            </el-form-item>
-                        </div>
-
-                        <el-form-item label="Agendado por (Responsável)">
+                        <el-form-item label="Responsável da Ação">
                             <el-input v-model="form.createdBy" disabled>
                                 <template #prefix><el-icon>
                                         <UserFilled />
@@ -153,8 +177,8 @@
                         <div
                             class="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-4 flex items-center justify-between">
                             <div>
-                                <h4 class="font-bold text-blue-800">Repetir Agendamento?</h4>
-                                <p class="text-xs text-blue-600">Os horários da aba "Geral" serão mantidos.</p>
+                                <h4 class="font-bold text-blue-800">Repetir Automáticamente?</h4>
+                                <p class="text-xs text-blue-600">Perfeito para almoços, feriados ou revisões fixas.</p>
                             </div>
                             <el-switch v-model="form.isRecurring" />
                         </div>
@@ -188,7 +212,7 @@
                                 <el-checkbox-group v-model="form.recurrenceDays" size="small">
                                     <el-checkbox-button v-for="(day, index) in weekDays" :key="index" :label="index">{{
                                         day
-                                    }}</el-checkbox-button>
+                                        }}</el-checkbox-button>
                                 </el-checkbox-group>
                             </div>
 
@@ -197,7 +221,7 @@
                                 <el-icon class="text-orange-500">
                                     <InfoFilled />
                                 </el-icon>
-                                O evento repetirá todo dia <strong>{{ new Date(form.date).getDate() + 1 }}</strong> de
+                                A ação repetirá todo dia <strong>{{ new Date(form.date).getDate() + 1 }}</strong> de
                                 cada mês.
                             </div>
 
@@ -233,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { Check, Calendar, User, UserFilled, Briefcase, InfoFilled, Location, Search, Money, ArrowDown } from '@element-plus/icons-vue';
+import { Check, Calendar, User, UserFilled, Briefcase, InfoFilled, Location, Search, Money, ArrowDown, Lock } from '@element-plus/icons-vue';
 import { useEventModal } from '../composables/useEventModal';
 
 const props = defineProps<{ isOpen: boolean; eventData?: any; }>();

@@ -145,13 +145,12 @@
                 <el-tab-pane label="Sistema" name="settings">
                     <div class="py-4 flex flex-col h-full">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                             <el-form-item label="Origem do Cliente" prop="source">
-                                <el-select v-model="form.source" class="w-full" size="large">
-                                    <el-option label="WhatsApp" value="WhatsApp" />
-                                    <el-option label="Site / Landing Page" value="Site" />
-                                    <el-option label="Indicação" value="Indicação" />
-                                    <el-option label="Instagram" value="Instagram" />
-                                    <el-option label="Outro" value="Outro" />
+                                <el-select v-model="form.source" class="w-full" size="large" filterable
+                                    placeholder="Selecione a origem..." :loading="sourceStore.isLoading">
+                                    <el-option v-for="origem in sourceStore.items" :key="origem.id" :label="origem.name"
+                                        :value="origem.name" />
                                 </el-select>
                             </el-form-item>
 
@@ -164,6 +163,7 @@
                                     </el-radio-group>
                                 </div>
                             </el-form-item>
+
                         </div>
                     </div>
                 </el-tab-pane>
@@ -187,6 +187,9 @@ import { Search, Delete } from '@element-plus/icons-vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { cepService } from '@/core/services/cep.service'
 
+// Import da Store de Origens que criámos
+import { useCustomerSourceStore } from '../store/customer-source.store'
+
 const props = defineProps<{
     isOpen: boolean
     customerData?: any
@@ -196,6 +199,9 @@ const emit = defineEmits(['close', 'save'])
 
 const formRef = ref<FormInstance>()
 const activeTab = ref('general')
+
+// Instância da Store de Origens
+const sourceStore = useCustomerSourceStore()
 
 interface Contact {
     name: string
@@ -226,11 +232,17 @@ const form = reactive({
     contacts: [] as Contact[]
 })
 
+// Quando o Modal abre, garante que as origens são carregadas
+watch(() => props.isOpen, (isOpen) => {
+    if (isOpen) {
+        sourceStore.fetchSources()
+    }
+})
+
 // === MÉTODOS DOS CONTACTOS ===
 const addContact = () => {
     if (!form.contacts) form.contacts = []
-    // CORREÇÃO 2: Adicionado o ! (Non-null assertion) para garantir ao TS que a variável existe
-    form.contacts!.push({ name: '', phone: '', role: '' })
+    form.contacts.push({ name: '', phone: '', role: '' })
 }
 
 const removeContact = (index: number) => {

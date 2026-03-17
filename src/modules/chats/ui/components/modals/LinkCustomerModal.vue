@@ -140,6 +140,22 @@
                                 </div>
                             </div>
                         </el-tab-pane>
+
+                        <el-tab-pane label="Adicionais" name="additional">
+                            <div class="grid grid-cols-1 gap-4 mt-4 max-h-[320px] overflow-y-auto custom-scroll pr-2">
+                                <div>
+                                    <label
+                                        class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                                        Origem do Cliente
+                                    </label>
+                                    <el-select v-model="newCustomerForm.source" class="w-full" filterable
+                                        :loading="sourceStore.isLoading" placeholder="Selecione a origem...">
+                                        <el-option v-for="origem in sourceStore.items" :key="origem.id"
+                                            :label="origem.name" :value="origem.name" />
+                                    </el-select>
+                                </div>
+                            </div>
+                        </el-tab-pane>
                     </el-tabs>
                 </el-form>
             </el-tab-pane>
@@ -149,7 +165,7 @@
             <div class="flex justify-end gap-3 pt-4">
                 <el-button @click="$emit('close')">Cancelar</el-button>
                 <el-button type="primary" class="!font-bold" @click="handleConfirm">
-                    Salvar
+                    Confirmar e Vincular
                 </el-button>
             </div>
         </template>
@@ -163,6 +179,7 @@ import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import { cepService } from '@/core/services/cep.service';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
+import { useCustomerSourceStore } from '@/modules/customer/ui/store/customer-source.store';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -179,6 +196,8 @@ const loadingSearch = ref(false);
 const searchResults = ref<any[]>([]);
 
 const customerStore = useCustomerStore();
+const sourceStore = useCustomerSourceStore(); // INSTANCIADA AQUI
+
 const newCustomerFormRef = ref<FormInstance>();
 
 const newCustomerForm = reactive({
@@ -196,7 +215,7 @@ const newCustomerForm = reactive({
     neighborhood: '',
     city: '',
     state: '',
-    group: ''
+    source: '' // ADICIONADO SOURCE AQUI
 });
 
 const resetDocument = () => { newCustomerForm.document = ''; };
@@ -240,6 +259,8 @@ const formRules = reactive<FormRules>({
 
 watch(() => props.isOpen, (val) => {
     if (val) {
+        sourceStore.fetchSources(); // CARREGA ORIGENS
+
         linkForm.customerUuid = '';
         searchResults.value = [];
         newCustomerForm.phone = props.contactPhone;
@@ -248,7 +269,6 @@ watch(() => props.isOpen, (val) => {
     }
 });
 
-// FUNÇÃO CORRIGIDA PARA EVITAR ERRO DE 'VOID' NO TYPESCRIPT
 const remoteSearchCustomer = async (query: string) => {
     if (!query) {
         searchResults.value = [];
@@ -258,18 +278,14 @@ const remoteSearchCustomer = async (query: string) => {
     try {
         loadingSearch.value = true;
 
-        // Se a store estiver vazia, chama o fetch
         if (!customerStore.items || customerStore.items.length === 0) {
-            console.log('Buscando clientes na base...');
-            await customerStore.fetch(); // Removido o teste de truthiness do retorno void
+            await customerStore.fetch();
         }
 
-        // Normalização para busca
         const normalize = (str: string) => String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const lowerQuery = normalize(query);
         const numberQuery = query.replace(/\D/g, '');
 
-        // Filtra os itens que agora devem estar na store
         const results = customerStore.items.filter((c: any) => {
             const name = normalize(c.tradeName || c.companyName || c.name);
             const doc = String(c.document || '').replace(/\D/g, '');
@@ -279,8 +295,6 @@ const remoteSearchCustomer = async (query: string) => {
                 (numberQuery && doc.includes(numberQuery)) ||
                 (numberQuery && phone.includes(numberQuery));
         });
-
-        console.log(`Busca por "${query}" retornou ${results.length} resultados.`);
 
         searchResults.value = results.map((c: any) => ({
             uuid: c.uuid || c.id,

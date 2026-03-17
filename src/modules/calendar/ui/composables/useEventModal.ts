@@ -17,37 +17,27 @@ export function useEventModal(props: any, emit: any) {
 
     const isEditing = computed(() => !!props.eventData?.id);
 
-    // Nova Paleta Premium Expandida (25 Cores)
     const preDefinedColors = [
-        // Vermelhos, Laranjas e Amarelos
         { hex: '#ef4444', text: 'text-red-700', dot: 'bg-red-400' },
         { hex: '#b91c1c', text: 'text-red-900', dot: 'bg-red-600' },
         { hex: '#f97316', text: 'text-orange-700', dot: 'bg-orange-400' },
         { hex: '#f59e0b', text: 'text-amber-700', dot: 'bg-amber-400' },
         { hex: '#eab308', text: 'text-yellow-700', dot: 'bg-yellow-400' },
-
-        // Verdes e Esmeraldas
         { hex: '#84cc16', text: 'text-lime-700', dot: 'bg-lime-400' },
         { hex: '#22c55e', text: 'text-green-700', dot: 'bg-green-400' },
         { hex: '#15803d', text: 'text-green-900', dot: 'bg-green-600' },
         { hex: '#10b981', text: 'text-emerald-700', dot: 'bg-emerald-400' },
         { hex: '#14b8a6', text: 'text-teal-700', dot: 'bg-teal-400' },
-
-        // Cianos e Azuis
         { hex: '#06b6d4', text: 'text-cyan-700', dot: 'bg-cyan-400' },
         { hex: '#0ea5e9', text: 'text-sky-700', dot: 'bg-sky-400' },
         { hex: '#3b82f6', text: 'text-blue-700', dot: 'bg-blue-400' },
         { hex: '#1d4ed8', text: 'text-blue-900', dot: 'bg-blue-600' },
         { hex: '#6366f1', text: 'text-indigo-700', dot: 'bg-indigo-400' },
-
-        // Roxos e Rosas
         { hex: '#8b5cf6', text: 'text-violet-700', dot: 'bg-violet-400' },
         { hex: '#a855f7', text: 'text-purple-700', dot: 'bg-purple-400' },
         { hex: '#d946ef', text: 'text-fuchsia-700', dot: 'bg-fuchsia-400' },
         { hex: '#ec4899', text: 'text-pink-700', dot: 'bg-pink-400' },
         { hex: '#f43f5e', text: 'text-rose-700', dot: 'bg-rose-400' },
-
-        // Neutros, Cinzas e Sóbrios (Excelentes para eventos cancelados ou bloqueios)
         { hex: '#64748b', text: 'text-slate-700', dot: 'bg-slate-400' },
         { hex: '#71717a', text: 'text-zinc-700', dot: 'bg-zinc-400' },
         { hex: '#78716c', text: 'text-stone-700', dot: 'bg-stone-400' },
@@ -75,17 +65,19 @@ export function useEventModal(props: any, emit: any) {
         recurrenceType: 'weekly',
         recurrenceDays: [] as number[],
         recurrenceEndDate: '',
-        hasBilling: false
+        hasBilling: false,
+        isBlocker: false // NOVO CAMPO: Define se é um bloqueio
     });
 
-    const rules = {
-        title: [{ required: true, message: 'O título é obrigatório', trigger: 'blur' }],
+    // Regras reativas (o cliente deixa de ser obrigatório se for bloqueio)
+    const rules = computed(() => ({
+        title: [{ required: true, message: form.isBlocker ? 'O motivo é obrigatório' : 'O título é obrigatório', trigger: 'blur' }],
         userId: [{ required: true, message: 'Selecione o profissional', trigger: 'change' }],
         date: [{ required: true, message: 'A data é obrigatória', trigger: 'blur' }],
         time: [{ required: true, message: 'O horário é obrigatório', trigger: 'blur' }],
-        client: [{ required: true, message: 'O cliente é obrigatório', trigger: 'change' }],
-        description: [{ required: true, message: 'A descrição é obrigatória', trigger: 'blur' }]
-    };
+        client: [{ required: !form.isBlocker, message: 'O cliente é obrigatório', trigger: 'change' }],
+        description: [{ required: false, message: 'A descrição é obrigatória', trigger: 'blur' }]
+    }));
 
     watch(() => props.isOpen, (isOpen) => {
         if (isOpen) {
@@ -111,7 +103,8 @@ export function useEventModal(props: any, emit: any) {
                 recurrenceType: 'weekly',
                 recurrenceDays: [],
                 recurrenceEndDate: '',
-                hasBilling: false
+                hasBilling: false,
+                isBlocker: false
             });
             clientOptions.value = [];
 
