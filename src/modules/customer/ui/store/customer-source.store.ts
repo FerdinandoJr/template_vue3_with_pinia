@@ -9,17 +9,15 @@ export const useCustomerSourceStore = defineStore('customerSource', {
     state: () => ({
         items: [] as CustomerSource[],
         isLoading: false,
-        hasLoaded: false, // Evita buscar no banco repetidas vezes sem necessidade
+        hasLoaded: false,
     }),
 
     actions: {
-        // Busca os dados (Pronto para conectar ao banco de dados)
         async fetchSources() {
-            if (this.hasLoaded) return; // Se já carregou, não faz nova requisição
+            if (this.hasLoaded) return;
 
             this.isLoading = true;
             try {
-                // SIMULAÇÃO DE CHAMADA A API (Substitua por axios.get futuramente)
                 await new Promise(resolve => setTimeout(resolve, 600));
 
                 this.items = [
@@ -38,14 +36,12 @@ export const useCustomerSourceStore = defineStore('customerSource', {
             }
         },
 
-        // Adiciona uma nova origem
         async addSource(name: string) {
             if (!name.trim()) return;
 
             try {
-                // SIMULAÇÃO DE POST NA API (Substitua por axios.post futuramente)
                 const newSource: CustomerSource = {
-                    id: Date.now().toString(), // ID temporário até ter o do banco
+                    id: Date.now().toString(),
                     name: name.trim()
                 };
 
@@ -57,12 +53,10 @@ export const useCustomerSourceStore = defineStore('customerSource', {
             }
         },
 
-        // Atualiza uma origem existente
         async updateSource(id: string, newName: string) {
             if (!newName.trim()) return;
 
             try {
-                // SIMULAÇÃO DE PUT/PATCH NA API
                 const source = this.items.find(s => s.id === id);
                 if (source) {
                     source.name = newName.trim();
@@ -74,10 +68,8 @@ export const useCustomerSourceStore = defineStore('customerSource', {
             }
         },
 
-        // Remove uma origem
         async deleteSource(id: string) {
             try {
-                // SIMULAÇÃO DE DELETE NA API
                 this.items = this.items.filter(s => s.id !== id);
                 return true;
             } catch (error) {
