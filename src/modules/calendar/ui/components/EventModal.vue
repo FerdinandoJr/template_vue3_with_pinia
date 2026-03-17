@@ -212,7 +212,7 @@
                                 <el-checkbox-group v-model="form.recurrenceDays" size="small">
                                     <el-checkbox-button v-for="(day, index) in weekDays" :key="index" :label="index">{{
                                         day
-                                        }}</el-checkbox-button>
+                                    }}</el-checkbox-button>
                                 </el-checkbox-group>
                             </div>
 
@@ -294,5 +294,27 @@ const {
 .scale-check-leave-to {
     transform: scale(0);
     opacity: 0;
+}
+
+.custom-event-modal .el-tabs__content {
+    height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-event-modal .el-tab-pane {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-event-modal .el-tabs__content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-event-modal .el-tabs__content::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 10px;
 }
 </style>
