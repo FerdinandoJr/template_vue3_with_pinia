@@ -1,28 +1,22 @@
 <template>
   <div class="flex h-full w-full bg-white overflow-hidden relative border-t border-slate-200">
-
     <ContactList :selectedId="selectedContact?.id" @select="handleSelectContact"
       :class="{ 'hidden md:flex': selectedContact }" />
 
     <template v-if="selectedContact">
       <div class="flex-1 flex w-full h-full relative"
         :class="{ 'flex': selectedContact, 'hidden md:flex': !selectedContact }">
-
         <button @click="handleBackToList"
           class="md:hidden absolute top-3 left-3 z-[60] bg-white border border-slate-200 shadow-md rounded-full p-1.5 text-slate-600 hover:bg-slate-50 flex items-center justify-center transition-all">
           <el-icon :size="20">
             <ArrowLeft />
           </el-icon>
         </button>
-
         <ChatArea class="w-full" :contact="selectedContact" :messages="messages" @send="handleSendMessage"
           @assumir="handleAssumirChat" @finalizar="openFinishModal" @transferir="isTransferModalOpen = true"
           @vincular="openLinkModal" @abrir-modal-ticket="openTicketModal" @toggle-profile="toggleProfile" />
-
-        <div :class="[
-          'transition-all duration-300 ease-in-out overflow-hidden h-full shrink-0 bg-white z-50 border-l border-slate-200 absolute right-0 md:relative',
-          isProfileOpen ? 'w-full md:w-[320px] opacity-100' : 'w-0 opacity-0'
-        ]">
+        <div
+          :class="['transition-all duration-300 ease-in-out overflow-hidden h-full shrink-0 bg-white z-50 border-l border-slate-200 absolute right-0 md:relative', isProfileOpen ? 'w-full md:w-[320px] opacity-100' : 'w-0 opacity-0']">
           <button v-if="isProfileOpen" @click="toggleProfile"
             class="md:hidden absolute top-4 left-4 z-50 bg-slate-100 p-2 rounded-full text-slate-600">
             <el-icon>
@@ -46,6 +40,7 @@
     <LinkCustomerModal :is-open="isLinkModalOpen" :contact-phone="selectedContact?.phone || ''"
       :contact-name="selectedContact?.name || ''" :contact-avatar="selectedContact?.avatar || ''"
       @close="isLinkModalOpen = false" @linked="handleCustomerLinked" />
+
     <TicketModal :is-open="isTicketModalOpen" :ticket="null" :initial-data="ticketInitialData"
       @close="isTicketModalOpen = false" @save="submitTicket" />
 
@@ -83,6 +78,7 @@
         <el-button type="danger" @click="submitFinish">Finalizar</el-button>
       </template>
     </el-dialog>
+
   </div>
 </template>
 
@@ -91,28 +87,60 @@ import { ref, reactive } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../store/chat.store';
 import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
+import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import { ChatLineSquare, ArrowLeft, Close } from '@element-plus/icons-vue';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+
 import ContactList from '../components/ContactList.vue';
 import ChatArea from '../components/ChatArea.vue';
 import ChatProfile from '../components/ChatProfile.vue';
 import LinkCustomerModal from '../components/modals/LinkCustomerModal.vue';
 import TicketModal from '@/modules/tickets/ui/components/TicketModal.vue';
+
 import type { SendMessageDTO } from '../../domain/dto/chat.dto';
 
 const store = useChatStore();
 const ticketsStore = useTicketsStore();
+const customerStore = useCustomerStore();
 const { messages, selectedContact } = storeToRefs(store);
 
 const isTransferModalOpen = ref(false);
 const isFinishModalOpen = ref(false);
 const isLinkModalOpen = ref(false);
 const isProfileOpen = ref(false);
+const isTicketModalOpen = ref(false);
+
 const transferDest = ref('');
+const ticketInitialData = ref<any>({});
+
+const finishFormRef = ref<FormInstance>();
+const finishForm = reactive({ reason: '', description: '' });
+const finishRules = reactive<FormRules>({ reason: [{ required: true, message: 'Motivo obrigatório', trigger: 'change' }] });
 
 const handleBackToList = () => {
   store.selectContact(null as any);
   isProfileOpen.value = false;
+};
+
+const handleSelectContact = (contact: any) => {
+  store.selectContact(contact);
+  if (window.innerWidth < 768) {
+    isProfileOpen.value = false;
+  }
+};
+
+const handleSendMessage = (payload: Omit<SendMessageDTO, 'contactId'>) => {
+  if (!selectedContact.value) return;
+  store.sendMessage({ ...payload, contactId: selectedContact.value.id });
+};
+
+const handleAssumirChat = (contactId?: string) => {
+  const id = contactId || selectedContact.value?.id;
+  if (id) store.assumirChat(id);
+};
+
+const toggleProfile = () => {
+  isProfileOpen.value = !isProfileOpen.value;
 };
 
 const confirmTransfer = () => {
@@ -128,25 +156,81 @@ const openLinkModal = () => {
   isLinkModalOpen.value = true;
 };
 
-const handleCustomerLinked = (customerData: { id: string, name: string, company?: string }) => {
-  if (selectedContact.value) {
-    store.linkCustomerToChat(selectedContact.value.id, customerData);
-    ElMessage.success('Cliente vinculado com sucesso!');
-  }
-  isLinkModalOpen.value = false;
-};
+// NOVA LÓGICA PARA SALVAR E VINCULAR - COM A CORREÇÃO DO TYPESCRIPT
+const handleCustomerLinked = async (payload: any) => {
+  const activeContact = store.contacts.find((c: any) => c.id === store.activeContactId);
+  if (!activeContact) return;
 
-const finishFormRef = ref<FormInstance>();
-const finishForm = reactive({ reason: '', description: '' });
-const finishRules = reactive<FormRules>({
-  reason: [{ required: true, message: 'Por favor, selecione um motivo.', trigger: 'change' }]
-});
+  try {
+    if (payload.isNew) {
+      // 1. CRIAR NOVO CLIENTE NA BASE DE DADOS
+      const newCustomer = {
+        ...payload.customerData,
+        status: 'active',
+        contacts: [
+          {
+            name: payload.customerData.name,
+            phone: activeContact.phone,
+            role: 'Contato WhatsApp'
+          }
+        ]
+      };
+
+      await customerStore.createCustomer(newCustomer);
+
+      // 2. ATUALIZAR O NOME NO CHAT
+      store.updateContact(activeContact.id, {
+        name: payload.customerData.name,
+        company: payload.customerData.tradeName || payload.customerData.companyName
+      });
+
+    } else {
+      // 1. VINCULAR A CLIENTE EXISTENTE (Insere nos contatos adicionais dele)
+      const customer = customerStore.items.find(c => c.uuid === payload.customerUuid);
+
+      if (customer) {
+        if (!customer.contacts) customer.contacts = [];
+
+        const cleanPhone = activeContact.phone.replace(/\D/g, '');
+
+        // Evita criar um funcionário com telefone duplicado
+        const phoneExists = customer.contacts.some((c: any) => {
+          if (typeof c === 'string') return c.replace(/\D/g, '') === cleanPhone;
+          return c.phone && c.phone.replace(/\D/g, '') === cleanPhone;
+        }) || (customer.phone && customer.phone.replace(/\D/g, '') === cleanPhone);
+
+        if (!phoneExists) {
+          // AQUI ESTÁ A CORREÇÃO: "as any[]" para evitar o erro do TypeScript
+          (customer.contacts as any[]).push({
+            name: activeContact.name.includes('+') ? 'Novo Funcionário' : activeContact.name,
+            phone: cleanPhone,
+            role: 'Contato WhatsApp'
+          });
+
+          await customerStore.updateCustomer(customer.uuid, customer);
+        }
+
+        // 2. ATUALIZAR O NOME NO CHAT
+        store.updateContact(activeContact.id, {
+          name: activeContact.name.includes('+') ? customer.name : activeContact.name,
+          company: customer.tradeName || customer.companyName
+        });
+      }
+    }
+
+    isLinkModalOpen.value = false;
+    ElMessage.success('Contato vinculado com sucesso!');
+
+  } catch (error) {
+    ElMessage.error('Erro ao vincular contato.');
+    console.error(error);
+  }
+};
 
 const openFinishModal = () => {
   finishForm.reason = '';
   finishForm.description = '';
   isFinishModalOpen.value = true;
-  setTimeout(() => { finishFormRef.value?.clearValidate(); }, 50);
 };
 
 const submitFinish = async () => {
@@ -154,73 +238,27 @@ const submitFinish = async () => {
   await finishFormRef.value.validate((valid) => {
     if (valid) {
       if (selectedContact.value) {
-        store.finalizarChat(selectedContact.value.id, finishForm.reason);
-        ElMessage.success('Atendimento finalizado!');
+        store.finishChat(selectedContact.value.id, finishForm.reason);
+        ElMessage.success('Atendimento finalizado.');
       }
       isFinishModalOpen.value = false;
-      handleBackToList();
     }
   });
 };
 
-const handleSelectContact = (contact: any) => {
-  store.selectContact(contact);
-};
-
-const handleSendMessage = (payload: Omit<SendMessageDTO, 'contactId'>) => {
-  if (selectedContact.value) {
-    store.sendMessage({ contactId: selectedContact.value.id, ...payload });
-  }
-};
-
-const handleAssumirChat = () => {
-  if (selectedContact.value) {
-    store.assumirChat(selectedContact.value.id);
-    ElMessage.success('Você assumiu o atendimento!');
-  }
-};
-
-const toggleProfile = () => {
-  isProfileOpen.value = !isProfileOpen.value;
-};
-
-const isTicketModalOpen = ref(false);
-const ticketInitialData = ref<any>(null);
-
-const openTicketModal = () => {
-  const contact = selectedContact.value;
+const openTicketModal = (contact: any) => {
   if (!contact) return;
-
-  let lastStartIndex = -1;
-  const msgs = messages.value || [];
-  for (let i = msgs.length - 1; i >= 0; i--) {
-    const msg = msgs[i];
-    if (msg && msg.type === 'alert' && msg.text?.includes('Atendimento iniciado')) {
-      lastStartIndex = i;
-      break;
-    }
-  }
-  const currentSessionMessages = lastStartIndex !== -1 ? msgs.slice(lastStartIndex) : msgs;
-
-  const history = currentSessionMessages.map(m => ({
-    sender: m.isMine ? 'Atendente' : contact.name,
-    text: m.text || '',
-    time: m.timestamp,
-    isAgent: m.isMine
-  }));
-
-  const protocoloStr = contact.serviceId ? ` #${contact.serviceId}` : '';
   ticketInitialData.value = {
-    customer: contact.name,
-    description: `Ticket gerado a partir do protocolo de atendimento${protocoloStr} via WhatsApp.\nPor favor, descreva o problema abaixo.`,
-    chatHistory: history
+    title: `Suporte para ${contact.name}`,
+    customer: contact.company || contact.name,
+    description: `Ticket aberto a partir do atendimento do WhatsApp.\nContato: ${contact.phone}`
   };
   isTicketModalOpen.value = true;
 };
 
-const submitTicket = async (ticketData: any) => {
-  await ticketsStore.createTicket({ ...ticketData, chatHistory: ticketData.chatHistory });
-  ElMessage.success('Ticket aberto com sucesso!');
+const submitTicket = async (data: any) => {
+  await ticketsStore.createTicket(data);
   isTicketModalOpen.value = false;
+  ElMessage.success('Ticket criado com sucesso!');
 };
 </script>

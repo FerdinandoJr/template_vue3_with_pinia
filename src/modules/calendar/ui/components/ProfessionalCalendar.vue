@@ -10,6 +10,7 @@ import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import listPlugin from '@fullcalendar/list';
 import ptBrLocale from '@fullcalendar/core/locales/pt-br';
 import { useCalendarStore } from '../store/calendar.store';
 
@@ -28,7 +29,7 @@ watch(() => props.currentView, (newView) => {
 });
 
 const calendarOptions = computed(() => ({
-    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
     initialView: props.currentView,
     locale: ptBrLocale,
     headerToolbar: false as const,
@@ -40,32 +41,27 @@ const calendarOptions = computed(() => ({
     slotMinTime: '06:00:00',
     slotMaxTime: '23:00:00',
     height: '100%',
+    noEventsText: 'Nenhum agendamento para este período.',
 
-    // --- CORREÇÃO: Usando "as const" para satisfazer a tipagem estrita do TypeScript ---
-    slotLabelFormat: {
-        hour: '2-digit' as const,
-        minute: '2-digit' as const,
-        omitZeroMinute: false,
-        hour12: false
-    },
-    eventTimeFormat: {
-        hour: '2-digit' as const,
-        minute: '2-digit' as const,
-        omitZeroMinute: false,
-        hour12: false
-    },
+    slotLabelFormat: { hour: '2-digit' as const, minute: '2-digit' as const, omitZeroMinute: false, hour12: false },
+    eventTimeFormat: { hour: '2-digit' as const, minute: '2-digit' as const, omitZeroMinute: false, hour12: false },
 
     events: store.filteredEvents.flatMap((e: any): any[] => {
         const user = store.availableUsers.find(u => u.id === e.userId);
-        const bgColor = user ? user.color : '#3b82f6';
+        const theme = user?.theme || { primary: '#3b82f6', light: '#eff6ff', dark: '#1e40af' };
+
+        // Aplica a cor escolhida no modal (se existir), caso contrário usa a cor pastel do tema do profissional
+        const eventBgColor = e.color ? e.color : theme.light;
+        const eventBorderColor = e.color ? e.color : theme.primary;
+        const eventTextColor = e.color ? '#ffffff' : theme.dark;
 
         const baseEvent = {
             id: e.id,
             title: e.title,
-            backgroundColor: bgColor,
-            borderColor: bgColor,
-            textColor: '#ffffff',
-            extendedProps: { ...e }
+            backgroundColor: eventBgColor,
+            borderColor: eventBorderColor,
+            textColor: eventTextColor,
+            extendedProps: { ...e, theme }
         };
 
         if (e.isRecurring) {
@@ -79,10 +75,7 @@ const calendarOptions = computed(() => ({
                 while (currentDate <= endLimitDate) {
                     const dStr = currentDate.toISOString().split('T')[0];
                     monthlyEvents.push({
-                        ...baseEvent,
-                        id: `${e.id}-${dStr}`,
-                        start: `${dStr}T${e.time}:00`,
-                        end: `${dStr}T${e.endTime}:00`,
+                        ...baseEvent, id: `${e.id}-${dStr}`, start: `${dStr}T${e.time}:00`, end: `${dStr}T${e.endTime}:00`,
                     });
                     currentDate.setMonth(currentDate.getMonth() + 1);
                 }
@@ -93,29 +86,18 @@ const calendarOptions = computed(() => ({
                 else if (e.recurrenceType === 'weekly' && e.recurrenceDays?.length) daysOfWeek = e.recurrenceDays;
 
                 return [{
-                    ...baseEvent,
-                    startTime: e.time + ':00',
-                    endTime: e.endTime + ':00',
-                    startRecur: e.date,
+                    ...baseEvent, startTime: e.time + ':00', endTime: e.endTime + ':00', startRecur: e.date,
                     endRecur: e.recurrenceEndDate ? `${e.recurrenceEndDate}T23:59:59` : undefined,
                     daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
                 }];
             }
         } else {
-            return [{
-                ...baseEvent,
-                start: `${e.date}T${e.time}:00`,
-                end: `${e.date}T${e.endTime}:00`,
-            }];
+            return [{ ...baseEvent, start: `${e.date}T${e.time}:00`, end: `${e.date}T${e.endTime}:00` }];
         }
     }),
 
-    select: (info: any) => {
-        emit('create-event', info.startStr);
-    },
-    eventClick: (info: any) => {
-        emit('edit-event', info.event.extendedProps);
-    },
+    select: (info: any) => emit('create-event', info.startStr),
+    eventClick: (info: any) => emit('edit-event', info.event.extendedProps),
     eventDrop: (info: any) => handleEventDropOrResize(info.event),
     eventResize: (info: any) => handleEventDropOrResize(info.event),
     datesSet: (info: any) => emit('dates-set', info.view.title)
@@ -125,48 +107,63 @@ const handleEventDropOrResize = (calendarEvent: any) => {
     const e = calendarEvent.extendedProps;
     const start = calendarEvent.start;
     const end = calendarEvent.end || calendarEvent.start;
-
-    const dateStr = start.toISOString().split('T')[0];
-    const timeStr = start.toTimeString().substring(0, 5);
-    const endTimeStr = end.toTimeString().substring(0, 5);
-
-    const updatedEvent = {
-        ...e,
-        date: dateStr,
-        time: timeStr,
-        endTime: endTimeStr
-    };
-
-    emit('update-event-date', updatedEvent);
+    emit('update-event-date', { ...e, date: start.toISOString().split('T')[0], time: start.toTimeString().substring(0, 5), endTime: end.toTimeString().substring(0, 5) });
 };
 </script>
 
-<style scoped>
-.custom-calendar :deep(.fc-event) {
-    cursor: pointer;
-    border-radius: 6px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
-    padding: 2px 4px;
+<style>
+/* CSS liberado do "scoped" para forçar o estilo no FullCalendar */
+.custom-calendar .fc-event {
+    cursor: pointer !important;
+    border-radius: 4px !important;
+    /* Garante que apenas a borda esquerda aparece, seja cor sólida ou pastel */
+    border-left-width: 4px !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    padding: 2px 4px !important;
+    font-weight: 600 !important;
 }
 
-.custom-calendar :deep(.fc-event:hover) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+.custom-calendar .fc-event:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08) !important;
 }
 
-.custom-calendar :deep(.fc-col-header-cell) {
-    padding: 12px 0;
-    background-color: #f8fafc;
-    color: #475569;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid #e2e8f0;
+.custom-calendar .fc-daygrid-event-dot {
+    display: none !important;
 }
 
-.custom-calendar :deep(.fc-day-today) {
-    background-color: #eff6ff !important;
+.custom-calendar .fc-col-header-cell {
+    padding: 12px 0 !important;
+    background-color: #f8fafc !important;
+    color: #475569 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 0.75rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.custom-calendar .fc-list-day-cushion {
+    background-color: #f8fafc !important;
+    padding: 12px 16px !important;
+    font-weight: 800 !important;
+    color: #334155 !important;
+    text-transform: capitalize !important;
+}
+
+.custom-calendar .fc-list-event:hover td {
+    background-color: #f1f5f9 !important;
+}
+
+.custom-calendar .fc-list-event-time {
+    font-weight: 700 !important;
+    color: #475569 !important;
+}
+
+.custom-calendar .fc-list-event-dot {
+    border-color: currentColor !important;
+    border-width: 4px !important;
 }
 </style>

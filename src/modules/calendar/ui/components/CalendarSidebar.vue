@@ -1,41 +1,32 @@
 <template>
   <div
     class="w-72 bg-white border-r border-slate-200 flex flex-col h-full shrink-0 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-
     <div class="p-4 shrink-0">
       <div class="bg-slate-50 rounded-xl p-2 border border-slate-100 transition-all hover:shadow-sm">
-
         <div class="flex items-center justify-between mb-1 px-1">
           <el-button :icon="ArrowLeft" circle text size="small" @click="prevMonth" class="!p-1 hover:bg-slate-200/50"
             style="color: rgb(51, 126, 204);" />
-
           <div class="relative flex justify-center items-center flex-1">
             <span class="absolute font-extrabold text-[13px] capitalize pointer-events-none z-0"
               style="color: rgb(51, 126, 204);">
               {{ formattedMonthYear }}
             </span>
-
             <el-date-picker v-model="miniCalendarDate" type="month" :clearable="false"
               class="hidden-date-picker z-10" />
           </div>
-
           <el-button :icon="ArrowRight" circle text size="small" @click="nextMonth" class="!p-1 hover:bg-slate-200/50"
             style="color: rgb(51, 126, 204);" />
         </div>
-
         <el-calendar v-model="miniCalendarDate" class="mini-calendar" />
       </div>
     </div>
 
     <div class="flex-1 flex flex-col min-h-0 border-t border-slate-100">
-
       <el-collapse v-model="activeCollapse" class="modern-collapse border-none">
         <el-collapse-item name="people">
           <template #title>
             <div class="flex items-center text-[12px] font-bold px-5 tracking-wide uppercase w-full"
-              style="color: rgb(51, 126, 204);">
-              Agendas
-            </div>
+              style="color: rgb(51, 126, 204);">Agendas</div>
           </template>
 
           <div class="px-4 pb-3">
@@ -44,25 +35,18 @@
           </div>
 
           <el-checkbox-group v-model="store.selectedUserIds"
-            class="overflow-y-auto custom-scrollbar max-h-[350px] px-2 pb-4 flex flex-col">
-
+            class="overflow-y-auto custom-scrollbar max-h-[350px] px-2 pb-4 flex flex-col gap-1">
             <el-checkbox v-for="user in filteredUsers" :key="user.id" :label="user.id" :value="user.id"
-              class="group flex items-center px-3 py-1.5 mx-2 rounded-md cursor-pointer transition-all duration-200 select-none !mr-0 !h-auto w-auto"
-              :class="store.selectedUserIds.includes(user.id) ? 'bg-indigo-50 shadow-[inset_2px_0_0_#4f46e5]' : 'hover:bg-slate-50'">
+              class="group flex items-center px-3 py-2 mx-2 rounded-lg cursor-pointer transition-all duration-300 select-none !mr-0 !h-auto w-auto"
+              :style="store.selectedUserIds.includes(user.id) ? `background-color: ${user.theme?.light || '#eff6ff'} !important; box-shadow: inset 3px 0 0 ${user.theme?.primary || '#3b82f6'} !important;` : ''"
+              :class="!store.selectedUserIds.includes(user.id) ? 'hover:bg-slate-50' : ''">
               <div class="flex items-center gap-3">
-                <span class="text-[13px] transition-colors duration-200 truncate"
-                  :class="store.selectedUserIds.includes(user.id) ? 'text-indigo-700 font-semibold' : 'text-slate-600 group-hover:text-slate-900'">
+                <span class="text-[13px] transition-colors duration-200 truncate font-bold"
+                  :style="{ color: store.selectedUserIds.includes(user.id) ? (user.theme?.dark || '#1e40af') : '#475569' }">
                   {{ user.name }}
                 </span>
               </div>
             </el-checkbox>
-
-            <div v-if="filteredUsers.length === 0" class="text-center py-4">
-              <span class="text-[11px] text-slate-400 font-medium bg-slate-50 px-3 py-1 rounded-full">
-                Nenhum membro encontrado
-              </span>
-            </div>
-
           </el-checkbox-group>
         </el-collapse-item>
       </el-collapse>
@@ -77,14 +61,13 @@ import { Search, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 
 const store = useCalendarStore();
 const emit = defineEmits(['date-change']);
-
 const activeCollapse = ref(['people']);
 const searchQuery = ref('');
 
-// Garante que, caso a store não tenha ids marcados por defeito, ela marque todos no início
 onMounted(() => {
   if (store.selectedUserIds.length === 0 && store.availableUsers.length > 0) {
-    store.selectedUserIds = store.availableUsers.map(u => u.id);
+    const firstUserId = store.availableUsers[0]?.id;
+    if (firstUserId) store.selectedUserIds = [firstUserId];
   }
 });
 
@@ -108,17 +91,8 @@ const formattedMonthYear = computed(() => {
   return d ? d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }) : '';
 });
 
-const prevMonth = () => {
-  const d = new Date(miniCalendarDate.value);
-  d.setMonth(d.getMonth() - 1);
-  miniCalendarDate.value = d;
-};
-
-const nextMonth = () => {
-  const d = new Date(miniCalendarDate.value);
-  d.setMonth(d.getMonth() + 1);
-  miniCalendarDate.value = d;
-};
+const prevMonth = () => { const d = new Date(miniCalendarDate.value); d.setMonth(d.getMonth() - 1); miniCalendarDate.value = d; };
+const nextMonth = () => { const d = new Date(miniCalendarDate.value); d.setMonth(d.getMonth() + 1); miniCalendarDate.value = d; };
 </script>
 
 <style scoped>
@@ -183,7 +157,6 @@ const nextMonth = () => {
   background-color: #f1f5f9;
 }
 
-/* Accordion e Busca isolados no componente */
 :deep(.modern-collapse .el-collapse-item__header) {
   border-bottom: none;
   background: transparent;

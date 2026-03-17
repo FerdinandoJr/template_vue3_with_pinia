@@ -1,23 +1,29 @@
 <template>
-    <el-dialog :model-value="isOpen" :title="form.uuid ? 'Editar Cadastro' : 'Novo Cadastro'" width="95%"
+    <el-dialog :model-value="isOpen" :title="form.uuid ? 'Editar Registo' : 'Novo Registo'" width="95%"
         style="max-width: 800px;" @close="$emit('close')" destroy-on-close align-center
         class="rounded-xl overflow-hidden">
-        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="mt-4"
+
+        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="mt-4" size="large"
             require-asterisk-position="right">
             <el-tabs v-model="activeTab" class="enterprise-tabs px-6">
+
                 <el-tab-pane label="Geral" name="general">
-                    <div class="py-4">
-                        <div class="flex items-center gap-6 mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                            <el-avatar :size="70" class="bg-blue-600 text-white font-black text-2xl shadow-md">
+                    <div class="py-4 flex flex-col h-full">
+
+                        <div
+                            class="flex items-center gap-6 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm w-full box-border">
+                            <el-avatar :size="70"
+                                class="bg-blue-600 text-white font-black text-2xl shadow-md flex-shrink-0">
                                 {{ form.tradeName?.charAt(0).toUpperCase() || form.companyName?.charAt(0).toUpperCase()
                                     || form.name?.charAt(0).toUpperCase() || '?' }}
                             </el-avatar>
-                            <div class="flex-1">
+                            <div class="flex-1 w-full overflow-hidden p-1 -m-1">
                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tipo de
                                     Cliente</p>
-                                <el-radio-group v-model="form.type" size="large" @change="resetDocument">
-                                    <el-radio-button value="PJ">Pessoa Jurídica</el-radio-button>
-                                    <el-radio-button value="PF">Pessoa Física</el-radio-button>
+                                <el-radio-group v-model="form.type" size="large" class="w-full flex custom-radio-group"
+                                    @change="resetDocument">
+                                    <el-radio-button value="PJ" class="flex-1">Pessoa Jurídica</el-radio-button>
+                                    <el-radio-button value="PF" class="flex-1">Pessoa Física</el-radio-button>
                                 </el-radio-group>
                             </div>
                         </div>
@@ -27,31 +33,25 @@
                                 <el-input v-model="form.companyName" placeholder="Nome oficial da empresa..."
                                     class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item v-if="form.type === 'PJ'" label="Nome Fantasia" prop="tradeName">
                                 <el-input v-model="form.tradeName" placeholder="Como a empresa é conhecida..."
                                     class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item v-if="form.type === 'PF'" label="Nome Completo" prop="name">
                                 <el-input v-model="form.name" placeholder="Nome completo do cliente..."
                                     class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item :label="form.type === 'PJ' ? 'CNPJ' : 'CPF'" prop="document">
                                 <el-input v-model="form.document" @input="handleDocumentInput"
                                     :placeholder="form.type === 'PJ' ? '00.000.000/0001-00' : '000.000.000-00'" />
                             </el-form-item>
-
-                            <el-form-item label="Telefone / WhatsApp" prop="phone">
+                            <el-form-item label="Telefone / WhatsApp Principal" prop="phone">
                                 <el-input v-model="form.phone" @input="handlePhoneInput" placeholder="(00) 00000-0000"
                                     maxlength="15" />
                             </el-form-item>
-
                             <el-form-item label="E-mail" prop="email">
                                 <el-input v-model="form.email" placeholder="contato@empresa.com" type="email" />
                             </el-form-item>
-
                             <el-form-item v-if="form.type === 'PJ'" label="Website (Opcional)" prop="website">
                                 <el-input v-model="form.website" placeholder="www.empresa.com.br">
                                     <template #prepend>https://</template>
@@ -61,8 +61,50 @@
                     </div>
                 </el-tab-pane>
 
+                <el-tab-pane label="Contatos" name="contacts">
+                    <div class="py-4 flex flex-col h-full overflow-y-auto custom-scroll pr-2"
+                        style="max-height: 480px;">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-slate-700">Contatos Vinculados</h3>
+                            <el-button type="primary" plain size="small" @click="addContact">
+                                + Adicionar Contato
+                            </el-button>
+                        </div>
+
+                        <div v-for="(contact, index) in form.contacts" :key="index"
+                            class="flex flex-wrap md:flex-nowrap gap-4 mb-4 items-end bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
+                            <el-form-item label="Nome do Funcionário" class="w-full md:flex-1 mb-0">
+                                <el-input v-model="contact.name" placeholder="Ex: João Silva" class="uppercase-input" />
+                            </el-form-item>
+
+                            <el-form-item label="WhatsApp Privado" class="w-full md:flex-1 mb-0">
+                                <el-input v-model="contact.phone" placeholder="(00) 00000-0000"
+                                    @input="handleContactPhoneInput($event, index)" maxlength="15" />
+                            </el-form-item>
+
+                            <el-form-item label="Cargo / Setor" class="w-full md:flex-1 mb-0">
+                                <el-input v-model="contact.role" placeholder="Ex: Financeiro" class="uppercase-input" />
+                            </el-form-item>
+
+                            <el-button type="danger" circle plain @click="removeContact(index)" class="mt-2 md:mt-0"
+                                title="Remover Contato">
+                                <el-icon>
+                                    <Delete />
+                                </el-icon>
+                            </el-button>
+                        </div>
+
+                        <div v-if="!form.contacts?.length"
+                            class="text-center text-slate-400 py-10 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 mt-2">
+                            <p class="font-medium mb-1">Nenhum contacto adicionado ainda.</p>
+                            <p class="text-xs">Clique em "+ Adicionar Contato" para vincular funcionários a esta
+                                empresa.</p>
+                        </div>
+                    </div>
+                </el-tab-pane>
+
                 <el-tab-pane label="Endereço" name="address">
-                    <div class="py-4">
+                    <div class="py-4 flex flex-col h-full">
                         <div class="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-2">
                             <el-form-item label="CEP" prop="zipCode" class="md:col-span-4">
                                 <el-input v-model="form.zipCode" @input="handleCepInput" @blur="fetchCep"
@@ -72,29 +114,23 @@
                                     </template>
                                 </el-input>
                             </el-form-item>
-
                             <el-form-item label="Endereço (Rua, Av, etc)" prop="street" class="md:col-span-8">
                                 <el-input v-model="form.street" placeholder="Logradouro..." class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item label="Número" prop="number" class="md:col-span-3">
                                 <el-input id="numero-input" v-model="form.number" placeholder="123"
                                     class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item label="Complemento" prop="complement" class="md:col-span-4">
                                 <el-input v-model="form.complement" placeholder="Sala, Apto..."
                                     class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item label="Bairro" prop="neighborhood" class="md:col-span-5">
                                 <el-input v-model="form.neighborhood" placeholder="Bairro..." class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item label="Cidade" prop="city" class="md:col-span-8">
                                 <el-input v-model="form.city" placeholder="Cidade..." class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item label="Estado (UF)" prop="state" class="md:col-span-4">
                                 <el-select v-model="form.state" placeholder="Selecione..." class="w-full">
                                     <el-option
@@ -107,10 +143,10 @@
                 </el-tab-pane>
 
                 <el-tab-pane label="Sistema" name="settings">
-                    <div class="py-4">
+                    <div class="py-4 flex flex-col h-full">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <el-form-item label="Origem do Cliente" prop="source">
-                                <el-select v-model="form.source" class="w-full">
+                                <el-select v-model="form.source" class="w-full" size="large">
                                     <el-option label="WhatsApp" value="WhatsApp" />
                                     <el-option label="Site / Landing Page" value="Site" />
                                     <el-option label="Indicação" value="Indicação" />
@@ -120,12 +156,13 @@
                             </el-form-item>
 
                             <el-form-item label="Status Inicial" prop="status">
-                                <el-radio-group v-model="form.status" class="w-full">
-                                    <el-radio-button value="active" class="flex-1 text-center">Ativo</el-radio-button>
-                                    <el-radio-button value="inactive"
-                                        class="flex-1 text-center">Inativo</el-radio-button>
-                                    <el-radio-button value="lead" class="flex-1 text-center">Lead</el-radio-button>
-                                </el-radio-group>
+                                <div class="w-full overflow-hidden p-1 -m-1">
+                                    <el-radio-group v-model="form.status" class="w-full flex custom-radio-group"
+                                        size="large">
+                                        <el-radio-button value="active" class="flex-1">Ativo</el-radio-button>
+                                        <el-radio-button value="inactive" class="flex-1">Desativado</el-radio-button>
+                                    </el-radio-group>
+                                </div>
                             </el-form-item>
                         </div>
                     </div>
@@ -135,9 +172,9 @@
 
         <template #footer>
             <div class="flex justify-end gap-3 px-2 pb-2">
-                <el-button @click="$emit('close')" class="!px-6 !rounded-lg">Cancelar</el-button>
-                <el-button type="primary" @click="handleSave" class="!px-8 !rounded-lg !font-bold">
-                    {{ form.uuid ? 'Salvar Alterações' : 'Cadastrar Cliente' }}
+                <el-button @click="$emit('close')" class="!px-6 !rounded-lg" size="large">Cancelar</el-button>
+                <el-button type="primary" @click="handleSave" class="!px-8 !rounded-lg !font-bold" size="large">
+                    Salvar
                 </el-button>
             </div>
         </template>
@@ -146,7 +183,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Delete } from '@element-plus/icons-vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { cepService } from '@/core/services/cep.service'
 
@@ -160,9 +197,15 @@ const emit = defineEmits(['close', 'save'])
 const formRef = ref<FormInstance>()
 const activeTab = ref('general')
 
+interface Contact {
+    name: string
+    phone: string
+    role: string
+}
+
 const form = reactive({
     uuid: '',
-    type: 'PJ', // 'PF' ou 'PJ'
+    type: 'PJ',
     name: '',
     companyName: '',
     tradeName: '',
@@ -179,8 +222,37 @@ const form = reactive({
     email: '',
     status: 'active',
     source: 'WhatsApp',
-    avatar: ''
+    avatar: '',
+    contacts: [] as Contact[]
 })
+
+// === MÉTODOS DOS CONTACTOS ===
+const addContact = () => {
+    if (!form.contacts) form.contacts = []
+    // CORREÇÃO 2: Adicionado o ! (Non-null assertion) para garantir ao TS que a variável existe
+    form.contacts!.push({ name: '', phone: '', role: '' })
+}
+
+const removeContact = (index: number) => {
+    form.contacts!.splice(index, 1)
+}
+
+const handleContactPhoneInput = (val: string, index: number) => {
+    let v = val.replace(/\D/g, '')
+    if (v.length > 11) v = v.slice(0, 11)
+    if (v.length > 10) {
+        v = v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    } else if (v.length > 6) {
+        v = v.replace(/(\d{2})(\d{4})(\d)/, '($1) $2-$3')
+    } else if (v.length > 2) {
+        v = v.replace(/(\d{2})(\d)/, '($1) $2')
+    }
+
+    if (form.contacts && form.contacts[index]) {
+        form.contacts[index].phone = v
+    }
+}
+// ===============================
 
 const checkCpfCnpj = (rule: any, value: string, callback: any) => {
     if (!value) {
@@ -215,7 +287,6 @@ const rules = reactive<FormRules>({
         { required: true, message: 'Documento é obrigatório', trigger: 'blur' },
         { validator: checkCpfCnpj, trigger: 'blur' }
     ],
-    // Adicionando a regra do telefone e email
     phone: [
         { required: true, message: 'Telefone é obrigatório', trigger: 'blur' },
         { validator: checkPhone, trigger: 'blur' }
@@ -246,19 +317,14 @@ const handleDocumentInput = (val: string) => {
     form.document = v
 }
 
-// Formatação do Telefone em tempo real
 const handlePhoneInput = (val: string) => {
     let v = val.replace(/\D/g, '')
     if (v.length > 11) v = v.slice(0, 11)
-
     if (v.length > 10) {
-        // Formato de Celular: (00) 00000-0000
         v = v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
     } else if (v.length > 6) {
-        // Formato de Fixo: (00) 0000-0000
         v = v.replace(/(\d{2})(\d{4})(\d)/, '($1) $2-$3')
     } else if (v.length > 2) {
-        // Formato incompleto: (00) 000...
         v = v.replace(/(\d{2})(\d)/, '($1) $2')
     }
     form.phone = v
@@ -288,7 +354,6 @@ const fetchCep = async () => {
     }
 }
 
-// ADICIONADO: Função para formatar o telefone ao carregar os dados
 const applyPhoneMask = (val?: string) => {
     if (!val) return '';
     let v = val.replace(/\D/g, '');
@@ -307,11 +372,21 @@ const initFormData = () => {
         Object.assign(form, {
             ...props.customerData,
             type: props.customerData.document?.length && props.customerData.document.length > 14 ? 'PJ' : 'PF',
-            name: props.customerData.name || props.customerData.companyName || ''
+            name: props.customerData.name || props.customerData.companyName || '',
+            contacts: props.customerData.contacts ? JSON.parse(JSON.stringify(props.customerData.contacts)) : []
         })
 
-        // ADICIONADO: Aplica a máscara logo após preencher os dados no formulário
+        if (form.status !== 'active' && form.status !== 'inactive') {
+            form.status = 'inactive';
+        }
+
         if (form.phone) form.phone = applyPhoneMask(form.phone);
+
+        if (form.contacts && form.contacts.length > 0) {
+            form.contacts.forEach((contact: Contact) => {
+                if (contact.phone) contact.phone = applyPhoneMask(contact.phone);
+            });
+        }
 
     } else {
         Object.assign(form, {
@@ -333,7 +408,8 @@ const initFormData = () => {
             email: '',
             status: 'active',
             source: 'WhatsApp',
-            avatar: ''
+            avatar: '',
+            contacts: []
         })
     }
 }
@@ -386,5 +462,28 @@ const handleSave = async () => {
 .custom-scroll::-webkit-scrollbar-thumb {
     background-color: #cbd5e1;
     border-radius: 10px;
+}
+
+:deep(.custom-radio-group) {
+    display: flex;
+    width: 100%;
+}
+
+:deep(.custom-radio-group .el-radio-button) {
+    flex: 1;
+}
+
+:deep(.custom-radio-group .el-radio-button__inner) {
+    width: 100% !important;
+}
+
+:deep(.el-tabs__content) {
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+}
+
+:deep(.el-tab-pane) {
+    flex-grow: 1;
 }
 </style>

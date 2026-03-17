@@ -1,14 +1,51 @@
 <template>
     <el-dialog :model-value="isOpen" :title="isEditing ? 'Editar Evento' : 'Novo Agendamento'" width="650px"
-        @close="handleClose" destroy-on-close :close-on-click-modal="false" class="rounded-xl overflow-hidden">
+        @close="handleClose" destroy-on-close :close-on-click-modal="false"
+        class="rounded-xl overflow-hidden custom-event-modal">
 
         <el-form ref="ruleFormRef" :model="form" :rules="rules" label-position="top" status-icon>
             <el-tabs v-model="activeTab" class="px-2">
                 <el-tab-pane label="Geral" name="general">
                     <div class="mt-2">
-                        <el-form-item label="Título" prop="title">
-                            <el-input v-model="form.title" placeholder="Ex: Reunião Comercial" size="large" />
-                        </el-form-item>
+                        <div class="flex gap-4 items-end">
+                            <el-form-item label="Título" prop="title" class="flex-1 !mb-4">
+                                <el-input v-model="form.title" placeholder="Ex: Reunião Comercial" size="large" />
+                            </el-form-item>
+
+                            <el-form-item label="Cor" class="!mb-4">
+                                <el-popover placement="bottom-end" :width="240" trigger="click">
+                                    <template #reference>
+                                        <div
+                                            class="flex items-center gap-2 cursor-pointer h-10 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all shadow-sm">
+                                            <div class="w-5 h-5 rounded-full border border-black/10 shadow-inner"
+                                                :style="{ backgroundColor: form.colorHex }"></div>
+                                            <el-icon class="text-slate-400">
+                                                <ArrowDown />
+                                            </el-icon>
+                                        </div>
+                                    </template>
+
+                                    <div class="p-1">
+                                        <div class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">
+                                            Cores do Evento</div>
+                                        <div class="flex flex-wrap gap-2.5">
+                                            <div v-for="color in preDefinedColors" :key="color.hex"
+                                                @click="selectType(color)"
+                                                class="w-7 h-7 rounded-full cursor-pointer flex items-center justify-center transition-all duration-200 shadow-sm border border-black/10 hover:scale-110"
+                                                :class="form.colorHex === color.hex ? 'ring-2 ring-offset-2 scale-110' : ''"
+                                                :style="{ backgroundColor: color.hex, '--tw-ring-color': color.hex }">
+                                                <transition name="scale-check">
+                                                    <el-icon v-if="form.colorHex === color.hex"
+                                                        class="text-white font-extrabold text-[11px]">
+                                                        <Check />
+                                                    </el-icon>
+                                                </transition>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </el-popover>
+                            </el-form-item>
+                        </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <el-form-item label="Agendar para (Profissional)" prop="userId">
@@ -34,7 +71,7 @@
                             </el-form-item>
                         </div>
 
-                        <div class="grid grid-cols-3 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <div class="grid grid-cols-3 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-2">
                             <el-form-item label="Data" prop="date" class="!mb-0">
                                 <el-date-picker v-model="form.date" type="date" format="DD/MM/YYYY"
                                     value-format="YYYY-MM-DD" class="!w-full" :prefix-icon="Calendar"
@@ -52,18 +89,6 @@
                                     end="23:45" class="!w-full" placeholder="Fim" :clearable="false" />
                             </el-form-item>
                         </div>
-
-                        <el-form-item label="Cor de Identificação" class="mt-4">
-                            <div class="flex gap-2">
-                                <div v-for="type in eventTypes" :key="type.hex" @click="selectType(type)"
-                                    :class="['w-8 h-8 rounded-full cursor-pointer flex items-center justify-center border-2 transition-all', form.dotClass === type.dot ? 'border-slate-600 scale-110' : 'border-transparent']"
-                                    :style="{ backgroundColor: type.hex }">
-                                    <el-icon v-if="form.dotClass === type.dot" color="#fff">
-                                        <Check />
-                                    </el-icon>
-                                </div>
-                            </div>
-                        </el-form-item>
                     </div>
                 </el-tab-pane>
 
@@ -78,7 +103,6 @@
                             <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200 w-full transition-all duration-300"
                                 :class="form.hasBilling ? 'bg-green-50 border-green-200' : ''">
                                 <el-switch v-model="form.hasBilling" active-color="#10b981" />
-
                                 <span v-if="form.hasBilling"
                                     class="text-sm font-medium text-green-700 transition-colors">
                                     <el-icon class="mr-1 translate-y-[2px]">
@@ -115,9 +139,11 @@
                         </div>
 
                         <el-form-item label="Agendado por (Responsável)">
-                            <el-input v-model="form.createdBy" disabled><template #prefix><el-icon>
+                            <el-input v-model="form.createdBy" disabled>
+                                <template #prefix><el-icon>
                                         <UserFilled />
-                                    </el-icon></template></el-input>
+                                    </el-icon></template>
+                            </el-input>
                         </el-form-item>
                     </div>
                 </el-tab-pane>
@@ -134,7 +160,6 @@
                         </div>
 
                         <div v-if="form.isRecurring" class="flex flex-col gap-4 animate-fade-in">
-
                             <el-form-item label="Tipo de Repetição">
                                 <div
                                     class="flex w-full bg-slate-100 p-1 rounded-lg border border-slate-200 select-none">
@@ -163,7 +188,7 @@
                                 <el-checkbox-group v-model="form.recurrenceDays" size="small">
                                     <el-checkbox-button v-for="(day, index) in weekDays" :key="index" :label="index">{{
                                         day
-                                        }}</el-checkbox-button>
+                                    }}</el-checkbox-button>
                                 </el-checkbox-group>
                             </div>
 
@@ -208,28 +233,42 @@
 </template>
 
 <script setup lang="ts">
-import { Check, Calendar, User, UserFilled, Briefcase, InfoFilled, Location, Search, Money } from '@element-plus/icons-vue';
+import { Check, Calendar, User, UserFilled, Briefcase, InfoFilled, Location, Search, Money, ArrowDown } from '@element-plus/icons-vue';
 import { useEventModal } from '../composables/useEventModal';
 
 const props = defineProps<{ isOpen: boolean; eventData?: any; }>();
 const emit = defineEmits(['close', 'save', 'delete']);
 
 const {
-    store,
-    ruleFormRef,
-    activeTab,
-    weekDays,
-    isEditing,
-    clientOptions,
-    loadingClients,
-    form,
-    rules,
-    eventTypes,
-    formatAndSearchCep,
-    handleStartTimeChange,
-    searchClients,
-    selectType,
-    handleClose,
-    submitForm
+    store, ruleFormRef, activeTab, weekDays, isEditing, clientOptions, loadingClients,
+    form, rules, preDefinedColors, formatAndSearchCep, handleStartTimeChange, searchClients,
+    selectType, handleClose, submitForm
 } = useEventModal(props, emit);
 </script>
+
+<style>
+.custom-event-modal .el-dialog__header {
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 16px;
+    margin-bottom: 0;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.custom-event-modal .el-form-item__label {
+    font-weight: 600 !important;
+    color: #475569 !important;
+    padding-bottom: 4px !important;
+}
+
+.scale-check-enter-active,
+.scale-check-leave-active {
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.scale-check-enter-from,
+.scale-check-leave-to {
+    transform: scale(0);
+    opacity: 0;
+}
+</style>

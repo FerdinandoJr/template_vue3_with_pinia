@@ -17,13 +17,42 @@ export function useEventModal(props: any, emit: any) {
 
     const isEditing = computed(() => !!props.eventData?.id);
 
-    const eventTypes = [
-        { hex: '#f8fafc', dot: 'bg-slate-400' },
-        { hex: '#eff6ff', dot: 'bg-blue-400' },
-        { hex: '#f0fdf4', dot: 'bg-green-400' },
-        { hex: '#fef2f2', dot: 'bg-red-400' },
-        { hex: '#fffbeb', dot: 'bg-yellow-400' },
-        { hex: '#f5f3ff', dot: 'bg-purple-400' }
+    // Nova Paleta Premium Expandida (25 Cores)
+    const preDefinedColors = [
+        // Vermelhos, Laranjas e Amarelos
+        { hex: '#ef4444', text: 'text-red-700', dot: 'bg-red-400' },
+        { hex: '#b91c1c', text: 'text-red-900', dot: 'bg-red-600' },
+        { hex: '#f97316', text: 'text-orange-700', dot: 'bg-orange-400' },
+        { hex: '#f59e0b', text: 'text-amber-700', dot: 'bg-amber-400' },
+        { hex: '#eab308', text: 'text-yellow-700', dot: 'bg-yellow-400' },
+
+        // Verdes e Esmeraldas
+        { hex: '#84cc16', text: 'text-lime-700', dot: 'bg-lime-400' },
+        { hex: '#22c55e', text: 'text-green-700', dot: 'bg-green-400' },
+        { hex: '#15803d', text: 'text-green-900', dot: 'bg-green-600' },
+        { hex: '#10b981', text: 'text-emerald-700', dot: 'bg-emerald-400' },
+        { hex: '#14b8a6', text: 'text-teal-700', dot: 'bg-teal-400' },
+
+        // Cianos e Azuis
+        { hex: '#06b6d4', text: 'text-cyan-700', dot: 'bg-cyan-400' },
+        { hex: '#0ea5e9', text: 'text-sky-700', dot: 'bg-sky-400' },
+        { hex: '#3b82f6', text: 'text-blue-700', dot: 'bg-blue-400' },
+        { hex: '#1d4ed8', text: 'text-blue-900', dot: 'bg-blue-600' },
+        { hex: '#6366f1', text: 'text-indigo-700', dot: 'bg-indigo-400' },
+
+        // Roxos e Rosas
+        { hex: '#8b5cf6', text: 'text-violet-700', dot: 'bg-violet-400' },
+        { hex: '#a855f7', text: 'text-purple-700', dot: 'bg-purple-400' },
+        { hex: '#d946ef', text: 'text-fuchsia-700', dot: 'bg-fuchsia-400' },
+        { hex: '#ec4899', text: 'text-pink-700', dot: 'bg-pink-400' },
+        { hex: '#f43f5e', text: 'text-rose-700', dot: 'bg-rose-400' },
+
+        // Neutros, Cinzas e Sóbrios (Excelentes para eventos cancelados ou bloqueios)
+        { hex: '#64748b', text: 'text-slate-700', dot: 'bg-slate-400' },
+        { hex: '#71717a', text: 'text-zinc-700', dot: 'bg-zinc-400' },
+        { hex: '#78716c', text: 'text-stone-700', dot: 'bg-stone-400' },
+        { hex: '#475569', text: 'text-slate-800', dot: 'bg-slate-500' },
+        { hex: '#0f172a', text: 'text-slate-900', dot: 'bg-slate-800' }
     ];
 
     const form = reactive({
@@ -38,6 +67,7 @@ export function useEventModal(props: any, emit: any) {
         address: '',
         cep: '',
         createdBy: 'Você',
+        colorHex: '#3b82f6',
         colorClass: 'text-blue-700',
         dotClass: 'bg-blue-400',
         type: 'meeting',
@@ -73,6 +103,7 @@ export function useEventModal(props: any, emit: any) {
                 address: '',
                 cep: '',
                 createdBy: 'Você',
+                colorHex: '#3b82f6',
                 colorClass: 'text-blue-700',
                 dotClass: 'bg-blue-400',
                 type: 'meeting',
@@ -96,10 +127,7 @@ export function useEventModal(props: any, emit: any) {
 
     const searchClients = async (query: string) => {
         loadingClients.value = true;
-
-        if (customerStore.items.length === 0) {
-            await customerStore.fetch();
-        }
+        if (customerStore.items.length === 0) await customerStore.fetch();
 
         if (query) {
             const lowerQuery = query.toLowerCase();
@@ -108,17 +136,12 @@ export function useEventModal(props: any, emit: any) {
                     const name = c.tradeName || c.companyName || c.name || '';
                     return name.toLowerCase().includes(lowerQuery);
                 })
-                .map((c: any) => ({
-                    id: c.uuid,
-                    name: c.tradeName || c.companyName || c.name
-                }));
+                .map((c: any) => ({ id: c.uuid, name: c.tradeName || c.companyName || c.name }));
         } else {
             clientOptions.value = customerStore.items.slice(0, 50).map((c: any) => ({
-                id: c.uuid,
-                name: c.tradeName || c.companyName || c.name
+                id: c.uuid, name: c.tradeName || c.companyName || c.name
             }));
         }
-
         loadingClients.value = false;
     };
 
@@ -147,8 +170,10 @@ export function useEventModal(props: any, emit: any) {
         }
     };
 
-    const selectType = (type: any) => {
-        form.dotClass = type.dot;
+    const selectType = (color: any) => {
+        form.colorHex = color.hex;
+        form.colorClass = color.text;
+        form.dotClass = color.dot;
     };
 
     const handleClose = () => {
@@ -161,27 +186,14 @@ export function useEventModal(props: any, emit: any) {
             if (valid) {
                 emit('save', { ...form });
             } else {
-                ElMessage.warning('Preencha todos os campos obrigatórios (verifique as abas Geral e Detalhes).');
+                ElMessage.warning('Preencha todos os campos obrigatórios.');
             }
         });
     };
 
     return {
-        store,
-        ruleFormRef,
-        activeTab,
-        weekDays,
-        isEditing,
-        clientOptions,
-        loadingClients,
-        form,
-        rules,
-        eventTypes,
-        formatAndSearchCep,
-        handleStartTimeChange,
-        searchClients,
-        selectType,
-        handleClose,
-        submitForm
+        store, ruleFormRef, activeTab, weekDays, isEditing, clientOptions, loadingClients,
+        form, rules, preDefinedColors, formatAndSearchCep, handleStartTimeChange, searchClients,
+        selectType, handleClose, submitForm
     };
 }
