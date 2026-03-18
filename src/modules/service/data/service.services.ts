@@ -4,6 +4,8 @@ import { ServiceStatus, ServicePriority } from "../domain/valueObjects/service.e
 export interface ServiceFilter {
   query?: string;
   status?: string;
+  // Ampliamos a tipagem para evitar conflitos com o array que o Vue retorna
+  dateRange?: string[] | [string, string] | null;
   page?: number;
   limit?: number;
 }
@@ -97,6 +99,35 @@ export const serviceServices = {
           );
         }
 
+        // =======================================================
+        // Filtro de Data corrigido para satisfazer o TypeScript
+        // =======================================================
+        if (filter.dateRange && filter.dateRange[0] && filter.dateRange[1]) {
+          // Garantimos ao TS que estas posições são strings
+          const startStr = filter.dateRange[0] as string;
+          const endStr = filter.dateRange[1] as string;
+
+          const parseDate = (dateStr: string) => {
+            if (!dateStr) return 0;
+            const [day, month, year] = dateStr.split('/');
+            return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
+          };
+
+          const startTime = parseDate(startStr);
+          const endTime = parseDate(endStr) + 86399999; // + 1 dia (23:59:59)
+
+          filtered = filtered.filter(s => {
+            if (!s.createdAt) return false;
+
+            const datePart = s.createdAt.split(' ')[0];
+            if (!datePart) return false;
+
+            const itemTime = parseDate(datePart as string);
+            return itemTime >= startTime && itemTime <= endTime;
+          });
+        }
+        // =======================================================
+
         const page = filter.page || 1;
         const limit = filter.limit || 10;
         const startIndex = (page - 1) * limit;
@@ -117,7 +148,6 @@ export const serviceServices = {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         const service = mock.find(s => s.id === id);
-
         if (!service) return reject(new Error("Atendimento não encontrado"));
 
         service.status = newStatus;

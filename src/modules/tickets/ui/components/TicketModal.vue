@@ -1,6 +1,7 @@
 <template>
     <el-dialog :model-value="isOpen" @update:model-value="!$event && handleClose()" width="95%"
         style="max-width: 1050px;" align-center destroy-on-close :show-close="false" class="enterprise-ticket-dialog">
+
         <template #header>
             <div
                 class="flex flex-wrap lg:flex-nowrap justify-between items-center w-full px-4 lg:px-6 py-4 border-b border-slate-200 bg-white rounded-t-xl gap-4">
@@ -11,7 +12,6 @@
                         {{ headerTitle }}
                     </div>
                     <div class="hidden sm:block h-5 w-px bg-slate-200"></div>
-
                     <div class="flex items-center gap-2 text-slate-600 text-sm font-medium w-full sm:w-[350px]">
                         <el-icon class="text-slate-400 shrink-0">
                             <User />
@@ -24,7 +24,6 @@
                         </el-select>
                     </div>
                 </div>
-
                 <div class="flex items-center absolute top-4 right-4 lg:relative lg:top-auto lg:right-auto">
                     <el-button plain size="small" @click="handleClose"
                         class="!border-slate-200 !text-slate-500 hover:!bg-slate-50">
@@ -50,27 +49,19 @@
                 <div class="flex-1 flex flex-col min-h-[400px] overflow-visible lg:overflow-hidden mt-1">
                     <el-tabs v-model="activeTab"
                         class="px-4 lg:px-8 enterprise-tabs h-full flex flex-col overflow-visible lg:overflow-hidden">
-
                         <el-tab-pane label="Descrição Geral" name="main"
                             class="h-full flex flex-col overflow-visible lg:overflow-hidden">
                             <div class="flex flex-col h-full pb-6 overflow-visible lg:overflow-hidden mt-2">
                                 <div class="flex-1 overflow-y-auto custom-scroll pr-2">
-                                    <div class="mb-2 bg-white border border-slate-200 rounded-t-lg px-3 py-2 flex items-center gap-2 border-b-0"
-                                        :class="{ 'opacity-50 pointer-events-none': isViewing }">
-                                        <el-button text size="small" class="!p-2"
-                                            @click="insertFormat('**', '**')"><span
-                                                class="font-bold text-slate-600">B</span></el-button>
-                                        <el-button text size="small" class="!p-2" @click="insertFormat('*', '*')"><span
-                                                class="italic text-slate-600">I</span></el-button>
-                                        <div class="w-px h-4 bg-slate-200 mx-1"></div>
-                                        <el-button text size="small" class="!p-2"
-                                            @click="insertFormat('\n- ', '')"><el-icon class="text-slate-600">
-                                                <List />
-                                            </el-icon></el-button>
+
+                                    <div
+                                        class="w-full border border-slate-200 rounded-lg overflow-hidden transition-all focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 mb-4">
+                                        <QuillEditor v-model:content="form.description" contentType="html" theme="snow"
+                                            toolbar="full" class="min-h-[250px] bg-white"
+                                            placeholder="Descreva o problema ou solicitação detalhadamente..."
+                                            :readOnly="isViewing" />
                                     </div>
-                                    <el-input ref="descriptionInputRef" v-model="form.description" type="textarea"
-                                        :rows="10" placeholder="Descreva o problema ou solicitação detalhadamente..."
-                                        class="w-full enterprise-textarea" :disabled="isViewing" />
+
                                     <TicketChecklist v-model:items="form.checklist" :readonly="isViewing" />
                                 </div>
                             </div>
@@ -92,6 +83,7 @@
                                             este
                                             ticket.</p>
                                     </div>
+
                                     <div v-for="(msg, i) in form.chatHistory" :key="i"
                                         :class="['flex w-full', msg.isAgent ? 'justify-end' : 'justify-start']">
                                         <div
@@ -108,6 +100,7 @@
                                         </div>
                                     </div>
                                 </div>
+
                                 <div class="mt-4 flex gap-3 shrink-0 items-end" v-if="!isViewing">
                                     <div
                                         class="flex-1 bg-white border border-slate-200 rounded-lg p-1 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
@@ -193,6 +186,7 @@
                         class="w-full mb-3 enterprise-select" :disabled="isViewing">
                         <el-option v-for="user in teamMembers" :key="user.id" :label="user.name" :value="user.id" />
                     </el-select>
+
                     <div v-if="form.assignees.length > 0" class="flex -space-x-2 overflow-hidden px-1">
                         <el-avatar v-for="uid in form.assignees" :key="uid" :size="34"
                             class="border-2 border-white bg-indigo-600 font-bold text-xs shadow-sm">
@@ -215,26 +209,16 @@
 
                 <TicketTagsSelector v-model:selected-tags="form.tags" :readonly="isViewing" />
 
-                <div class="mt-8 lg:mt-auto pt-6 flex gap-3">
-                    <el-button
-                        class="flex-1 !ml-0 !h-10 !font-bold !text-[13px] !rounded-lg !text-slate-600 !border-slate-300 hover:!bg-slate-100 hover:!border-slate-400 transition-colors"
-                        @click="handleClose">
-                        Fechar
-                    </el-button>
-
-                    <el-button v-if="!isViewing" type="primary"
-                        class="flex-1 !ml-0 !h-10 !font-bold !text-[13px] !rounded-lg shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5"
-                        @click="submit" :loading="loading">
-                        Salvar
-                    </el-button>
-
-                    <el-button v-if="isViewing" type="primary"
-                        class="flex-1 !ml-0 !h-10 !font-bold !text-[13px] !rounded-lg shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                <div class="mt-8 lg:mt-auto pt-5 border-t border-slate-200/80">
+                    <el-button v-if="isViewing" type="primary" size="large" class="w-full !font-bold"
                         @click="$emit('switch-edit')">
-                        <el-icon class="mr-1 text-base">
+                        <el-icon class="mr-2">
                             <Edit />
-                        </el-icon>
-                        Editar
+                        </el-icon> Editar Ticket
+                    </el-button>
+                    <el-button v-else type="primary" size="large" :loading="loading"
+                        class="w-full !font-bold shadow-md shadow-blue-500/30" @click="submit">
+                        {{ props.ticket?.id ? 'Atualizar Ticket' : 'Criar Ticket' }}
                     </el-button>
                 </div>
             </div>
@@ -243,16 +227,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, reactive, computed, onMounted } from 'vue';
-import { User, Close, Edit, List, Delete, UploadFilled, ChatLineRound, Promotion } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ref, reactive, watch, computed } from 'vue';
+import { UploadFilled, Close, Delete, Promotion, User, ChatLineRound, Edit } from '@element-plus/icons-vue';
 import type { UploadFile } from 'element-plus';
-import type { ITicket } from '../../domain/entities/Ticket';
-import { TicketStatus } from '../../domain/valueObjects/ticket-status.enum';
-import { TicketPriority } from '../../domain/valueObjects/ticket-priority.enum';
+import { ElMessage } from 'element-plus';
 import TicketChecklist from './TicketChecklist.vue';
 import TicketTagsSelector from './TicketTagsSelector.vue';
+import type { ITicket } from '../../domain/entities/Ticket';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -261,156 +245,118 @@ const props = defineProps<{
     initialData?: any;
 }>();
 
-const emit = defineEmits<{
-    (e: 'close'): void;
-    (e: 'save', data: any): void;
-    (e: 'switch-edit'): void;
-}>();
+const emit = defineEmits(['close', 'save', 'switch-edit']);
 
 const customerStore = useCustomerStore();
 
-onMounted(() => {
-    if (customerStore.items.length === 0) {
-        customerStore.fetch();
-    }
-});
-
-const loading = ref(false);
-const isEditing = ref(false);
 const activeTab = ref('main');
-const descriptionInputRef = ref();
+const loading = ref(false);
 const newChatMessage = ref('');
 
-interface ChecklistItem {
-    text: string;
-    done: boolean;
-}
+const headerTitle = computed(() => {
+    if (props.isViewing) return `TICKET #${props.ticket?.id}`;
+    return props.ticket?.id ? `EDITAR #${props.ticket.id}` : 'NOVO TICKET';
+});
 
-interface ChatMessage {
-    sender: string;
-    text: string;
-    time: string;
-    isAgent: boolean;
-}
+const teamMembers = [
+    { id: 'u1', name: 'João Silva' },
+    { id: 'u2', name: 'Maria Santos' },
+    { id: 'u3', name: 'Ana Costa' },
+    { id: 'u4', name: 'Pedro Almeida' },
+];
 
 const form = reactive({
     title: '',
     customer: '',
-    status: TicketStatus.OPEN as string,
-    priority: TicketPriority.MEDIUM as string,
     description: '',
+    status: 'open',
+    priority: 'low',
     assignees: [] as string[],
     tags: [] as string[],
+    checklist: [] as any[],
+    chatHistory: [] as any[],
     attachments: [] as any[],
-    checklist: [] as ChecklistItem[],
-    chatHistory: [] as ChatMessage[]
 });
 
-const teamMembers = ref([
-    { id: '1', name: 'Você' },
-    { id: '2', name: 'Atendente Alpha' },
-    { id: '3', name: 'Gestor' }
-]);
+// FUNÇÃO ISOLADA E PROTEGIDA PARA POPULAR O MODAL
+const initForm = () => {
+    if (customerStore.items.length === 0) {
+        customerStore.fetch();
+    }
+    activeTab.value = 'main';
+    newChatMessage.value = '';
 
-const headerTitle = computed(() => {
     if (props.ticket) {
-        return props.isViewing ? `TICKET-${props.ticket.id}` : `EDITAR-${props.ticket.id}`;
+        form.title = props.ticket.title || '';
+        form.customer = props.ticket.customer || '';
+        form.description = props.ticket.description || '';
+        form.status = (props.ticket.status as unknown as string) || 'open';
+        form.priority = (props.ticket.priority as unknown as string) || 'low';
+        form.assignees = (props.ticket as any).assignees || [];
+        form.tags = (props.ticket as any).tags || [];
+        form.checklist = (props.ticket as any).checklist || [];
+        form.chatHistory = Array.isArray((props.ticket as any).chatHistory) ? [...(props.ticket as any).chatHistory] : [];
+        form.attachments = (props.ticket as any).attachments || [];
+    } else if (props.initialData) {
+        form.title = props.initialData.title || '';
+        form.customer = props.initialData.customer || '';
+        form.description = props.initialData.description || '';
+        form.chatHistory = Array.isArray(props.initialData.chatHistory) ? [...props.initialData.chatHistory] : [];
+        form.status = 'open';
+        form.priority = 'low';
+        form.assignees = [];
+        form.tags = [];
+        form.checklist = [];
+        form.attachments = [];
+    } else {
+        form.title = '';
+        form.customer = '';
+        form.description = '';
+        form.status = 'open';
+        form.priority = 'low';
+        form.assignees = [];
+        form.tags = [];
+        form.checklist = [];
+        form.chatHistory = [];
+        form.attachments = [];
     }
-    return 'NOVO TICKET';
-});
+};
 
-watch(() => props.isOpen, (val) => {
-    if (val) {
-        activeTab.value = 'main';
-        newChatMessage.value = '';
-
-        if (props.ticket) {
-            isEditing.value = true;
-            form.title = props.ticket.title;
-            form.customer = props.ticket.customer;
-            form.status = props.ticket.status;
-            form.priority = props.ticket.priority;
-            form.description = props.ticket.description || '';
-            form.assignees = [];
-            form.tags = [];
-            form.attachments = [];
-            form.checklist = [];
-            form.chatHistory = [];
-        } else {
-            isEditing.value = false;
-            form.title = props.initialData?.title || '';
-            form.customer = props.initialData?.customer || '';
-            form.status = TicketStatus.OPEN;
-            form.priority = TicketPriority.MEDIUM;
-            form.description = props.initialData?.description || '';
-            form.assignees = [];
-            form.tags = [];
-            form.attachments = [];
-            form.checklist = [];
-            form.chatHistory = [];
-        }
-    }
+// O SEGREDO ESTÁ AQUI: immediate: true força a renderização exata no momento em que v-if for chamado
+watch(() => props.isOpen, (newVal) => {
+    if (newVal) initForm();
 }, { immediate: true });
 
+const getTeamMemberName = (id: string) => teamMembers.find(m => m.id === id)?.name || 'User';
+
 const getStatusColor = (status: string) => {
-    const map: Record<string, string> = {
-        'open': 'bg-amber-500',
-        'in_progress': 'bg-blue-500',
-        'resolved': 'bg-emerald-500'
-    };
+    const map: Record<string, string> = { 'open': 'bg-amber-500', 'in_progress': 'bg-blue-500', 'resolved': 'bg-green-500' };
     return map[status] || 'bg-slate-400';
 };
 
-const getPriorityName = (priority: string) => {
-    const map: Record<string, string> = {
-        'low': 'Baixa',
-        'medium': 'Média',
-        'high': 'Alta',
-        'urgent': 'Urgente'
-    };
-    return map[priority] || priority;
-};
-
 const getPriorityStyle = (priority: string) => {
-    const map: Record<string, string> = {
-        'low': 'bg-slate-200 text-slate-700',
-        'medium': 'bg-blue-100 text-blue-700',
-        'high': 'bg-orange-100 text-orange-700',
-        'urgent': 'bg-red-100 text-red-700'
-    };
+    const map: Record<string, string> = { 'low': 'bg-slate-100 text-slate-700', 'medium': 'bg-blue-100 text-blue-700', 'high': 'bg-amber-100 text-amber-700', 'urgent': 'bg-red-100 text-red-700' };
     return map[priority] || 'bg-slate-100 text-slate-700';
 };
 
-const getTeamMemberName = (id: string) => {
-    const member = teamMembers.value.find(m => m.id === id);
-    return member ? member.name : 'Desconhecido';
+const getPriorityName = (priority: string) => {
+    const map: Record<string, string> = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
+    return map[priority] || 'Baixa';
 };
 
-const autoResize = (e: any) => {
-    const el = e.target;
-    el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
+const autoResize = (event: Event) => {
+    const target = event.target as HTMLTextAreaElement;
+    target.style.height = 'auto';
+    target.style.height = target.scrollHeight + 'px';
 };
 
-const insertFormat = (prefix: string, suffix: string) => {
-    if (!form.description) form.description = '';
-    form.description += `${prefix}${suffix}`;
-};
-
-const handleAttachmentChange = (file: UploadFile) => {
-    if (file.raw) {
-        form.attachments.push(file.raw);
-    }
-};
-
-const removeAttachment = (index: number) => {
-    form.attachments.splice(index, 1);
-};
+const handleAttachmentChange = (file: UploadFile) => { if (file.raw) form.attachments.push(file.raw); };
+const removeAttachment = (index: number) => { form.attachments.splice(index, 1); };
 
 const sendChatMessage = () => {
     if (!newChatMessage.value.trim()) return;
     form.chatHistory.push({
-        sender: 'Você',
+        sender: 'Você (Agente)',
         text: newChatMessage.value.trim(),
         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         isAgent: true
@@ -419,24 +365,12 @@ const sendChatMessage = () => {
 };
 
 const submit = () => {
-    if (!form.title || !form.customer) {
-        ElMessage.warning('Preencha pelo menos o título e o cliente.');
-        return;
-    }
+    if (!form.title) { ElMessage.warning('Preencha pelo menos o título.'); return; }
     loading.value = true;
-
-    setTimeout(() => {
-        emit('save', {
-            ...form,
-            id: props.ticket?.id
-        });
-        loading.value = false;
-    }, 500);
+    setTimeout(() => { emit('save', { ...form, id: props.ticket?.id }); loading.value = false; }, 500);
 };
 
-const handleClose = () => {
-    emit('close');
-};
+const handleClose = () => { emit('close'); };
 </script>
 
 <style scoped>
@@ -481,23 +415,6 @@ const handleClose = () => {
     background-color: #2563eb;
     height: 3px;
     border-radius: 3px 3px 0 0;
-}
-
-:deep(.enterprise-textarea .el-textarea__inner) {
-    border-color: #e2e8f0;
-    border-radius: 0 0 8px 8px;
-    padding: 16px;
-    color: #334155;
-    font-size: 14px;
-    line-height: 1.6;
-    resize: none;
-    box-shadow: none;
-    border-top: none;
-}
-
-:deep(.enterprise-textarea .el-textarea__inner:focus) {
-    border-color: #e2e8f0;
-    box-shadow: none;
 }
 
 :deep(.enterprise-select .el-input__wrapper) {
@@ -545,5 +462,29 @@ const handleClose = () => {
 :deep(.custom-transparent-select .el-select__placeholder) {
     font-weight: 600;
     color: #334155;
+}
+
+:deep(.ql-toolbar.ql-snow) {
+    border: none;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: #f8fafc;
+    font-family: inherit;
+    border-radius: 8px 8px 0 0;
+}
+
+:deep(.ql-container.ql-snow) {
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+:deep(.ql-editor) {
+    min-height: 250px;
+    color: #334155;
+}
+
+:deep(.ql-editor.ql-blank::before) {
+    font-style: normal;
+    color: #94a3b8;
 }
 </style>

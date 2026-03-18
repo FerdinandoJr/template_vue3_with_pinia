@@ -13,13 +13,13 @@
       </button>
 
       <div>
-        <h1 v-if="pageTitle" class="text-xl font-bold text-slate-800 truncate max-w-[180px] sm:max-w-full">{{ pageTitle
+        <h1 v-if="pageTitle" class="text-xl font-bold text-slate-800 truncate max-w-[150px] sm:max-w-full">{{ pageTitle
           }}</h1>
         <p v-if="pageSubtitle" class="text-sm text-slate-500 mt-0.5 hidden sm:block">{{ pageSubtitle }}</p>
       </div>
     </div>
 
-    <div class="flex-1 flex items-center justify-end gap-4">
+    <div class="flex-1 flex items-center justify-end gap-2 sm:gap-4">
       <div class="relative hidden md:block group">
         <span class="absolute left-3 top-2.5 text-slate-400 group-focus-within:text-blue-600 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -81,7 +81,7 @@
                   <p class="text-xs text-slate-600 leading-snug mb-2">{{ notif.message }}</p>
                   <span class="text-[10px] font-bold text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded-md">Hoje às {{
                     notif.time
-                  }}</span>
+                    }}</span>
                 </div>
 
                 <button @click="notificationStore.markAsRead(notif.id)"
@@ -109,7 +109,7 @@ import { useNotificationStore } from '@/core/store/notifications.store'
 const route = useRoute()
 const notificationStore = useNotificationStore()
 
-defineEmits(['toggle-sidebar']) // Adicionamos o Emits para permitir a comunicação com o Layout
+defineEmits(['toggle-sidebar'])
 
 const pageTitle = computed(() => route.meta.title as string || '')
 const pageSubtitle = computed(() => route.meta.subtitle as string || '')

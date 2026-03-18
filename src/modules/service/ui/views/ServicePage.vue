@@ -1,6 +1,5 @@
 <template>
   <div class="flex flex-col h-[calc(100vh-5rem)] bg-slate-50/50 p-6 print-container">
-
     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 shrink-0 no-print">
       <h1 class="text-2xl font-black text-slate-800 tracking-tight mb-6">Gestão de Atendimentos</h1>
 
@@ -29,7 +28,7 @@
           </label>
           <el-date-picker v-model="filters.dateRange" type="daterange" unlink-panels range-separator="até"
             start-placeholder="Início" end-placeholder="Fim" :shortcuts="shortcuts" format="DD/MM/YY"
-            value-format="DD/MM/YYYY" size="large" class="!w-full custom-date-picker" />
+            value-format="DD/MM/YYYY" size="large" class="!w-full custom-date-picker" @change="handleDateChange" />
         </div>
 
         <el-button :icon="Refresh" @click="resetFilters" size="large" class="!rounded-xl font-bold">
@@ -56,24 +55,20 @@
       <ul v-else class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
         <li v-for="service in store.services" :key="service.id" @click="openServiceDetails(service)"
           class="grid grid-cols-12 gap-4 items-center px-4 py-4 bg-white border border-slate-100 hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-md rounded-xl cursor-pointer transition-all group">
-
           <div class="col-span-2 flex items-center gap-3">
             <div class="w-1.5 h-10 rounded-full" :class="getStatusBarColor(service.status)"></div>
             <span class="font-mono text-sm font-black text-slate-600 group-hover:text-blue-600 tracking-tight">
               #{{ service.protocol }}
             </span>
           </div>
-
           <div class="col-span-3 truncate pr-4">
             <p class="text-sm font-bold text-slate-800 truncate">{{ service.customerName }}</p>
             <p class="text-[10px] font-bold text-slate-400 uppercase">{{ service.document }}</p>
           </div>
-
           <div class="col-span-4 truncate pr-4">
             <p class="text-sm font-semibold text-slate-700 truncate">{{ service.subject }}</p>
             <p class="text-xs text-slate-500 truncate mt-0.5 font-medium italic">{{ service.lastAction }}</p>
           </div>
-
           <div class="col-span-2 flex items-center gap-2">
             <el-icon :size="18"
               :class="service.status === 'in_progress' ? 'text-emerald-500 animate-spin-slow' : 'text-slate-300'">
@@ -81,7 +76,6 @@
             </el-icon>
             <span class="text-sm font-mono font-bold text-slate-700">{{ service.timeElapsed }}</span>
           </div>
-
           <div class="col-span-1 flex justify-center">
             <el-tag :type="getStatusTag(service.status).type" effect="dark" size="small"
               class="!border-none !font-black px-3 !rounded-md">
@@ -103,7 +97,6 @@
         <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">
           Página {{ store.currentPage }} de {{ Math.ceil(store.filteredTotal / store.pageSize) || 1 }}
         </span>
-
         <el-pagination :current-page="store.currentPage" :page-size="store.pageSize" :page-sizes="[10, 20, 50, 100]"
           :total="store.filteredTotal" layout="sizes, prev, pager, next" background @size-change="store.setPageSize"
           @current-change="store.setPage" />
@@ -152,8 +145,10 @@
             class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2 shrink-0">
             <el-icon :size="16">
               <Document />
-            </el-icon> MOVIMENTAÇÃO DO CHAMADO
+            </el-icon>
+            MOVIMENTAÇÃO DO CHAMADO
           </h3>
+
           <div class="flex-1 overflow-y-auto custom-scrollbar pr-6 pb-6">
             <el-timeline>
               <el-timeline-item v-for="(event, index) in selectedService.history" :key="index" :timestamp="event.date"
@@ -183,6 +178,7 @@
               <span class="text-4xl font-mono font-black tracking-tighter">{{ selectedService.timeElapsed }}</span>
             </div>
           </div>
+
           <div class="space-y-6">
             <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">DADOS DO CLIENTE</h3>
             <div class="flex items-center gap-4">
@@ -190,11 +186,15 @@
                 {{ selectedService.customerName?.charAt(0).toUpperCase() }}
               </el-avatar>
               <div>
-                <p class="font-black text-slate-800 leading-tight">{{ selectedService.customerName }}</p>
-                <p class="text-xs font-bold text-slate-400 font-mono tracking-tight">{{ selectedService.document }}</p>
+                <h4 class="font-bold text-slate-800 leading-tight">{{ selectedService.customerName }}</h4>
+                <p class="text-xs font-bold text-slate-400 uppercase">{{ selectedService.document }}</p>
               </div>
             </div>
-            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 truncate">
+            <div>
+              <label class="text-[9px] font-black text-slate-400 uppercase block mb-1">Assunto / Descrição</label>
+              <p class="text-sm font-medium text-slate-700">{{ selectedService.description }}</p>
+            </div>
+            <div>
               <label class="text-[9px] font-black text-slate-400 uppercase block mb-1">Contato</label>
               <span class="text-sm font-bold text-blue-600">{{ selectedService.email }}</span>
             </div>
@@ -213,15 +213,26 @@ import { useServiceStore } from '../store/service.store';
 
 const store = useServiceStore();
 
+const getDefaultDateRange = (): [string, string] => {
+  const date = new Date();
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+  const formatDate = (d: Date) => {
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  };
+
+  return [formatDate(start), formatDate(end)];
+};
+
 const filters = reactive({
   search: '',
   status: 'all',
-  dateRange: null as [string, string] | null
+  dateRange: getDefaultDateRange() as [string, string] | null
 });
 
 const isModalOpen = ref(false);
 const selectedService = ref<any>(null);
-
 let searchTimeout: any = null;
 
 const handleSearch = () => {
@@ -235,11 +246,16 @@ const handleFilterChange = () => {
   store.setFilter({ status: filters.status });
 };
 
+// NOVA FUNÇÃO DO FILTRO DE DATA
+const handleDateChange = () => {
+  store.setFilter({ dateRange: filters.dateRange });
+};
+
 const resetFilters = () => {
   filters.search = '';
   filters.status = 'all';
-  filters.dateRange = null;
-  store.setFilter({ query: '', status: 'all' });
+  filters.dateRange = getDefaultDateRange();
+  store.setFilter({ query: '', status: 'all', dateRange: filters.dateRange });
   ElMessage.success('Filtros limpos');
 };
 
@@ -294,7 +310,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Estilos originais preservados */
 :deep(.custom-input .el-input__wrapper),
 :deep(.custom-input .el-select__wrapper) {
   background-color: #f8fafc !important;

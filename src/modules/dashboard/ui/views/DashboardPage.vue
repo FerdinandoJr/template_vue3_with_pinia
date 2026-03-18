@@ -98,10 +98,9 @@ const RawTicket = markRaw(Ticket);
 const RawCheck = markRaw(Check);
 const RawTimer = markRaw(Timer);
 
-// Monitora o estado de loading para liberar os gráficos apenas quando o DOM estiver pronto
 watch(loading, async (newVal) => {
   if (!newVal) {
-    await nextTick(); // Espera o Vue remover o skeleton e injetar os containers
+    await nextTick();
     renderCharts.value = true;
   } else {
     renderCharts.value = false;
@@ -110,7 +109,7 @@ watch(loading, async (newVal) => {
 
 const handlePeriodChange = (newPeriod: DashboardPeriod) => {
   if (newPeriod !== currentPeriod.value) {
-    renderCharts.value = false; // Reseta gráficos antes de buscar novos dados
+    renderCharts.value = false;
     store.setPeriod(newPeriod);
   }
 };
