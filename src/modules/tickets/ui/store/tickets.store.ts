@@ -10,22 +10,33 @@ interface TicketsState {
   filter: TicketFilter;
   loading: boolean;
   _fetchPromise: Promise<void> | null;
+  currentPage: number;
+  pageSize: number;
 }
 
 export const useTicketsStore = defineStore('tickets', {
-  state: (): TicketsState => ({
-    items: [],
-    total: 0,
-    filteredTotal: 0,
-    loading: false,
-    _fetchPromise: null,
-    filter: {
-      status: 'all',
-      query: '',
-      customers: [],
-      dateRange: null
-    }
-  }),
+  state: (): TicketsState => {
+    // Define o filtro de data padrão para o mês atual
+    const date = new Date();
+    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+    return {
+      items: [],
+      total: 0,
+      filteredTotal: 0,
+      loading: false,
+      _fetchPromise: null,
+      currentPage: 1,
+      pageSize: 10,
+      filter: {
+        status: 'all',
+        query: '',
+        customers: [],
+        dateRange: [startOfMonth, endOfMonth]
+      }
+    };
+  },
   getters: {
     openTickets: (state) => state.items.filter(t => t.status === TicketStatus.OPEN).length,
     inProgressTickets: (state) => state.items.filter(t => t.status === TicketStatus.IN_PROGRESS).length,
@@ -36,7 +47,13 @@ export const useTicketsStore = defineStore('tickets', {
       this.loading = true;
       this._fetchPromise = (async () => {
         try {
-          const { total, filteredTotal, items } = await ticketServices.list(this.filter);
+          const currentFilter = {
+            ...this.filter,
+            page: this.currentPage,
+            limit: this.pageSize
+          };
+          const { total, filteredTotal, items } = await ticketServices.list(currentFilter);
+
           this.total = total;
           this.filteredTotal = filteredTotal;
           this.items = items;
@@ -48,22 +65,28 @@ export const useTicketsStore = defineStore('tickets', {
       })();
       return this._fetchPromise;
     },
-
     async applyFilters(newFilters: TicketFilter) {
       this.filter = { ...this.filter, ...newFilters };
+      this.currentPage = 1;
       await this.fetch();
     },
-
+    setPage(page: number) {
+      this.currentPage = page;
+      this.fetch();
+    },
+    setPageSize(size: number) {
+      this.pageSize = size;
+      this.currentPage = 1;
+      this.fetch();
+    },
     async createTicket(data: Omit<ITicket, 'id' | 'createdAt'>) {
       await ticketServices.create(data);
       await this.fetch();
     },
-
     async updateTicket(id: number, data: Partial<ITicket>) {
       await ticketServices.update(id, data);
       await this.fetch();
     },
-
     async deleteTicket(id: number) {
       await ticketServices.delete(id);
       await this.fetch();

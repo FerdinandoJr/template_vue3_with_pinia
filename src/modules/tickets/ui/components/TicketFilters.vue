@@ -60,11 +60,20 @@ import type { TicketFilter } from '../../data/ticket.services';
 const props = defineProps<{ filters: TicketFilter }>();
 const emit = defineEmits<{ (e: 'update:filters', filters: TicketFilter): void }>();
 
+const getDefaultDateRange = (): [Date, Date] => {
+  const date = new Date();
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return [start, end];
+};
+
 const localFilters = ref<TicketFilter>({
   query: props.filters.query || '',
   status: props.filters.status || 'all',
   customers: props.filters.customers || [],
-  dateRange: props.filters.dateRange || null
+  dateRange: props.filters.dateRange && props.filters.dateRange.length === 2
+    ? props.filters.dateRange
+    : getDefaultDateRange()
 });
 
 watch(() => props.filters, (newVal) => {
@@ -74,8 +83,7 @@ watch(() => props.filters, (newVal) => {
 const hasActiveFilters = computed(() => {
   return localFilters.value.query !== '' ||
     localFilters.value.status !== 'all' ||
-    (localFilters.value.customers && localFilters.value.customers.length > 0) ||
-    localFilters.value.dateRange !== null;
+    (localFilters.value.customers && localFilters.value.customers.length > 0);
 });
 
 const dateShortcuts = [
@@ -107,12 +115,7 @@ const dateShortcuts = [
   },
   {
     text: 'Este Mês',
-    value: () => {
-      const date = new Date();
-      const start = new Date(date.getFullYear(), date.getMonth(), 1);
-      const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      return [start, end];
-    },
+    value: getDefaultDateRange,
   },
 ];
 
@@ -133,7 +136,7 @@ const clearFilters = () => {
     query: '',
     status: 'all',
     customers: [],
-    dateRange: null
+    dateRange: getDefaultDateRange()
   };
   emit('update:filters', { ...localFilters.value });
 };

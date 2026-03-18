@@ -1,44 +1,61 @@
 <template>
-  <div class="h-[calc(100vh-4rem)] bg-[#f8fafc] p-6 flex flex-col custom-scrollbar overflow-y-auto">
+  <div class="h-[calc(100vh-4rem)] bg-[#f8fafc] overflow-y-auto custom-scrollbar">
+    <div class="max-w-[1600px] mx-auto w-full p-6 flex flex-col min-h-full">
 
-    <div class="flex justify-between items-center mb-6 shrink-0">
-      <div>
-        <h1 class="text-[28px] font-black text-slate-800 leading-none mb-1">Gestão de Tickets</h1>
-        <p class="text-[13px] font-medium text-slate-400">Gerencie todos os tickets de atendimento</p>
+      <div class="flex justify-between items-center mb-6 shrink-0">
+        <div>
+          <h1 class="text-[28px] font-black text-slate-800 leading-none mb-1">Gestão de Tickets</h1>
+          <p class="text-[13px] font-medium text-slate-400">Gerencie todos os tickets de atendimento</p>
+        </div>
+        <el-button type="primary" size="large" class="!rounded-xl !font-bold shadow-md shadow-blue-200"
+          @click="openCreateModal">
+          <el-icon class="mr-2">
+            <Plus />
+          </el-icon>
+          Novo Ticket
+        </el-button>
       </div>
-      <el-button type="primary" size="large" class="!rounded-xl !font-bold shadow-md shadow-blue-200"
-        @click="openCreateModal">
-        <el-icon class="mr-2">
-          <Plus />
-        </el-icon> Novo Ticket
-      </el-button>
+
+      <TicketStats class="shrink-0" :total="store.total" :open="store.openTickets"
+        :in-progress="store.inProgressTickets" :resolved="store.resolvedTickets" />
+
+      <div v-if="store.loading && store.items.length === 0" class="flex justify-center p-10 flex-1 items-center">
+        <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+
+      <div v-else
+        class="flex-1 flex flex-col min-h-0 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 bg-white shrink-0">
+          <TicketFilters :filters="store.filter" @update:filters="store.applyFilters" />
+        </div>
+
+        <div class="flex-1 overflow-auto">
+          <TicketTable :tickets="store.items" @view="handleViewTicket" @edit="handleEditTicket"
+            @delete="handleDeleteTicket" class="!border-none !rounded-none" />
+        </div>
+
+        <div
+          class="p-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+          <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">
+            Página {{ store.currentPage }} de {{ Math.ceil(store.filteredTotal / store.pageSize) || 1 }}
+          </span>
+          <el-pagination :current-page="store.currentPage" :page-size="store.pageSize" :page-sizes="[10, 20, 50, 100]"
+            :total="store.filteredTotal" layout="sizes, prev, pager, next" background @size-change="store.setPageSize"
+            @current-change="store.setPage" />
+        </div>
+      </div>
+
     </div>
-
-    <TicketStats class="shrink-0" :total="total" :open="store.openTickets" :in-progress="store.inProgressTickets"
-      :resolved="store.resolvedTickets" />
-
-    <div v-if="loading && items.length === 0" class="flex justify-center p-10 flex-1 items-center">
-      <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-    </div>
-
-    <div v-else class="flex-1 flex flex-col min-h-0">
-      <TicketFilters class="shrink-0" :filters="filter" @update:filters="store.applyFilters" />
-
-      <TicketTable :tickets="items" @view="handleViewTicket" @edit="handleEditTicket" @delete="handleDeleteTicket" />
-    </div>
-
-    <TicketModal :is-open="isModalOpen" :ticket="currentTicket" :is-viewing="isViewing" @close="closeModal"
-      @save="handleSave" @switch-edit="isViewing = false" />
   </div>
+
+  <TicketModal :is-open="isModalOpen" :ticket="currentTicket" :is-viewing="isViewing" @close="closeModal"
+    @save="handleSave" @switch-edit="isViewing = false" />
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { storeToRefs } from 'pinia';
-import { ElMessage } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import { useTicketsStore } from '../store/tickets.store';
-
 import TicketStats from '../components/TicketStats.vue';
 import TicketFilters from '../components/TicketFilters.vue';
 import TicketTable from '../components/TicketTable.vue';
@@ -46,14 +63,17 @@ import TicketModal from '../components/TicketModal.vue';
 import type { ITicket } from '../../domain/entities/Ticket';
 
 const store = useTicketsStore();
-const { items, total, filter, loading } = storeToRefs(store);
 
 const isModalOpen = ref(false);
+const currentTicket = ref<ITicket | undefined>(undefined);
 const isViewing = ref(false);
-const currentTicket = ref<ITicket | null>(null);
+
+onMounted(async () => {
+  await store.fetch();
+});
 
 const openCreateModal = () => {
-  currentTicket.value = null;
+  currentTicket.value = undefined;
   isViewing.value = false;
   isModalOpen.value = true;
 };
@@ -71,35 +91,21 @@ const handleEditTicket = (ticket: ITicket) => {
 };
 
 const handleDeleteTicket = async (id: number) => {
-  try {
-    await store.deleteTicket(id);
-    ElMessage.success('Ticket excluído com sucesso!');
-  } catch (error) {
-    ElMessage.error('Erro ao excluir ticket.');
-  }
+  await store.deleteTicket(id);
 };
 
-const handleSave = async (data: Partial<ITicket>) => {
-  try {
-    if (currentTicket.value) {
-      await store.updateTicket(currentTicket.value.id, data);
-      ElMessage.success('Ticket atualizado com sucesso!');
-    } else {
-      await store.createTicket(data as any);
-      ElMessage.success('Ticket criado com sucesso!');
-    }
-    isModalOpen.value = false;
-  } catch (error) {
-    ElMessage.error('Erro ao salvar o ticket.');
+const handleSave = async (ticketData: any) => {
+  if (currentTicket.value) {
+    await store.updateTicket(currentTicket.value.id, ticketData);
+  } else {
+    await store.createTicket(ticketData);
   }
+  closeModal();
 };
 
 const closeModal = () => {
   isModalOpen.value = false;
-  currentTicket.value = null;
+  currentTicket.value = undefined;
+  isViewing.value = false;
 };
-
-onMounted(() => {
-  store.fetch();
-});
 </script>
