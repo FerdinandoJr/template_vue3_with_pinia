@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import type { IDashboardStats } from "../../domain/entities/dashboard-stats";
 import { DashboardPeriod } from "../../domain/valueObjects/dashboard-period.enum";
 import { dashboardServices } from "../../data/dashboard.services";
+import { useAuthStore } from "@/modules/auth/ui/store/auth.store";
 
 interface DashboardState {
   stats: IDashboardStats | null;
@@ -13,14 +14,16 @@ export const useDashboardStore = defineStore('dashboard', {
   state: (): DashboardState => ({
     stats: null,
     loading: false,
-    currentPeriod: DashboardPeriod.TODAY // <--- Default 'Hoje' garantido aqui
+    currentPeriod: DashboardPeriod.TODAY
   }),
-
   actions: {
     async fetchDashboardData() {
       this.loading = true;
       try {
-        const data = await dashboardServices.getSummary(this.currentPeriod);
+        const authStore = useAuthStore();
+        const userId = authStore.user?.id;
+        const userRole = authStore.user?.role;
+        const data = await dashboardServices.getSummary(this.currentPeriod, userId, userRole);
         this.stats = data;
       } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
@@ -28,9 +31,8 @@ export const useDashboardStore = defineStore('dashboard', {
         this.loading = false;
       }
     },
-
     async setPeriod(period: DashboardPeriod) {
-      this.currentPeriod = period; // <--- Atualiza o estado para refletir na UI
+      this.currentPeriod = period;
       await this.fetchDashboardData();
     }
   }

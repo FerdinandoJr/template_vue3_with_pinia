@@ -1,31 +1,41 @@
 <template>
-  <el-card shadow="hover" :class="['stats-card !border-l-4', borderColor]">
+  <el-card shadow="hover" :class="['stats-card border border-slate-200 !border-l-4', borderColor]">
     <div class="flex items-center justify-between w-full">
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
+
         <template v-if="typeof value === 'string'">
-          <div class="flex items-center gap-1.5 mb-1.5">
-            <span class="text-[11px] font-extrabold uppercase tracking-[0.05em] text-slate-500">{{ title }}</span>
-            <el-tooltip v-if="tooltip" :content="tooltip" placement="top" effect="dark">
-              <el-icon class="cursor-pointer text-slate-400 hover:text-blue-500 transition-colors outline-none">
+          <div class="flex items-center gap-1.5 mb-1.5 pr-2">
+            <span class="text-[11px] font-extrabold uppercase tracking-[0.05em] text-slate-500 truncate min-w-0">
+              {{ title }}
+            </span>
+            <el-tooltip v-if="tooltip" :content="tooltip" placement="bottom-end" effect="dark">
+              <el-icon
+                class="cursor-pointer text-slate-400 hover:text-blue-500 transition-colors outline-none shrink-0">
                 <InfoFilled />
               </el-icon>
             </el-tooltip>
           </div>
-          <div class="text-[26px] font-900 text-slate-800 leading-tight">{{ value }}</div>
+          <div class="text-[26px] font-900 text-slate-800 leading-tight truncate">
+            {{ value }}
+          </div>
         </template>
 
         <el-statistic v-else :value="value">
           <template #title>
-            <div class="flex items-center gap-1.5 mb-1.5">
-              <span class="text-[11px] font-extrabold uppercase tracking-[0.05em] text-slate-500">{{ title }}</span>
-              <el-tooltip v-if="tooltip" :content="tooltip" placement="top" effect="dark">
-                <el-icon class="cursor-pointer text-slate-400 hover:text-blue-500 transition-colors outline-none">
+            <div class="flex items-center gap-1.5 mb-1.5 pr-2">
+              <span class="text-[11px] font-extrabold uppercase tracking-[0.05em] text-slate-500 truncate min-w-0">
+                {{ title }}
+              </span>
+              <el-tooltip v-if="tooltip" :content="tooltip" placement="bottom-end" effect="dark">
+                <el-icon
+                  class="cursor-pointer text-slate-400 hover:text-blue-500 transition-colors outline-none shrink-0">
                   <InfoFilled />
                 </el-icon>
               </el-tooltip>
             </div>
           </template>
         </el-statistic>
+
       </div>
 
       <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
@@ -58,12 +68,16 @@ defineProps<{
   flex-direction: column;
   justify-content: center;
   border-radius: 16px;
-  border: none;
+  overflow: visible;
 }
 
 :deep(.el-statistic__content) {
   font-size: 26px !important;
   font-weight: 900 !important;
   color: #1e293b !important;
+}
+
+:deep(.el-card__body) {
+  overflow: visible;
 }
 </style>

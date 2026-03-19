@@ -2,20 +2,21 @@
     <el-dialog :model-value="isOpen" :title="form.uuid ? 'Editar Registo' : 'Novo Registo'" width="95%"
         style="max-width: 800px;" @close="$emit('close')" destroy-on-close align-center
         class="rounded-xl overflow-hidden">
-
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="mt-4" size="large"
             require-asterisk-position="right">
             <el-tabs v-model="activeTab" class="enterprise-tabs px-6">
-
                 <el-tab-pane label="Geral" name="general">
                     <div class="py-4 flex flex-col h-full">
+
                         <div
-                            class="flex items-center gap-6 mb-6 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm w-full box-border">
+                            class="flex flex-col sm:flex-row items-center gap-6 mb-6 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm w-full box-border">
                             <el-avatar :size="70"
                                 class="bg-blue-600 text-white font-black text-2xl shadow-md flex-shrink-0">
                                 {{ form.tradeName?.charAt(0).toUpperCase() || form.companyName?.charAt(0).toUpperCase()
-                                    || form.name?.charAt(0).toUpperCase() || '?' }}
+                                    ||
+                                form.name?.charAt(0).toUpperCase() || '?' }}
                             </el-avatar>
+
                             <div class="flex-1 w-full overflow-hidden p-1 -m-1">
                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tipo de
                                     Cliente</p>
@@ -26,6 +27,14 @@
                                     <el-radio-button value="PF" class="flex-1 w-full">Pessoa Física</el-radio-button>
                                 </el-radio-group>
                             </div>
+
+                            <div
+                                class="w-full sm:w-auto flex flex-col items-center sm:items-start p-1 border-t sm:border-t-0 sm:border-l border-slate-200 pt-4 sm:pt-0 sm:pl-6">
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Status</p>
+                                <el-switch v-model="form.status" active-value="active" inactive-value="inactive"
+                                    active-text="Ativo" inactive-text="Inativo" inline-prompt width="70"
+                                    style="--el-switch-on-color: #10b981; --el-switch-off-color: #ef4444" />
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
@@ -33,6 +42,7 @@
                                 <el-input v-model="form.companyName" placeholder="Nome oficial da empresa..."
                                     class="uppercase-input" />
                             </el-form-item>
+
                             <el-form-item v-if="form.type === 'PJ'" label="Nome Fantasia" prop="tradeName">
                                 <el-input v-model="form.tradeName" placeholder="Como a empresa é conhecida..."
                                     class="uppercase-input" />
@@ -57,6 +67,14 @@
                             <el-form-item label="E-mail de Contato" prop="email">
                                 <el-input v-model="form.email" placeholder="email@empresa.com" />
                             </el-form-item>
+
+                            <el-form-item label="Origem do Cliente" prop="source">
+                                <el-select v-model="form.source" placeholder="Selecione a origem..." class="w-full"
+                                    filterable :loading="sourceStore.isLoading">
+                                    <el-option v-for="origem in sourceStore.items" :key="origem.id" :label="origem.name"
+                                        :value="origem.name" />
+                                </el-select>
+                            </el-form-item>
                         </div>
                     </div>
                 </el-tab-pane>
@@ -74,28 +92,22 @@
                                     </template>
                                 </el-input>
                             </el-form-item>
-
                             <el-form-item label="Cidade" prop="city">
                                 <el-input v-model="form.city" placeholder="Nome da cidade..." />
                             </el-form-item>
-
                             <el-form-item label="UF" prop="state">
                                 <el-input v-model="form.state" placeholder="EX: SP, SC, RJ" maxlength="2"
                                     class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item label="Rua / Logradouro" prop="street" class="md:col-span-2">
                                 <el-input v-model="form.street" placeholder="Nome da rua, avenida..." />
                             </el-form-item>
-
                             <el-form-item label="Número" prop="number">
                                 <el-input v-model="form.number" placeholder="123" />
                             </el-form-item>
-
                             <el-form-item label="Bairro" prop="neighborhood" class="md:col-span-2">
                                 <el-input v-model="form.neighborhood" placeholder="Nome do bairro..." />
                             </el-form-item>
-
                             <el-form-item label="Complemento" prop="complement">
                                 <el-input v-model="form.complement" placeholder="Apto, Sala..." />
                             </el-form-item>
@@ -120,6 +132,9 @@ import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 
+// Importação corrigida de acordo com o seu projeto!
+import { useCustomerSourceStore } from '../store/customer-source.store'
+
 const props = defineProps<{ isOpen: boolean; customerData?: any }>()
 const emit = defineEmits(['close', 'save'])
 
@@ -127,8 +142,30 @@ const formRef = ref<any>()
 const activeTab = ref('general')
 const isFetchingCep = ref(false)
 
+// Instancia da Store Oficial de Origens
+const sourceStore = useCustomerSourceStore()
+
 const form = reactive({
-    uuid: '', type: 'PJ', name: '', companyName: '', tradeName: '', document: '', website: '', zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', phone: '', email: '', status: 'active', source: 'WhatsApp', avatar: '', contacts: []
+    uuid: '',
+    type: 'PJ',
+    name: '',
+    companyName: '',
+    tradeName: '',
+    document: '',
+    website: '',
+    zipCode: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    phone: '',
+    email: '',
+    status: 'active',
+    source: '',
+    avatar: '',
+    contacts: []
 })
 
 const rules = {
@@ -137,7 +174,9 @@ const rules = {
     document: [{ required: true, message: 'Obrigatório', trigger: 'blur' }]
 }
 
-const resetDocument = () => { form.document = '' }
+const resetDocument = () => {
+    form.document = ''
+}
 
 // MÁSCARA DE CPF E CNPJ
 const handleDocumentInput = (val: string) => {
@@ -157,11 +196,10 @@ const handleDocumentInput = (val: string) => {
     form.document = v
 }
 
-// MÁSCARA DE TELEFONE: (00) 00000-0000
+// MÁSCARA DE TELEFONE
 const handlePhoneInput = (val: string) => {
     let v = val.replace(/\D/g, '')
     if (v.length > 11) v = v.slice(0, 11)
-
     if (v.length > 10) {
         v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3')
     } else if (v.length > 5) {
@@ -172,30 +210,27 @@ const handlePhoneInput = (val: string) => {
     form.phone = v
 }
 
-// MÁSCARA DE CEP E BUSCA AUTOMÁTICA
+// MÁSCARA DE CEP
 const handleCepInput = async (val: string) => {
     let v = val.replace(/\D/g, '')
     if (v.length > 8) v = v.slice(0, 8)
-
     if (v.length > 5) {
         v = v.replace(/^(\d{5})(\d{1,3})/, '$1-$2')
     }
     form.zipCode = v
 
-    // Aciona o ViaCEP se tiver exatamente 8 números
     const rawCep = v.replace(/\D/g, '')
     if (rawCep.length === 8) {
         await fetchAddressByCep(rawCep)
     }
 }
 
-// INTEGRAÇÃO COM VIACEP
+// BUSCA VIACEP
 const fetchAddressByCep = async (cep: string) => {
     isFetchingCep.value = true
     try {
         const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
         const data = await response.json()
-
         if (!data.erro) {
             form.street = data.logradouro || ''
             form.neighborhood = data.bairro || ''
@@ -215,13 +250,29 @@ const fetchAddressByCep = async (cep: string) => {
 const initFormData = () => {
     if (props.customerData) {
         Object.assign(form, props.customerData)
+
+        // Força a máscara aos dados carregados do banco
+        if (form.phone) handlePhoneInput(form.phone)
+        if (form.document) handleDocumentInput(form.document)
+        if (form.zipCode) {
+            let v = form.zipCode.replace(/\D/g, '')
+            if (v.length > 5) v = v.replace(/^(\d{5})(\d{1,3})/, '$1-$2')
+            form.zipCode = v
+        }
     } else {
-        Object.assign(form, { uuid: '', type: 'PJ', name: '', companyName: '', tradeName: '', document: '', website: '', zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', phone: '', email: '', status: 'active', source: 'WhatsApp', avatar: '', contacts: [] })
+        Object.assign(form, {
+            uuid: '', type: 'PJ', name: '', companyName: '', tradeName: '', document: '',
+            website: '', zipCode: '', street: '', number: '', complement: '', neighborhood: '',
+            city: '', state: '', phone: '', email: '', status: 'active', source: '',
+            avatar: '', contacts: []
+        })
     }
 }
 
 watch(() => props.isOpen, (newVal) => {
     if (newVal) {
+        // Garante que a lista de origens é sempre carregada ao abrir o modal
+        sourceStore.fetchSources()
         initFormData()
         activeTab.value = 'general'
     }
@@ -241,7 +292,6 @@ const handleSave = async () => {
             emit('save', { ...form })
         } else {
             ElMessage.warning('Por favor, preencha todos os campos obrigatórios.')
-            // Verifica qual aba tem erro e foca nela (Lógica simples: se o erro for nome ou documento, aba 1)
             if (!form.name && !form.companyName || !form.document) {
                 activeTab.value = 'general'
             }

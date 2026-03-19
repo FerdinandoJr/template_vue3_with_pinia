@@ -1,7 +1,6 @@
 <template>
   <div class="mb-2">
     <el-row :gutter="20">
-
       <el-col :xs="24" :sm="8">
         <el-card shadow="hover" class="stats-card !border-l-4 !border-l-blue-500">
           <div class="flex items-center justify-between">
@@ -43,7 +42,6 @@
           </div>
         </el-card>
       </el-col>
-
     </el-row>
   </div>
 </template>
@@ -70,6 +68,7 @@ const inactiveCount = computed(() => items.value.filter(c => c.status !== 'activ
   flex-direction: column;
   justify-content: center;
   transition: all 0.3s ease;
+  border-radius: 16px;
 }
 
 .stats-card:hover {
