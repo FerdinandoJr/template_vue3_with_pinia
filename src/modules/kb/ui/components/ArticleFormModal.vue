@@ -2,8 +2,10 @@
     <el-dialog :model-value="isOpen" @update:model-value="!$event && $emit('close')"
         :title="isEditing ? 'Editar Artigo' : 'Novo Artigo de Conhecimento'" width="95%" style="max-width: 900px;"
         destroy-on-close align-center class="rounded-xl overflow-hidden">
+
         <div class="bg-slate-50/50 p-6 rounded-lg border border-slate-100 mb-2">
             <el-form ref="formRef" :model="form" :rules="rules" label-position="top" require-asterisk-position="right">
+
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 mb-2">
                     <el-form-item label="Ícone" prop="icon" class="col-span-1 sm:col-span-3">
                         <el-select v-model="form.icon" size="large" class="w-full text-center">
@@ -22,12 +24,19 @@
                             </el-option>
                         </el-select>
                     </el-form-item>
+
                     <el-form-item label="Título do Artigo" prop="title" class="col-span-1 sm:col-span-5">
                         <el-input v-model="form.title" placeholder="Ex: Como realizar o estorno..." size="large" />
                     </el-form-item>
+
                     <el-form-item label="Categoria" prop="category" class="col-span-1 sm:col-span-4">
-                        <el-select v-model="form.category" size="large" class="w-full"
-                            placeholder="Selecione o assunto">
+                        <el-select v-model="form.category" placeholder="Selecione um assunto..." class="w-full"
+                            size="large">
+                            <template #prefix>
+                                <el-icon class="text-blue-500">
+                                    <Collection />
+                                </el-icon>
+                            </template>
                             <el-option v-for="cat in store.categories" :key="cat.id" :label="cat.name"
                                 :value="cat.name">
                                 <div class="flex items-center gap-2 font-medium">
@@ -38,10 +47,7 @@
                         </el-select>
                     </el-form-item>
                 </div>
-                <el-form-item label="Resumo do Artigo (Visível no Card)" prop="excerpt" class="mb-5">
-                    <el-input v-model="form.excerpt" type="textarea" :rows="2" maxlength="120" show-word-limit
-                        placeholder="Escreva uma breve descrição para ajudar a equipa a identificar o conteúdo..." />
-                </el-form-item>
+
                 <el-form-item prop="content" class="mb-0">
                     <template #label>
                         <div class="flex justify-between items-center w-full">
@@ -65,8 +71,10 @@
                             placeholder="Escreva o conteúdo formatado aqui. Pode colar imagens (Ctrl+V) diretamente no texto..." />
                     </div>
                 </el-form-item>
+
             </el-form>
         </div>
+
         <template #footer>
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-2">
                 <span class="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
@@ -95,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed } from 'vue';
+import { ref, reactive, watch, computed, nextTick } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { useKbStore } from '../store/kb.store';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
@@ -103,7 +111,11 @@ import { InfoFilled, Check, EditPen } from '@element-plus/icons-vue';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 
-const props = defineProps<{ isOpen: boolean; article?: any }>();
+const props = defineProps<{
+    isOpen: boolean;
+    article?: any
+}>();
+
 const emit = defineEmits(['close', 'save']);
 const formRef = ref<FormInstance>();
 const store = useKbStore();
@@ -118,7 +130,13 @@ const availableIcons = [
 const isEditing = computed(() => !!props.article?.id);
 
 const form = reactive({
-    id: '', title: '', category: '', excerpt: '', content: '', icon: 'Document', status: 'Rascunho'
+    id: '',
+    title: '',
+    category: '',
+    excerpt: '',
+    content: '',
+    icon: 'Document',
+    status: 'Rascunho'
 });
 
 const rules = reactive<FormRules>({
@@ -136,32 +154,47 @@ const rules = reactive<FormRules>({
     ]
 });
 
-watch(() => props.isOpen, (val) => {
+watch(() => props.isOpen, async (val) => {
     if (val) {
         if (props.article) {
-            Object.assign(form, props.article);
+            form.id = props.article.id || '';
+            form.title = props.article.title || '';
+            form.category = props.article.category || '';
+            form.excerpt = props.article.excerpt || '';
+            form.content = props.article.content || props.article.description || props.article.body || '';
+            form.icon = props.article.icon || 'Document';
+            form.status = props.article.status || 'Rascunho';
         } else {
-            form.id = ''; form.title = ''; form.category = ''; form.excerpt = '';
-            form.content = ''; form.icon = 'Document'; form.status = 'Rascunho';
+            form.id = '';
+            form.title = '';
+            form.category = '';
+            form.excerpt = '';
+            form.content = '';
+            form.icon = 'Document';
+            form.status = 'Rascunho';
         }
     }
-});
+}, { immediate: true });
 
 const submit = async (targetStatus: 'Rascunho' | 'Publicado') => {
     if (!formRef.value) return;
     form.status = targetStatus;
+
     await formRef.value.validate((valid) => {
         if (valid) {
             const payload: any = { ...form };
+
             if (!payload.excerpt && payload.content) {
                 const plainText = payload.content.replace(/<[^>]*>?/gm, '');
                 payload.excerpt = plainText.substring(0, 100) + '...';
             }
+
             if (!isEditing.value) {
                 payload.authorName = authStore.user?.name || 'Agente';
                 payload.authorAvatar = `https://ui-avatars.com/api/?name=${payload.authorName}&background=random`;
                 payload.readTimeMinutes = Math.max(1, Math.ceil(payload.content.split(' ').length / 200));
             }
+
             emit('save', payload);
         }
     });

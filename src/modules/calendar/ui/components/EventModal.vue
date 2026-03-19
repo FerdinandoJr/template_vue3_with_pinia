@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :model-value="isOpen" :title="isEditing ? 'Editar Registo' : 'Novo Agendamento'" width="650px"
+    <el-dialog :model-value="isOpen" :title="isEditing ? 'Editar Registo' : 'Novo Agendamento'" width="800px"
         @close="handleClose" destroy-on-close :close-on-click-modal="false"
         class="rounded-xl overflow-hidden custom-event-modal">
 
@@ -117,8 +117,12 @@
                 <el-tab-pane label="Detalhes" name="details">
                     <div class="mt-2">
                         <el-form-item label="Descrição / Notas" prop="description">
-                            <el-input v-model="form.description" type="textarea" :rows="3"
-                                placeholder="Detalhes adicionais..." />
+                            <div
+                                class="w-full rounded-xl border border-slate-300 transition-all overflow-hidden bg-white focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50 shadow-sm flex flex-col">
+                                <QuillEditor v-model:content="form.description" contentType="html" theme="snow"
+                                    toolbar="essential"
+                                    placeholder="Cole prints, crie listas, e digite detalhes adicionais..." />
+                            </div>
                         </el-form-item>
 
                         <template v-if="!form.isBlocker">
@@ -212,7 +216,7 @@
                                 <el-checkbox-group v-model="form.recurrenceDays" size="small">
                                     <el-checkbox-button v-for="(day, index) in weekDays" :key="index" :label="index">{{
                                         day
-                                    }}</el-checkbox-button>
+                                        }}</el-checkbox-button>
                                 </el-checkbox-group>
                             </div>
 
@@ -259,6 +263,8 @@
 <script setup lang="ts">
 import { Check, Calendar, User, UserFilled, Briefcase, InfoFilled, Location, Search, Money, ArrowDown, Lock } from '@element-plus/icons-vue';
 import { useEventModal } from '../composables/useEventModal';
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 
 const props = defineProps<{ isOpen: boolean; eventData?: any; }>();
 const emit = defineEmits(['close', 'save', 'delete']);
@@ -297,7 +303,7 @@ const {
 }
 
 .custom-event-modal .el-tabs__content {
-    height: 400px;
+    height: 480px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -316,5 +322,33 @@ const {
 .custom-event-modal .el-tabs__content::-webkit-scrollbar-thumb {
     background-color: #cbd5e1;
     border-radius: 10px;
+}
+
+.custom-event-modal .ql-toolbar.ql-snow {
+    border: none;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: #f1f5f9;
+    font-family: inherit;
+    border-radius: 8px 8px 0 0;
+    padding: 8px;
+}
+
+.custom-event-modal .ql-container.ql-snow {
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    min-height: 150px;
+}
+
+.custom-event-modal .ql-editor {
+    min-height: 150px;
+    color: #334155;
+    padding: 1rem;
+    line-height: 1.6;
+}
+
+.custom-event-modal .ql-editor.ql-blank::before {
+    font-style: normal;
+    color: #94a3b8;
 }
 </style>
