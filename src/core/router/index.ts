@@ -13,6 +13,16 @@ import reportsRoutes from "@/modules/reports/ui/router/routes"
 import settingsRoutes from "@/modules/settings/ui/router/routes"
 import { useAuthStore } from "@/modules/auth/ui/store/auth.store"
 
+const withRoles = (routes: any[], roles: string[]) => {
+  return routes.map(route => ({
+    ...route,
+    meta: {
+      ...route.meta,
+      roles
+    }
+  }));
+};
+
 const routes = [
   {
     path: "/login",
@@ -28,13 +38,13 @@ const routes = [
       ...dashboardRoutes,
       ...chatsRoutes,
       ...agendaRoutes,
-      ...reportsRoutes,
-      ...settingsRoutes,
-      ...customerRouter,
       ...ticketsRoutes,
       ...atendimentosRoutes,
       ...kanbanRoutes,
       ...kbRoutes,
+      ...withRoles(reportsRoutes, ['ADMIN', 'MANAGER']),
+      ...withRoles(customerRouter, ['ADMIN', 'MANAGER']),
+      ...withRoles(settingsRoutes, ['ADMIN']),
     ],
   },
   {

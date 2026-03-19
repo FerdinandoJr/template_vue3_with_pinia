@@ -16,27 +16,32 @@ export const useNotificationStore = defineStore('notifications', {
         async checkTodayEvents() {
             try {
                 const today = new Date().toISOString().substring(0, 10);
+
+                // Mock atualizado com a propriedade "userId" para representar a quem pertence o agendamento
                 const events = [
                     {
                         id: 101,
                         title: 'Reunião de Alinhamento',
                         client: 'Empresa XYZ',
                         time: '10:00',
-                        date: today
+                        date: today,
+                        userId: '1'
                     },
                     {
                         id: 102,
                         title: 'Apresentação de Projeto',
                         client: 'João Silva',
                         time: '14:30',
-                        date: today
+                        date: today,
+                        userId: '2'
                     },
                     {
                         id: 103,
                         title: 'Consulta de Rotina',
                         client: 'Maria Santos',
                         time: '09:00',
-                        date: '2022-01-01'
+                        date: '2022-01-01',
+                        userId: '1'
                     }
                 ];
 
@@ -44,7 +49,15 @@ export const useNotificationStore = defineStore('notifications', {
                 const currentUser = authStore.user;
 
                 const todayEvents = events.filter(e => {
-                    return e.date === today;
+                    const isToday = e.date === today;
+
+                    if (currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER') {
+                        return isToday;
+                    }
+
+                    const matchesUser = e.userId === currentUser?.id || e.userId === currentUser?.email;
+
+                    return isToday && matchesUser;
                 });
 
                 if (todayEvents.length > 0) {

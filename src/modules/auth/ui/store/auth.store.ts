@@ -16,10 +16,23 @@ export const useAuthStore = defineStore('auth', {
         loading: false,
         error: null as string | null,
     }),
+
     getters: {
         isAuthenticated: (state) => !!state.token,
     },
+
     actions: {
+
+        hasRole(roles: string[]) {
+            if (!this.user || !this.user.role) return false;
+            return roles.includes(this.user.role);
+        },
+
+        hasPermission(permission: string) {
+            if (!this.user || !this.user.permissions) return false;
+            return this.user.permissions.includes(permission);
+        },
+
         async login(email: string, password: string) {
             this.loading = true;
             this.error = null;
@@ -27,6 +40,7 @@ export const useAuthStore = defineStore('auth', {
                 const response = await authServices.login(email, password);
                 this.token = response.token;
                 this.user = response.user;
+
                 localStorage.setItem('token', response.token);
                 localStorage.setItem('user', JSON.stringify(response.user));
 
@@ -42,6 +56,7 @@ export const useAuthStore = defineStore('auth', {
                 this.loading = false;
             }
         },
+
         logout() {
             this.token = null;
             this.user = null;

@@ -14,24 +14,12 @@
 
       <div>
         <h1 v-if="pageTitle" class="text-xl font-bold text-slate-800 truncate max-w-[150px] sm:max-w-full">{{ pageTitle
-          }}</h1>
+        }}</h1>
         <p v-if="pageSubtitle" class="text-sm text-slate-500 mt-0.5 hidden sm:block">{{ pageSubtitle }}</p>
       </div>
     </div>
 
     <div class="flex-1 flex items-center justify-end gap-2 sm:gap-4">
-      <div class="relative hidden md:block group">
-        <span class="absolute left-3 top-2.5 text-slate-400 group-focus-within:text-blue-600 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-        </span>
-        <input type="text" placeholder="Pesquisar..."
-          class="w-64 bg-slate-50 text-sm pl-10 pr-4 py-2 rounded-full border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all">
-      </div>
-      <div class="h-8 w-px bg-slate-200 mx-2 hidden md:block"></div>
 
       <el-popover placement="bottom-end" :width="340" trigger="click"
         popper-class="!p-0 !rounded-2xl shadow-2xl border-slate-100">
@@ -81,7 +69,7 @@
                   <p class="text-xs text-slate-600 leading-snug mb-2">{{ notif.message }}</p>
                   <span class="text-[10px] font-bold text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded-md">Hoje às {{
                     notif.time
-                    }}</span>
+                  }}</span>
                 </div>
 
                 <button @click="notificationStore.markAsRead(notif.id)"
