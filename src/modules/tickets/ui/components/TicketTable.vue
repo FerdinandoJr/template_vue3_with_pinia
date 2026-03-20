@@ -1,7 +1,6 @@
 <template>
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
         <el-table :data="tickets" style="width: 100%; height: 100%;" class="custom-table" highlight-current-row>
-
             <el-table-column prop="id" label="ID" width="100" align="center">
                 <template #default="scope">
                     <span class="font-bold text-slate-800">#{{ scope.row.id }}</span>
@@ -77,6 +76,8 @@
 <script setup lang="ts">
 import { View, Edit, Delete } from '@element-plus/icons-vue';
 import type { ITicket } from '../../domain/entities/Ticket';
+// Importando o Kanban para a tabela puxar os nomes oficiais
+import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 
 defineProps<{
     tickets: ITicket[];
@@ -88,23 +89,55 @@ defineEmits<{
     (e: 'delete', id: number): void;
 }>();
 
+const kanbanStore = useKanbanStore();
+
 const getStatusType = (status: string) => {
-    const map: Record<string, string> = { 'open': 'warning', 'in-progress': 'primary', 'resolved': 'success' };
+    const map: Record<string, string> = {
+        'open': 'warning',
+        'in-progress': 'primary',
+        'in_progress': 'primary',
+        'waiting': 'warning',
+        'aguardando': 'warning',
+        'resolved': 'success',
+        'done': 'success'
+    };
     return map[status] || 'info';
 };
 
 const getStatusLabel = (status: string) => {
-    const map: Record<string, string> = { 'open': 'Aberto', 'in-progress': 'Em Andamento', 'resolved': 'Resolvido' };
+    // Puxa o nome da coluna idêntico ao Kanban
+    const col = kanbanStore.columns?.find((c: any) => String(c.id) === String(status));
+    if (col && col.title) return col.title;
+
+    const map: Record<string, string> = {
+        'open': 'Aberto',
+        'in-progress': 'Em Andamento',
+        'in_progress': 'Em Andamento',
+        'waiting': 'Aguardando',
+        'aguardando': 'Aguardando',
+        'resolved': 'Resolvido',
+        'done': 'Finalizado'
+    };
     return map[status] || status;
 };
 
 const getPriorityType = (priority: string) => {
-    const map: Record<string, string> = { 'low': 'info', 'medium': 'primary', 'high': 'warning', 'urgent': 'danger' };
+    const map: Record<string, string> = {
+        'low': 'info',
+        'medium': 'primary',
+        'high': 'warning',
+        'urgent': 'danger'
+    };
     return map[priority] || 'info';
 };
 
 const getPriorityLabel = (priority: string) => {
-    const map: Record<string, string> = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
+    const map: Record<string, string> = {
+        'low': 'Baixa',
+        'medium': 'Média',
+        'high': 'Alta',
+        'urgent': 'Urgente'
+    };
     return map[priority] || priority;
 };
 </script>

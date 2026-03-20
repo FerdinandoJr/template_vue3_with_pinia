@@ -20,7 +20,6 @@
                         {{ ticket.title }}
                     </h3>
                 </div>
-
                 <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, ticket)">
                     <el-button text circle size="small" class="!p-2 -mr-2 text-slate-400 hover:text-blue-600">
                         <el-icon class="text-lg">
@@ -78,6 +77,7 @@
 import { DocumentDelete, MoreFilled, View, Edit, Delete } from '@element-plus/icons-vue';
 import type { ITicket } from '../../domain/entities/Ticket';
 import { ElMessageBox } from 'element-plus';
+import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 
 const props = defineProps<{
     tickets: ITicket[];
@@ -88,6 +88,8 @@ const emit = defineEmits<{
     (e: 'edit', ticket: ITicket): void;
     (e: 'delete', id: number): void;
 }>();
+
+const kanbanStore = useKanbanStore();
 
 const handleCommand = (command: string, ticket: ITicket) => {
     if (command === 'view') emit('view', ticket);
@@ -109,22 +111,51 @@ const formatDate = (date: Date | string) => {
 };
 
 const getStatusType = (status: string) => {
-    const map: Record<string, string> = { 'open': 'warning', 'in-progress': 'primary', 'resolved': 'success' };
+    const map: Record<string, string> = {
+        'open': 'warning',
+        'in-progress': 'primary',
+        'in_progress': 'primary',
+        'waiting': 'warning',
+        'aguardando': 'warning',
+        'resolved': 'success',
+        'done': 'success'
+    };
     return map[status] || 'info';
 };
 
 const getStatusLabel = (status: string) => {
-    const map: Record<string, string> = { 'open': 'Aberto', 'in-progress': 'Em Andamento', 'resolved': 'Resolvido' };
+    const col = kanbanStore.columns?.find((c: any) => String(c.id) === String(status));
+    if (col && col.title) return col.title;
+
+    const map: Record<string, string> = {
+        'open': 'Aberto',
+        'in-progress': 'Em Andamento',
+        'in_progress': 'Em Andamento',
+        'waiting': 'Aguardando',
+        'aguardando': 'Aguardando',
+        'resolved': 'Resolvido',
+        'done': 'Finalizado'
+    };
     return map[status] || status;
 };
 
 const getPriorityType = (priority: string) => {
-    const map: Record<string, string> = { 'low': 'info', 'medium': 'primary', 'high': 'warning', 'urgent': 'danger' };
+    const map: Record<string, string> = {
+        'low': 'info',
+        'medium': 'primary',
+        'high': 'warning',
+        'urgent': 'danger'
+    };
     return map[priority] || 'info';
 };
 
 const getPriorityLabel = (priority: string) => {
-    const map: Record<string, string> = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
+    const map: Record<string, string> = {
+        'low': 'Baixa',
+        'medium': 'Média',
+        'high': 'Alta',
+        'urgent': 'Urgente'
+    };
     return map[priority] || priority;
 };
 </script>

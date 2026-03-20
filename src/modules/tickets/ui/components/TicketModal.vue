@@ -1,7 +1,6 @@
 <template>
     <el-dialog :model-value="isOpen" @update:model-value="!$event && handleClose()" width="95%"
         style="max-width: 1050px;" align-center destroy-on-close :show-close="false" class="enterprise-ticket-dialog">
-
         <template #header>
             <div
                 class="flex flex-wrap lg:flex-nowrap justify-between items-center w-full px-4 lg:px-6 py-4 border-b border-slate-200 bg-white rounded-t-xl gap-4">
@@ -15,13 +14,13 @@
                         {{ form.title || 'Novo Chamado' }}
                     </h2>
                 </div>
-
                 <div class="flex items-center gap-2 shrink-0 ml-auto">
                     <el-button v-if="isViewing" type="primary" plain class="!font-bold hover:shadow-sm"
                         @click="$emit('switch-edit')">
                         <el-icon class="mr-1">
                             <Edit />
-                        </el-icon> Editar
+                        </el-icon>
+                        Editar
                     </el-button>
                     <el-button circle plain type="danger"
                         class="!bg-slate-50 hover:!bg-red-50 !border-slate-200 hover:!border-red-200"
@@ -35,7 +34,6 @@
         </template>
 
         <div class="flex flex-col lg:flex-row h-full min-h-[600px] lg:h-[750px] bg-white w-full">
-
             <div class="flex-1 flex flex-col min-w-0 border-r border-slate-200/80 bg-white">
                 <div class="px-6 py-2 border-b border-slate-100 shrink-0">
                     <el-tabs v-model="activeTab" class="enterprise-tabs">
@@ -68,7 +66,6 @@
 
                 <div class="flex-1 overflow-y-auto p-6 custom-scroll bg-slate-50/30">
                     <div v-show="activeTab === 'main'" class="space-y-6 max-w-3xl animate-in fade-in duration-300">
-
                         <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
                             <div class="md:col-span-12">
                                 <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
@@ -78,7 +75,6 @@
                                     placeholder="Ex: Erro ao gerar relatório de vendas"
                                     class="enterprise-input font-medium" />
                             </div>
-
                             <div class="md:col-span-12">
                                 <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
                                     Cliente / Empresa Solicitante <span class="text-red-500">*</span>
@@ -97,6 +93,17 @@
                             </div>
                         </div>
 
+                        <div class="md:col-span-12 mt-4">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
+                                Status do Ticket
+                            </label>
+                            <el-select v-model="form.status" class="w-full enterprise-select" size="large"
+                                :disabled="isViewing">
+                                <el-option v-for="option in statusOptions" :key="option.value" :label="option.label"
+                                    :value="option.value" />
+                            </el-select>
+                        </div>
+
                         <div>
                             <label class="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
                                 <span>Descrição Detalhada do Problema</span>
@@ -113,17 +120,14 @@
                         </div>
 
                         <TicketChecklist v-model:items="form.checklist" :readonly="isViewing" />
-
                     </div>
 
                     <div v-show="activeTab === 'chat'" class="h-full flex flex-col animate-in fade-in duration-300">
                         <div class="flex-1 overflow-y-auto pr-2 space-y-4 min-h-[400px]">
                             <div v-for="(msg, idx) in form.chatHistory" :key="idx"
                                 :class="['flex w-full', msg.isAgent ? 'justify-end' : 'justify-start']">
-                                <div :class="[
-                                    'max-w-[80%] rounded-2xl px-4 py-3 shadow-sm relative',
-                                    msg.isAgent ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm'
-                                ]">
+                                <div
+                                    :class="['max-w-[80%] rounded-2xl px-4 py-3 shadow-sm relative', msg.isAgent ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm']">
                                     <div class="flex items-center gap-2 mb-1.5 opacity-80">
                                         <span class="text-[10px] font-black uppercase tracking-wider">{{ msg.sender
                                             }}</span>
@@ -156,6 +160,7 @@
                             </div>
                         </div>
                     </div>
+
                     <div v-show="activeTab === 'attachments'" class="animate-in fade-in duration-300">
                         <div v-if="!isViewing"
                             class="border-2 border-dashed border-blue-200 bg-blue-50/50 rounded-2xl p-8 text-center hover:bg-blue-50 transition-colors cursor-pointer mb-6">
@@ -184,14 +189,12 @@
                                     </el-icon>
                                 </el-button>
                             </div>
-
                             <div v-if="form.attachments.length === 0"
                                 class="col-span-1 sm:col-span-2 text-center py-12 text-sm text-slate-400 font-medium border-2 border-dashed border-slate-100 rounded-xl">
                                 Nenhum documento anexado a este ticket.
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
@@ -206,10 +209,8 @@
                         <template #prefix>
                             <div :class="['w-2 h-2 rounded-full', getStatusColor(form.status)]"></div>
                         </template>
-                        <el-option label="Aberto (Novo)" value="open" />
-                        <el-option label="Em Andamento" value="in-progress" />
-                        <el-option label="Em Andamento" value="in_progress" style="display: none;" />
-                        <el-option label="Resolvido (Finalizado)" value="resolved" />
+                        <el-option v-for="option in statusOptions" :key="option.value" :label="option.label"
+                            :value="option.value" />
                     </el-select>
                 </div>
 
@@ -220,7 +221,6 @@
                         class="w-full mb-3 enterprise-select" :disabled="isViewing">
                         <el-option v-for="user in teamMembers" :key="user.id" :label="user.name" :value="user.id" />
                     </el-select>
-
                     <div v-if="form.assignees.length > 0" class="flex -space-x-2 overflow-hidden px-1">
                         <el-avatar v-for="uid in form.assignees" :key="uid" :size="34"
                             class="border-2 border-white bg-indigo-600 font-bold text-xs shadow-sm">
@@ -241,18 +241,16 @@
                     </div>
                 </div>
 
-                <TicketTagsSelector v-model:selected-tags="form.tags" :readonly="isViewing" />
+                <TicketTagsSelector v-model:selectedTags="form.tags" :readonly="isViewing" />
 
                 <div class="mt-8 lg:mt-auto pt-5 border-t border-slate-200/80 flex flex-col gap-3">
-
-                    <el-button v-if="form.status === 'resolved'" type="success" size="large" plain
-                        class="w-full !ml-0 !font-bold" @click="generateKbArticle">
+                    <el-button v-if="form.status === 'resolved' || form.status === 'done'" type="success" size="large"
+                        plain class="w-full !ml-0 !font-bold" @click="generateKbArticle">
                         <el-icon class="mr-2">
                             <Document />
                         </el-icon>
                         Gerar Base de Conhecimento
                     </el-button>
-
                     <el-button v-if="isViewing" type="primary" size="large" class="w-full !ml-0 !font-bold"
                         @click="$emit('switch-edit')">
                         <el-icon class="mr-2">
@@ -260,7 +258,6 @@
                         </el-icon>
                         Editar Ticket
                     </el-button>
-
                     <el-button v-else type="primary" size="large" :loading="loading" class="w-full !ml-0 !font-bold"
                         @click="submit">
                         Salvar Ticket
@@ -272,24 +269,22 @@
 
     <ArticleFormModal v-if="isKbModalOpen" :is-open="isKbModalOpen" :article="kbArticleData"
         @close="isKbModalOpen = false" @save="handleSaveKbArticle" />
-
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
 import { Close, User, Edit, ChatLineRound, Promotion, UploadFilled, Delete, Document } from '@element-plus/icons-vue';
-import { ElMessage, type UploadFile } from 'element-plus';
-
+import { ElMessage } from 'element-plus';
 import TicketChecklist from './TicketChecklist.vue';
 import TicketTagsSelector from './TicketTagsSelector.vue';
 import type { ITicket } from '../../domain/entities/Ticket';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
-
-// Importando os componentes da Base de Conhecimento localmente
 import ArticleFormModal from '@/modules/kb/ui/components/ArticleFormModal.vue';
 import { useKbStore } from '@/modules/kb/ui/store/kb.store';
+
+import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -301,11 +296,12 @@ const props = defineProps<{
 const emit = defineEmits(['close', 'save', 'switch-edit']);
 
 const customerStore = useCustomerStore();
+const kanbanStore = useKanbanStore();
+
 const activeTab = ref('main');
 const loading = ref(false);
 const newChatMessage = ref('');
 
-// Variáveis de controle do Modal KB
 const isKbModalOpen = ref(false);
 const kbArticleData = ref<any>(null);
 
@@ -334,10 +330,47 @@ const form = reactive({
     attachments: [] as any[],
 });
 
+// 🔥 TRADUTOR UNIVERSAL: Garante que os nomes feios do Banco de Dados nunca apareçam para o usuário
+const translateLabel = (valueToCheck: string, originalLabel: string) => {
+    const dict: Record<string, string> = {
+        'open': 'Aberto',
+        'in_progress': 'Em Andamento',
+        'in-progress': 'Em Andamento',
+        'waiting': 'Aguardando',
+        'aguardando': 'Aguardando',
+        'resolved': 'Resolvido',
+        'done': 'Finalizado'
+    };
+    // Tenta achar a tradução, senão devolve o nome original
+    return dict[valueToCheck] || dict[originalLabel] || originalLabel;
+};
+
+const statusOptions = computed(() => {
+    const columns = kanbanStore.columns || [];
+
+    const options = columns.map(col => ({
+        label: translateLabel(String(col.id), col.title), // Intercepta até o título original da coluna
+        value: String(col.id)
+    }));
+
+    if (form.status && !options.some(opt => String(opt.value) === String(form.status))) {
+        options.push({
+            label: translateLabel(String(form.status), String(form.status)),
+            value: String(form.status)
+        });
+    }
+
+    return options;
+});
+
 const initForm = () => {
     if (customerStore.items.length === 0) {
         customerStore.fetch();
     }
+    if (kanbanStore.columns.length === 0 && typeof kanbanStore.fetchKanbanData === 'function') {
+        kanbanStore.fetchKanbanData();
+    }
+
     activeTab.value = 'main';
     newChatMessage.value = '';
 
@@ -346,8 +379,8 @@ const initForm = () => {
         form.customer = props.ticket.customer || '';
         form.description = props.ticket.description || '';
 
-        let st = (props.ticket.status as unknown as string) || 'open';
-        if (st === 'in_progress') st = 'in-progress';
+        let st = String(props.ticket.status || 'open');
+        if (st === 'in-progress') st = 'in_progress'; // Prevenção de tickets antigos
         form.status = st;
 
         form.priority = (props.ticket.priority as unknown as string) || 'low';
@@ -361,8 +394,8 @@ const initForm = () => {
         form.customer = props.initialData.customer || '';
         form.description = props.initialData.description || '';
 
-        let st = props.initialData.status || 'open';
-        if (st === 'in_progress') st = 'in-progress';
+        let st = String(props.initialData.status || 'open');
+        if (st === 'in-progress') st = 'in_progress';
         form.status = st;
 
         form.priority = props.initialData.priority || 'low';
@@ -371,13 +404,12 @@ const initForm = () => {
         form.checklist = props.initialData.checklist || [];
         form.chatHistory = Array.isArray(props.initialData.chatHistory) ? [...props.initialData.chatHistory] : [];
         form.attachments = props.initialData.attachments || [];
-
         if (form.chatHistory.length > 0) activeTab.value = 'chat';
     } else {
         form.title = '';
         form.customer = '';
         form.description = '';
-        form.status = 'open';
+        form.status = String(kanbanStore.columns[0]?.id || 'open');
         form.priority = 'low';
         form.assignees = [];
         form.tags = [];
@@ -393,17 +425,15 @@ watch(() => props.isOpen, (newVal) => {
     }
 });
 
-// A LÓGICA DE ABRIR A BASE DE CONHECIMENTO RETORNOU PARA CÁ
 const generateKbArticle = () => {
     const ticketContent = form.description || '<p>Nenhuma descrição fornecida.</p>';
-
     const finalHtmlContent = `
-        <p><strong>Problema/Solicitação Original:</strong></p>
-        ${ticketContent}
-        <br/>
-        <p><strong>Resolução/Passos de Solução:</strong></p>
-        <p><em>Escreva aqui os passos aplicados...</em></p>
-    `.trim();
+    <p><strong>Problema/Solicitação Original:</strong></p>
+    ${ticketContent}
+    <br/>
+    <p><strong>Resolução/Passos de Solução:</strong></p>
+    <p><em>Escreva aqui os passos aplicados...</em></p>
+  `.trim();
 
     kbArticleData.value = {
         title: `[Resolução] ${form.title}`,
@@ -412,11 +442,9 @@ const generateKbArticle = () => {
         status: 'Rascunho',
         icon: 'Document'
     };
-
     isKbModalOpen.value = true;
 };
 
-// SALVANDO E FECHANDO O MODAL DA BASE DE CONHECIMENTO
 const handleSaveKbArticle = async (data: any) => {
     const kbStore = useKbStore();
     await kbStore.saveArticle(data, data.id);
@@ -433,7 +461,6 @@ const submit = () => {
         ElMessage.warning('Preencha os campos obrigatórios (Título e Cliente).');
         return;
     }
-
     loading.value = true;
     setTimeout(() => {
         emit('save', {
@@ -446,17 +473,28 @@ const submit = () => {
 };
 
 const getStatusColor = (status: string) => {
+    const col = kanbanStore.columns.find(c => String(c.id) === String(status));
+    if (col && col.color) return col.color;
+
     const map: Record<string, string> = {
         'open': 'bg-amber-500',
         'in-progress': 'bg-blue-500',
         'in_progress': 'bg-blue-500',
-        'resolved': 'bg-green-500'
+        'waiting': 'bg-orange-500',
+        'aguardando': 'bg-orange-500',
+        'resolved': 'bg-green-500',
+        'done': 'bg-green-500'
     };
     return map[status] || 'bg-slate-400';
 };
 
 const getPriorityName = (p: string) => {
-    const map: Record<string, string> = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
+    const map: Record<string, string> = {
+        'low': 'Baixa',
+        'medium': 'Média',
+        'high': 'Alta',
+        'urgent': 'Urgente'
+    };
     return map[p] || p;
 };
 
