@@ -15,13 +15,6 @@
                     </h2>
                 </div>
                 <div class="flex items-center gap-2 shrink-0 ml-auto">
-                    <el-button v-if="isViewing" type="primary" plain class="!font-bold hover:shadow-sm"
-                        @click="$emit('switch-edit')">
-                        <el-icon class="mr-1">
-                            <Edit />
-                        </el-icon>
-                        Editar
-                    </el-button>
                     <el-button circle plain type="danger"
                         class="!bg-slate-50 hover:!bg-red-50 !border-slate-200 hover:!border-red-200"
                         @click="handleClose">
@@ -423,7 +416,7 @@ watch(() => props.isOpen, (newVal) => {
     if (newVal) {
         initForm();
     }
-});
+}, { immediate: true });
 
 const generateKbArticle = () => {
     const ticketContent = form.description || '<p>Nenhuma descrição fornecida.</p>';

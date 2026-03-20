@@ -120,7 +120,7 @@
                             <div
                                 class="w-full rounded-xl border border-slate-300 transition-all overflow-hidden bg-white focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50 shadow-sm flex flex-col">
                                 <QuillEditor v-model:content="form.description" contentType="html" theme="snow"
-                                    toolbar="essential"
+                                    toolbar="full"
                                     placeholder="Cole prints, crie listas, e digite detalhes adicionais..." />
                             </div>
                         </el-form-item>
@@ -216,7 +216,7 @@
                                 <el-checkbox-group v-model="form.recurrenceDays" size="small">
                                     <el-checkbox-button v-for="(day, index) in weekDays" :key="index" :label="index">{{
                                         day
-                                        }}</el-checkbox-button>
+                                    }}</el-checkbox-button>
                                 </el-checkbox-group>
                             </div>
 

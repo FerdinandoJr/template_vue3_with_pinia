@@ -63,12 +63,8 @@ const localTitle = ref(props.title);
 watch(() => props.title, (newVal) => { localTitle.value = newVal; });
 const updateTitle = () => { emit('update:title', localTitle.value); };
 
-// =======================================================
-// LÓGICA DE DRAG & DROP CORRIGIDA PARA TYPESCRIPT
-// =======================================================
 const onDragStart = (event: DragEvent, ticket: any) => {
   if (event.dataTransfer) {
-    // Aqui usamos String() apenas para transportar o dado no HTML5 Drag and Drop (que só aceita string)
     event.dataTransfer.setData('ticketId', String(ticket.id));
     event.dataTransfer.effectAllowed = 'move';
   }
@@ -80,13 +76,11 @@ const onDropColumn = async (event: DragEvent) => {
 
   const ticket = ticketsStore.items.find((t: any) => String(t.id) === ticketId);
 
-  // Se o ticket trocou de coluna, atualiza o status
   if (ticket && (ticket.status as unknown as string) !== props.columnId) {
     const previousStatus = ticket.status;
     ticket.status = props.columnId as any;
 
     try {
-      // Removido o 'as string'. Passamos o ID original como número.
       await ticketsStore.updateTicket(ticket.id, { status: props.columnId as any });
     } catch (error) {
       ticket.status = previousStatus;
