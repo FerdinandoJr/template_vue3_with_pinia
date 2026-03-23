@@ -34,7 +34,7 @@
                             número.</p>
                     </el-form-item>
 
-                    <el-form-item v-if="linkForm.customerUuid" label="Nome do Contato (Opcional)">
+                    <el-form-item v-if="linkForm.customerUuid" label="Nome do Contato *" required>
                         <el-input v-model="linkForm.contactName" size="large"
                             placeholder="Ex: João da Silva (Financeiro)" />
                         <p class="text-xs text-slate-400 mt-1">Identifique o nome da pessoa deste número dentro da
@@ -319,6 +319,10 @@ const remoteSearchCustomer = async (query: string) => {
 
 const handleConfirm = () => {
     if (linkForm.customerUuid) {
+        if (!linkForm.contactName || !linkForm.contactName.trim()) {
+            ElMessage.warning('Por favor, informe o Nome do Contato antes de vincular.');
+            return;
+        }
         emit('linked', {
             isNew: false,
             customerUuid: linkForm.customerUuid,
