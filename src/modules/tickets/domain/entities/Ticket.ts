@@ -9,4 +9,6 @@ export interface ITicket {
   priority: TicketPriority;
   createdAt: Date;
   description?: string;
+  assigneeId?: string;
+  assigneeName?: string;
 }

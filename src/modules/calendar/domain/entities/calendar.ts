@@ -11,6 +11,7 @@ export interface ICalendarEvent {
   dotClass: string;
   userId?: string;
   description?: string;
+  postMeetingNotes?: string;
   participants?: string[];
   createdBy?: string;
   groupId?: string;

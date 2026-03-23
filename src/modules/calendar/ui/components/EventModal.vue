@@ -23,7 +23,12 @@
             </div>
 
             <el-tabs v-model="activeTab" class="px-2">
-                <el-tab-pane label="Geral" name="general">
+                <el-tab-pane name="general">
+                    <template #label>
+                        <span class="flex items-center gap-1.5 font-bold">
+                            <el-icon><EditPen /></el-icon> Geral
+                        </span>
+                    </template>
                     <div class="mt-2">
                         <div class="flex gap-4 items-end">
                             <el-form-item :label="form.isBlocker ? 'Motivo do Bloqueio' : 'Título'" prop="title"
@@ -114,7 +119,12 @@
                     </div>
                 </el-tab-pane>
 
-                <el-tab-pane label="Detalhes" name="details">
+                <el-tab-pane name="details">
+                    <template #label>
+                        <span class="flex items-center gap-1.5 font-bold">
+                            <el-icon><Document /></el-icon> Conteúdo da Reunião
+                        </span>
+                    </template>
                     <div class="mt-2">
                         <el-form-item label="Descrição / Notas" prop="description">
                             <div
@@ -176,7 +186,31 @@
                     </div>
                 </el-tab-pane>
 
-                <el-tab-pane label="Recorrência" name="recurrence">
+                <el-tab-pane name="postMeeting" v-if="!form.isBlocker">
+                    <template #label>
+                        <span class="flex items-center gap-1.5 font-bold">
+                            <el-icon><ChatLineSquare /></el-icon> Pós-Reunião
+                        </span>
+                    </template>
+                    <div class="mt-2 text-sm text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4 flex items-center gap-2">
+                        <el-icon class="text-blue-500 text-lg"><InfoFilled /></el-icon>
+                        Utilize este espaço <strong>após</strong> concluir a reunião para registrar resumos, próximos passos e acordos firmados.
+                    </div>
+                    <el-form-item prop="postMeetingNotes">
+                        <div class="w-full rounded-xl border border-slate-300 transition-all overflow-hidden bg-white focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50 shadow-sm flex flex-col">
+                            <QuillEditor v-model:content="form.postMeetingNotes" contentType="html" theme="snow"
+                                toolbar="full"
+                                placeholder="Digite o resumo e principais acordos da reunião aqui..." />
+                        </div>
+                    </el-form-item>
+                </el-tab-pane>
+
+                <el-tab-pane name="recurrence">
+                    <template #label>
+                        <span class="flex items-center gap-1.5 font-bold">
+                            <el-icon><Refresh /></el-icon> Recorrência
+                        </span>
+                    </template>
                     <div class="mt-2">
                         <div
                             class="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-4 flex items-center justify-between">
@@ -261,7 +295,7 @@
 </template>
 
 <script setup lang="ts">
-import { Check, Calendar, User, UserFilled, Briefcase, InfoFilled, Location, Search, Money, ArrowDown, Lock } from '@element-plus/icons-vue';
+import { Check, Calendar, User, UserFilled, Briefcase, InfoFilled, Location, Search, Money, ArrowDown, Lock, Document, EditPen, Refresh, ChatLineSquare } from '@element-plus/icons-vue';
 import { useEventModal } from '../composables/useEventModal';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';

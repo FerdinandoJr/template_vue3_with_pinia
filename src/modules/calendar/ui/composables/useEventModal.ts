@@ -54,6 +54,7 @@ export function useEventModal(props: any, emit: any) {
         time: '',
         endTime: '',
         description: '',
+        postMeetingNotes: '',
         address: '',
         cep: '',
         createdBy: 'Você',
@@ -66,10 +67,9 @@ export function useEventModal(props: any, emit: any) {
         recurrenceDays: [] as number[],
         recurrenceEndDate: '',
         hasBilling: false,
-        isBlocker: false // NOVO CAMPO: Define se é um bloqueio
+        isBlocker: false
     });
 
-    // Regras reativas (o cliente deixa de ser obrigatório se for bloqueio)
     const rules = computed(() => ({
         title: [{ required: true, message: form.isBlocker ? 'O motivo é obrigatório' : 'O título é obrigatório', trigger: 'blur' }],
         userId: [{ required: true, message: 'Selecione o profissional', trigger: 'change' }],
@@ -92,6 +92,7 @@ export function useEventModal(props: any, emit: any) {
                 time: '09:00',
                 endTime: '10:00',
                 description: '',
+                postMeetingNotes: '',
                 address: '',
                 cep: '',
                 createdBy: 'Você',

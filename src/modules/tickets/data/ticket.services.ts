@@ -7,6 +7,9 @@ export interface TicketFilter {
   status?: TicketStatus | 'all';
   customers?: string[];
   dateRange?: [Date, Date] | null;
+  assignees?: string[];
+  ownerOnly?: boolean;
+  ownerId?: string;
   page?: number;
   limit?: number;
 }
@@ -25,7 +28,9 @@ let mock: ITicket[] = [
     status: TicketStatus.OPEN,
     priority: TicketPriority.HIGH,
     createdAt: new Date('2026-03-10'),
-    description: 'Usuário relata que a senha não é reconhecida após a última atualização do sistema.'
+    description: 'Usuário relata que a senha não é reconhecida após a última atualização do sistema.',
+    assigneeId: '1',
+    assigneeName: 'Admin (Você)'
   },
   {
     id: 2,
@@ -34,7 +39,9 @@ let mock: ITicket[] = [
     status: TicketStatus.IN_PROGRESS,
     priority: TicketPriority.URGENT,
     createdAt: new Date('2026-03-12'),
-    description: 'O cliente tenta pagar por PIX e o QRCode não é gerado na tela final.'
+    description: 'O cliente tenta pagar por PIX e o QRCode não é gerado na tela final.',
+    assigneeId: '2',
+    assigneeName: 'João Atendimento'
   },
   {
     id: 3,
@@ -70,6 +77,12 @@ export const ticketServices = {
           filtered = filtered.filter(t => filter.customers!.includes(t.customer));
         }
 
+        if (filter.ownerOnly && filter.ownerId) {
+          filtered = filtered.filter(t => t.assigneeId === filter.ownerId);
+        } else if (filter.assignees && filter.assignees.length > 0) {
+          filtered = filtered.filter(t => t.assigneeId && filter.assignees!.includes(t.assigneeId));
+        }
+
         if (filter.dateRange && filter.dateRange.length === 2) {
           const start = new Date(filter.dateRange[0]);
           start.setHours(0, 0, 0, 0);
@@ -80,7 +93,6 @@ export const ticketServices = {
 
         filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-        // Lógica de Paginação
         const page = filter.page || 1;
         const limit = filter.limit || 10;
         const startIdx = (page - 1) * limit;

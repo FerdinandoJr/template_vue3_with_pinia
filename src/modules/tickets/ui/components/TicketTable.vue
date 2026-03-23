@@ -19,6 +19,18 @@
                 </template>
             </el-table-column>
 
+            <el-table-column prop="assigneeName" label="Responsável" min-width="150">
+                <template #default="scope">
+                    <span v-if="scope.row.assigneeName" class="font-medium text-blue-600 flex items-center gap-1.5">
+                        <el-icon>
+                            <UserFilled />
+                        </el-icon>
+                        {{ scope.row.assigneeName }}
+                    </span>
+                    <span v-else class="text-slate-400 italic text-xs">Não atribuído</span>
+                </template>
+            </el-table-column>
+
             <el-table-column prop="status" label="Status" width="150">
                 <template #default="scope">
                     <el-tag :type="getStatusType(scope.row.status)" effect="light" round>
@@ -74,9 +86,8 @@
 </template>
 
 <script setup lang="ts">
-import { View, Edit, Delete } from '@element-plus/icons-vue';
+import { View, Edit, Delete, UserFilled } from '@element-plus/icons-vue';
 import type { ITicket } from '../../domain/entities/Ticket';
-// Importando o Kanban para a tabela puxar os nomes oficiais
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 
 defineProps<{
@@ -105,7 +116,6 @@ const getStatusType = (status: string) => {
 };
 
 const getStatusLabel = (status: string) => {
-    // Puxa o nome da coluna idêntico ao Kanban
     const col = kanbanStore.columns?.find((c: any) => String(c.id) === String(status));
     if (col && col.title) return col.title;
 

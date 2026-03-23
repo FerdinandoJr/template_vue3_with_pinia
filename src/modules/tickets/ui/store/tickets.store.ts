@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import type { ITicket } from "../../domain/entities/Ticket";
 import { ticketServices, type TicketFilter } from "../../data/ticket.services";
 import { TicketStatus } from "../../domain/valueObjects/ticket-status.enum";
+import { useAuthStore } from "@/modules/auth/ui/store/auth.store";
 
 interface TicketsState {
   total: number;
@@ -16,7 +17,6 @@ interface TicketsState {
 
 export const useTicketsStore = defineStore('tickets', {
   state: (): TicketsState => {
-    // Define o filtro de data padrão para o mês atual
     const date = new Date();
     const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
     const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
@@ -33,7 +33,9 @@ export const useTicketsStore = defineStore('tickets', {
         status: 'all',
         query: '',
         customers: [],
-        dateRange: [startOfMonth, endOfMonth]
+        dateRange: [startOfMonth, endOfMonth],
+        ownerOnly: true,
+        assignees: []
       }
     };
   },
@@ -47,8 +49,10 @@ export const useTicketsStore = defineStore('tickets', {
       this.loading = true;
       this._fetchPromise = (async () => {
         try {
+          const authStore = useAuthStore();
           const currentFilter = {
             ...this.filter,
+            ownerId: authStore.user?.id || '1',
             page: this.currentPage,
             limit: this.pageSize
           };
