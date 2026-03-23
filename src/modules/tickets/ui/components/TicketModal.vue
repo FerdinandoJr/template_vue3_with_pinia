@@ -440,7 +440,7 @@ const initForm = () => {
         form.customer = props.initialData.customer || '';
         form.description = props.initialData.description || '';
 
-        let st = String(props.initialData.status || 'open');
+        let st = String(props.initialData.status || 'pending_approval');
         if (st === 'in-progress') st = 'in_progress';
         form.status = st;
 

@@ -9,40 +9,46 @@
       <p class="text-xs font-semibold text-slate-500 text-center">{{ contact.company || 'Empresa não informada' }}</p>
     </div>
 
-    <div class="bg-white shrink-0 border-b border-slate-100">
-      <el-tabs v-model="activeTab" class="w-full" stretch>
-        <el-tab-pane label="PERFIL" name="perfil" />
-        <el-tab-pane label="TICKETS" name="tickets" />
-      </el-tabs>
-    </div>
+    <div class="flex-1 overflow-y-auto w-full custom-scroll bg-slate-50/60 p-4">
+      <el-collapse v-model="activeCollapses" class="enterprise-collapse border-none">
 
-    <el-scrollbar class="flex-1 p-6">
-      <template v-if="activeTab === 'perfil'">
-        <div class="space-y-6">
-
-          <div>
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Contato</h4>
-            <div class="bg-white border border-slate-200 rounded-xl p-4 space-y-4 shadow-sm">
-              <div class="flex items-center gap-3 text-sm text-slate-700">
-                <el-icon class="text-slate-400">
-                  <Message />
-                </el-icon>
-                <span class="truncate">{{ contact.email || 'Não informado' }}</span>
-              </div>
-              <div class="w-full h-px bg-slate-100"></div>
-              <div class="flex items-center gap-3 text-sm text-slate-700">
-                <el-icon class="text-slate-400">
-                  <Phone />
-                </el-icon>
-                <span class="truncate">{{ contact.phone }}</span>
-              </div>
+        <el-collapse-item name="contact"
+          class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+          <template #title>
+            <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1">
+              <el-icon size="16">
+                <OfficeBuilding />
+              </el-icon> Contato & Empresa
+            </span>
+          </template>
+          <div class="p-4 flex flex-col gap-4 border-t border-slate-100">
+            <div class="flex items-center gap-3 text-sm text-slate-700">
+              <el-icon class="text-slate-400">
+                <Message />
+              </el-icon>
+              <span class="truncate">{{ contact.email || 'Não informado' }}</span>
+            </div>
+            <div class="flex items-center gap-3 text-sm text-slate-700">
+              <el-icon class="text-slate-400">
+                <Phone />
+              </el-icon>
+              <span class="truncate">{{ contact.phone }}</span>
             </div>
           </div>
+        </el-collapse-item>
 
-          <div>
+        <el-collapse-item name="tags"
+          class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+          <template #title>
+            <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1">
+              <el-icon size="16">
+                <CollectionTag />
+              </el-icon> Etiquetas & Tags
+            </span>
+          </template>
+          <div class="p-4 border-t border-slate-100">
             <div class="flex justify-between items-center mb-3">
-              <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tags</h4>
-
+              <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Marcadores</h4>
               <el-popover placement="bottom-end" :width="260" trigger="click" v-model:visible="isTagMenuOpen">
                 <template #reference>
                   <el-button size="small" circle>
@@ -51,17 +57,14 @@
                     </el-icon>
                   </el-button>
                 </template>
-
                 <div class="p-1">
                   <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                    <span class="text-xs font-bold text-slate-600">
-                      {{ isManagingTags ? 'Gerenciar' : 'Adicionar Tag' }}
-                    </span>
-                    <el-button link size="small" @click="isManagingTags = !isManagingTags">
-                      {{ isManagingTags ? 'Voltar' : 'Gerenciar' }}
-                    </el-button>
+                    <span class="text-xs font-bold text-slate-600">{{ isManagingTags ? 'Gerenciar' : 'Adicionar Tag'
+                      }}</span>
+                    <el-button link size="small" @click="isManagingTags = !isManagingTags">{{ isManagingTags ? 'Voltar'
+                      :
+                      'Gerenciar' }}</el-button>
                   </div>
-
                   <template v-if="!isManagingTags">
                     <div class="max-h-48 overflow-y-auto space-y-1">
                       <div v-for="(tag, idx) in availableTags" :key="idx" @click="addTagToContact(tag.label)"
@@ -71,7 +74,6 @@
                       </div>
                     </div>
                   </template>
-
                   <template v-else>
                     <el-input v-model="newTagLabel" size="small" placeholder="Nome da tag" class="mb-2" />
                     <div class="flex flex-wrap gap-1 mb-3">
@@ -84,7 +86,6 @@
                 </div>
               </el-popover>
             </div>
-
             <div class="flex flex-wrap gap-2">
               <el-tag v-for="(tag, index) in contact.tags" :key="index" closable @close="removeTagFromContact(index)"
                 effect="light" round class="!border-slate-200" :class="getTagColor(tag)">
@@ -93,27 +94,38 @@
               <span v-if="!contact.tags.length" class="text-xs text-slate-400 italic">Sem tags</span>
             </div>
           </div>
-        </div>
-      </template>
+        </el-collapse-item>
 
-      <template v-else>
-        <el-empty description="Nenhum ticket vinculado" :image-size="60" />
-      </template>
-    </el-scrollbar>
+        <el-collapse-item name="tickets"
+          class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+          <template #title>
+            <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1">
+              <el-icon size="16">
+                <Ticket />
+              </el-icon> Tickets Vinculados
+            </span>
+          </template>
+          <div class="p-4 border-t border-slate-100 flex flex-col items-center justify-center min-h-[100px]">
+            <el-empty description="Nenhum ticket" :image-size="40" class="!py-0" />
+            <el-button size="small" type="primary" plain class="mt-2 w-full">Novo Ticket</el-button>
+          </div>
+        </el-collapse-item>
+
+      </el-collapse>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Message, Phone, Plus } from '@element-plus/icons-vue';
+import { Message, Phone, Plus, OfficeBuilding, CollectionTag, Ticket } from '@element-plus/icons-vue';
 import type { IContact } from '../../domain/entities/chat';
 import { useChatStore } from '../store/chat.store';
 
 const props = defineProps<{ contact: IContact | null }>();
 const store = useChatStore();
-const activeTab = ref('perfil');
+const activeCollapses = ref(['contact', 'tags', 'tickets']);
 
-// --- Logica de Tags (Mantida do original, adaptada para Element) ---
 type TicketTag = { label: string; color: string };
 const availableTags = ref<TicketTag[]>([
   { label: 'Financeiro', color: 'bg-green-100 text-green-700' },
@@ -136,9 +148,6 @@ const newTagColor = ref('bg-slate-200 text-slate-700');
 
 const getTagColor = (label: string) => {
   const found = availableTags.value.find(t => t.label.toLowerCase() === label.toLowerCase());
-  // Retorna classes CSS customizadas para o el-tag
-  // Nota: O el-tag do Element não aceita classes arbitrárias de cor bg/text facilmente sem CSS customizado ou type.
-  // Aqui estamos aplicando classes Tailwind diretamente no componente via :class, o que funciona.
   return found ? found.color : 'bg-slate-100 text-slate-600';
 };
 

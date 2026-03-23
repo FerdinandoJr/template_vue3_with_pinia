@@ -72,9 +72,9 @@
             <el-option label="Outro" value="outro" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Descrição / Observações (Opcional)">
+        <el-form-item label="Descrição / Observações" prop="description">
           <el-input v-model="finishForm.description" type="textarea" :rows="4"
-            placeholder="Adicione notas sobre o atendimento..." />
+            placeholder="Adicione notas obrigatórias sobre o atendimento..." />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -110,7 +110,10 @@ const transferDest = ref('');
 const isFinishModalOpen = ref(false);
 const finishFormRef = ref();
 const finishForm = reactive({ reason: '', description: '' });
-const finishRules = { reason: [{ required: true, message: 'Informe a resolução', trigger: 'blur' }] };
+const finishRules = { 
+  reason: [{ required: true, message: 'Informe a resolução', trigger: 'blur' }],
+  description: [{ required: true, message: 'A descrição das observações é obrigatória', trigger: 'blur' }]
+};
 const isTicketModalOpen = ref(false);
 const ticketInitialData = ref<any>(null);
 const handleSelectContact = (contact: any) => { store.selectContact(contact); isProfileOpen.value = false; };
@@ -170,7 +173,7 @@ const submitFinish = async () => {
   if (!finishFormRef.value) return;
   await finishFormRef.value.validate((valid: boolean) => {
     if (valid && selectedContact.value) {
-      store.finishChat(selectedContact.value.id, finishForm.reason);
+      store.finishChat(selectedContact.value.id, finishForm.reason, finishForm.description);
       ElMessage.success('Atendimento finalizado.');
       isFinishModalOpen.value = false;
     }
@@ -191,7 +194,8 @@ const openTicketModal = (contact: any) => {
     title: `Suporte para ${contact?.name || 'Cliente'}`,
     customer: contact?.company || contact?.name || '',
     description: `Ticket aberto a partir do atendimento do WhatsApp.\nContato: ${contact?.phone || ''}`,
-    chatHistory: chatHistoryExport
+    chatHistory: chatHistoryExport,
+    status: 'pending_approval'
   };
 
   isTicketModalOpen.value = true;

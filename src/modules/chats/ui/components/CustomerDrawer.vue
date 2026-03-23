@@ -69,22 +69,31 @@
                         </div>
                     </div>
 
-                    <div class="flex px-8 gap-6 border-t border-slate-100 mt-2">
-                        <button @click="activeTab = 'overview'"
-                            :class="['py-4 text-sm font-bold border-b-2 transition-colors relative', activeTab === 'overview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700']">
-                            Visão Geral
-                        </button>
-                        <button @click="activeTab = 'contacts'"
-                            :class="['py-4 text-sm font-bold border-b-2 transition-colors relative flex items-center gap-2', activeTab === 'contacts' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700']">
-                            Contatos Vinculados
-                            <span v-if="customer.contacts?.length"
-                                class="bg-blue-100 text-blue-700 py-0.5 px-2 rounded-full text-[10px]">{{
-                                    customer.contacts.length }}</span>
-                        </button>
-                        <button @click="activeTab = 'history'"
-                            :class="['py-4 text-sm font-bold border-b-2 transition-colors relative', activeTab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700']">
-                            Histórico & Chamados
-                        </button>
+                    <div class="px-6 py-2 border-b border-slate-100 shrink-0 mt-2">
+                        <el-tabs v-model="activeTab" class="enterprise-tabs">
+                            <el-tab-pane name="overview">
+                                <template #label>
+                                    <span class="flex items-center gap-2 text-sm font-semibold">
+                                        <el-icon><DataLine /></el-icon> Visão Geral
+                                    </span>
+                                </template>
+                            </el-tab-pane>
+                            <el-tab-pane name="contacts">
+                                <template #label>
+                                    <span class="flex items-center gap-2 text-sm font-semibold">
+                                        <el-icon><User /></el-icon> Contatos e Responsáveis
+                                        <span v-if="customer.contacts?.length" class="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">{{ customer.contacts.length }}</span>
+                                    </span>
+                                </template>
+                            </el-tab-pane>
+                            <el-tab-pane name="history">
+                                <template #label>
+                                    <span class="flex items-center gap-2 text-sm font-semibold">
+                                        <el-icon><CopyDocument /></el-icon> Histórico & Chamados
+                                    </span>
+                                </template>
+                            </el-tab-pane>
+                        </el-tabs>
                     </div>
                 </div>
 
@@ -130,219 +139,175 @@
                             </div>
                         </div>
 
-                        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
-                                <h3
-                                    class="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                        stroke-linejoin="round" class="text-blue-500">
-                                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                                    </svg>
-                                    Informações Fiscais e Empresa
-                                </h3>
-                            </div>
-                            <div class="p-6 grid grid-cols-2 gap-y-6 gap-x-8">
-                                <div>
-                                    <label
-                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Razão
-                                        Social</label>
-                                    <p class="text-sm font-medium text-slate-800">{{ customer.companyName }}</p>
+                        <el-collapse v-model="activeCollapses" class="enterprise-collapse border-none mt-8">
+                            
+                            <el-collapse-item name="fiscal" class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+                                <template #title>
+                                    <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1">
+                                        <el-icon size="16"><Document /></el-icon> Informações Fiscais e Empresa
+                                    </span>
+                                </template>
+                                <div class="p-6 grid grid-cols-2 gap-y-6 gap-x-8 border-t border-slate-100">
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Razão
+                                            Social</label>
+                                        <p class="text-sm font-medium text-slate-800">{{ customer.companyName }}</p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nome
+                                            Fantasia</label>
+                                        <p class="text-sm font-medium text-slate-800">{{ (customer as any).tradeName ||
+                                            'Idêntico à Razão Social' }}</p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">CNPJ
+                                            / Documento</label>
+                                        <p v-if="customer.document" class="text-sm font-medium text-slate-800">{{
+                                            customer.document }}</p>
+                                        <p v-else class="text-sm font-medium text-slate-400 italic">Não preenchido</p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Website
+                                            / Domínio</label>
+                                        <a v-if="customer.website" :href="customer.website" target="_blank"
+                                            class="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1">
+                                            {{ customer.website }}
+                                        </a>
+                                        <p v-else class="text-sm font-medium text-slate-400 italic">Não preenchido</p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Origem
+                                            do Lead</label>
+                                        <p class="text-sm font-medium text-slate-800">{{ customer.source }}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label
-                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nome
-                                        Fantasia</label>
-                                    <p class="text-sm font-medium text-slate-800">{{ (customer as any).tradeName ||
-                                        'Idêntico à Razão Social' }}</p>
-                                </div>
-                                <div>
-                                    <label
-                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">CNPJ
-                                        / Documento</label>
-                                    <p v-if="customer.document" class="text-sm font-medium text-slate-800">{{
-                                        customer.document }}</p>
-                                    <p v-else class="text-sm font-medium text-slate-400 italic">Não preenchido</p>
-                                </div>
-                                <div>
-                                    <label
-                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Website
-                                        / Domínio</label>
-                                    <a v-if="customer.website" :href="customer.website" target="_blank"
-                                        class="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1">
-                                        {{ customer.website }}
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
-                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                            stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                            <polyline points="15 3 21 3 21 9"></polyline>
-                                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                                        </svg>
-                                    </a>
-                                    <p v-else class="text-sm font-medium text-slate-400 italic">Não preenchido</p>
-                                </div>
-                                <div>
-                                    <label
-                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Origem
-                                        do Lead</label>
-                                    <p class="text-sm font-medium text-slate-800">{{ customer.source }}</p>
-                                </div>
-                            </div>
-                        </div>
+                            </el-collapse-item>
 
-                        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                    stroke-linejoin="round" class="text-red-500">
-                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                                <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">Endereço
-                                    Comercial</h3>
-                            </div>
-                            <div class="p-6">
-                                <div v-if="(customer as any).street" class="grid grid-cols-2 gap-y-5 gap-x-8">
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label
-                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Logradouro
-                                            (Rua/Av)</label>
-                                        <p class="text-sm font-medium text-slate-800">{{ (customer as any).street }}, {{
-                                            (customer as any).number || 'S/N' }}</p>
+                            <el-collapse-item name="address" class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+                                <template #title>
+                                    <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1">
+                                        <el-icon size="16"><Location /></el-icon> Endereço Comercial
+                                    </span>
+                                </template>
+                                <div class="p-6 border-t border-slate-100">
+                                    <div v-if="(customer as any).street" class="grid grid-cols-2 gap-y-5 gap-x-8">
+                                        <div class="col-span-2 sm:col-span-1">
+                                            <label
+                                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Logradouro
+                                                (Rua/Av)</label>
+                                            <p class="text-sm font-medium text-slate-800">{{ (customer as any).street }}, {{
+                                                (customer as any).number || 'S/N' }}</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Complemento</label>
+                                            <p class="text-sm font-medium text-slate-800">{{ (customer as any).complement ||
+                                                '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Bairro</label>
+                                            <p class="text-sm font-medium text-slate-800">{{ (customer as any).neighborhood
+                                                || '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Cidade
+                                                / UF</label>
+                                            <p class="text-sm font-medium text-slate-800">{{ (customer as any).city || '-'
+                                            }} - {{ (customer as any).state || '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">CEP</label>
+                                            <p class="text-sm font-medium text-slate-800">{{ (customer as any).zipCode ||
+                                                '-' }}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label
-                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Complemento</label>
-                                        <p class="text-sm font-medium text-slate-800">{{ (customer as any).complement ||
-                                            '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label
-                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Bairro</label>
-                                        <p class="text-sm font-medium text-slate-800">{{ (customer as any).neighborhood
-                                            || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label
-                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Cidade
-                                            / UF</label>
-                                        <p class="text-sm font-medium text-slate-800">{{ (customer as any).city || '-'
-                                        }} - {{ (customer as any).state || '-' }}</p>
-                                    </div>
-                                    <div>
-                                        <label
-                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">CEP</label>
-                                        <p class="text-sm font-medium text-slate-800">{{ (customer as any).zipCode ||
-                                            '-' }}</p>
+                                    <div v-else class="text-center py-6">
+                                        <span class="text-3xl mb-2 block opacity-30">📍</span>
+                                        <p class="text-sm text-slate-500 font-medium">Nenhum endereço cadastrado para esta
+                                            empresa.</p>
                                     </div>
                                 </div>
-                                <div v-else class="text-center py-6">
-                                    <span class="text-3xl mb-2 block opacity-30">📍</span>
-                                    <p class="text-sm text-slate-500 font-medium">Nenhum endereço cadastrado para esta
-                                        empresa.</p>
-                                </div>
-                            </div>
-                        </div>
+                            </el-collapse-item>
+                        </el-collapse>
 
                     </div>
 
                     <div v-show="activeTab === 'contacts'" class="space-y-6 animate-in fade-in duration-300">
 
-                        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
-                                <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">Responsável
-                                    Principal</h3>
-                            </div>
-                            <div class="p-6 flex items-center gap-6">
-                                <div
-                                    class="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center text-xl font-black text-indigo-600 border border-indigo-100 shrink-0">
-                                    {{ customer.name.charAt(0).toUpperCase() }}
-                                </div>
-                                <div class="flex-1 grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p
-                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
-                                            Nome Completo</p>
-                                        <p class="text-sm font-bold text-slate-800">{{ customer.name }}</p>
-                                    </div>
-                                    <div>
-                                        <p
-                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
-                                            Telefone Base</p>
-                                        <p class="text-sm font-medium text-slate-800">{{ customer.phone }}</p>
-                                    </div>
-                                    <div class="col-span-2">
-                                        <p
-                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
-                                            E-mail de Contato</p>
-                                        <p class="text-sm font-medium text-slate-800">{{ customer.email }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                            <div
-                                class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                                <h3
-                                    class="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                                    <span class="text-green-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                                            stroke-linecap="round" stroke-linejoin="round">
-                                            <path
-                                                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
-                                            </path>
-                                        </svg>
+                        <el-collapse v-model="activeCollapses" class="enterprise-collapse border-none mt-8">
+                            <el-collapse-item name="contact_main" class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+                                <template #title>
+                                    <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1">
+                                        <el-icon size="16"><User /></el-icon> Responsável Principal
                                     </span>
-                                    Números de WhatsApp Vinculados
-                                </h3>
-                            </div>
+                                </template>
+                                <div class="p-6 flex items-center gap-6 border-t border-slate-100">
+                                    <div class="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center text-xl font-black text-indigo-600 border border-indigo-100 shrink-0">
+                                        {{ customer.name.charAt(0).toUpperCase() }}
+                                    </div>
+                                    <div class="flex-1 grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Nome Completo</p>
+                                            <p class="text-sm font-bold text-slate-800">{{ customer.name }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Telefone Base</p>
+                                            <p class="text-sm font-medium text-slate-800">{{ customer.phone }}</p>
+                                        </div>
+                                        <div class="col-span-2">
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">E-mail de Contato</p>
+                                            <p class="text-sm font-medium text-slate-800">{{ customer.email }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </el-collapse-item>
 
-                            <div class="p-6">
-                                <div v-if="customer.contacts && customer.contacts.length > 0" class="space-y-3">
-                                    <div v-for="(chatId, index) in customer.contacts" :key="index"
-                                        class="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl hover:border-green-300 hover:shadow-md transition-all group">
-                                        <div class="flex items-center gap-4">
-                                            <div
-                                                class="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center shrink-0">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"></path>
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <span class="text-sm font-bold text-slate-800 block mb-0.5">Sessão de
-                                                    Atendimento Ativa</span>
-                                                <div class="flex items-center gap-2">
-                                                    <span
-                                                        class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                                    <span
-                                                        class="text-xs text-slate-500 font-medium uppercase tracking-wider">ID:
-                                                        {{ chatId }}</span>
+                            <el-collapse-item name="contact_whatsapp" class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+                                <template #title>
+                                    <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1">
+                                        <el-icon size="16" class="text-green-500"><ChatDotRound /></el-icon> Números de WhatsApp Vinculados
+                                    </span>
+                                </template>
+                                <div class="p-6 border-t border-slate-100">
+                                    <div v-if="customer.contacts && customer.contacts.length > 0" class="space-y-3">
+                                        <div v-for="(chatId, index) in customer.contacts" :key="index"
+                                            class="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl hover:border-green-300 hover:shadow-md transition-all group">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center shrink-0">
+                                                    <el-icon size="20"><ChatDotRound /></el-icon>
+                                                </div>
+                                                <div>
+                                                    <span class="text-sm font-bold text-slate-800 block mb-0.5">Sessão de Atendimento Ativa</span>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                                        <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">ID: {{ chatId }}</span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <button class="px-4 py-2 text-xs font-bold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors shadow-md">
+                                                Histórico do Chat
+                                            </button>
                                         </div>
-                                        <button
-                                            class="px-4 py-2 text-xs font-bold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors shadow-md">
-                                            Histórico do Chat
-                                        </button>
+                                    </div>
+
+                                    <div v-else class="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                        <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl mx-auto shadow-sm border border-slate-100 mb-4 opacity-80">
+                                            📱</div>
+                                        <h4 class="text-sm font-bold text-slate-700 mb-1">Nenhum canal conectado</h4>
+                                        <p class="text-xs text-slate-500 max-w-sm mx-auto">Vá até o módulo de Atendimentos
+                                            (Chats) para vincular o número de WhatsApp de um cliente a este cadastro.</p>
                                     </div>
                                 </div>
-
-                                <div v-else
-                                    class="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                    <div
-                                        class="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl mx-auto shadow-sm border border-slate-100 mb-4 opacity-80">
-                                        📱</div>
-                                    <h4 class="text-sm font-bold text-slate-700 mb-1">Nenhum canal conectado</h4>
-                                    <p class="text-xs text-slate-500 max-w-sm mx-auto">Vá até o módulo de Atendimentos
-                                        (Chats) para vincular o número de WhatsApp de um cliente a este cadastro.</p>
-                                </div>
-                            </div>
-                        </div>
+                            </el-collapse-item>
+                        </el-collapse>
                     </div>
 
                     <div v-show="activeTab === 'history'" class="animate-in fade-in duration-300">
@@ -432,6 +397,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { DataLine, User, CopyDocument, Document, Location, ChatDotRound } from '@element-plus/icons-vue';
 import type { ICustomer } from '../../../customer/domain/entities/customer';
 
 const props = defineProps<{
@@ -443,6 +409,7 @@ defineEmits(['close']);
 
 // Controle da aba atual
 const activeTab = ref('overview');
+const activeCollapses = ref(['fiscal', 'address', 'contact_main', 'contact_whatsapp']);
 
 // Reseta a aba para "overview" toda vez que abre o drawer para um novo cliente
 watch(() => props.isOpen, (newVal) => {

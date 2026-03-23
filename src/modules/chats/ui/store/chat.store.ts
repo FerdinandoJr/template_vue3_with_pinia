@@ -169,7 +169,7 @@ export const useChatStore = defineStore('chat', () => {
     return null;
   }
 
-  function finalizarChat(contactOrServiceId: string, reason?: string) {
+  function finalizarChat(contactOrServiceId: string, reason?: string, description?: string) {
     const idx = contacts.value.findIndex(c => c.id === contactOrServiceId || c.serviceId === contactOrServiceId);
 
     if (idx !== -1) {
@@ -183,6 +183,9 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       (contact as any).status = 'finished';
+      (contact as any).finishReason = reason;
+      (contact as any).finishDescription = description;
+      (contact as any).finishedAt = new Date();
 
       let msgs = messagesDb.value[contact.id];
       if (!msgs) {

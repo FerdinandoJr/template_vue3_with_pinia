@@ -34,6 +34,10 @@
           <ResponseTimeWidget :data="store.data.responseTimes" />
         </div>
 
+        <div class="lg:col-span-12">
+          <FinishedChatsWidget />
+        </div>
+
       </div>
 
       <div v-else class="flex-1 flex items-center justify-center">
@@ -51,6 +55,7 @@ import VolumeWidget from '../components/VolumeWidget.vue';
 import TicketsStatusWidget from '../components/TicketsStatusWidget.vue';
 import TeamPerformanceWidget from '../components/TeamPerformanceWidget.vue';
 import ResponseTimeWidget from '../components/ResponseTimeWidget.vue';
+import FinishedChatsWidget from '../components/FinishedChatsWidget.vue';
 
 const store = useReportsStore();
 
