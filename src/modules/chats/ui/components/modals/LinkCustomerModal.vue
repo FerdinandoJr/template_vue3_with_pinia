@@ -23,7 +23,7 @@
                     </span>
                 </template>
                 <el-form label-position="top" class="mt-4 p-4">
-                    <el-form-item label="Buscar Cliente na Base">
+                    <el-form-item label="Buscar Cliente na Base" class="!mb-4">
                         <el-select v-model="linkForm.customerUuid" filterable remote
                             :remote-method="remoteSearchCustomer" :loading="loadingSearch" class="w-full"
                             placeholder="Digite Nome, Razão Social, Telefone ou CPF/CNPJ..." size="large">
@@ -32,6 +32,14 @@
                         </el-select>
                         <p class="text-xs text-slate-400 mt-2">Selecione um cliente já registado para vincular a este
                             número.</p>
+                    </el-form-item>
+
+                    <el-form-item v-if="linkForm.customerUuid" label="Nome do Contato (Opcional)">
+                        <el-input v-model="linkForm.contactName" size="large"
+                            placeholder="Ex: João da Silva (Financeiro)" />
+                        <p class="text-xs text-slate-400 mt-1">Identifique o nome da pessoa deste número dentro da
+                            empresa selecionada.
+                        </p>
                     </el-form-item>
                 </el-form>
             </el-tab-pane>
@@ -191,12 +199,12 @@ const props = defineProps<{
 const emit = defineEmits(['close', 'linked']);
 const activeInnerTab = ref('personal');
 
-const linkForm = reactive({ customerUuid: '' });
+const linkForm = reactive({ customerUuid: '', contactName: '' });
 const loadingSearch = ref(false);
 const searchResults = ref<any[]>([]);
 
 const customerStore = useCustomerStore();
-const sourceStore = useCustomerSourceStore(); // INSTANCIADA AQUI
+const sourceStore = useCustomerSourceStore();
 
 const newCustomerFormRef = ref<FormInstance>();
 
@@ -215,7 +223,7 @@ const newCustomerForm = reactive({
     neighborhood: '',
     city: '',
     state: '',
-    source: '' // ADICIONADO SOURCE AQUI
+    source: ''
 });
 
 const resetDocument = () => { newCustomerForm.document = ''; };
@@ -259,9 +267,10 @@ const formRules = reactive<FormRules>({
 
 watch(() => props.isOpen, (val) => {
     if (val) {
-        sourceStore.fetchSources(); // CARREGA ORIGENS
+        sourceStore.fetchSources();
 
         linkForm.customerUuid = '';
+        linkForm.contactName = props.contactName || '';
         searchResults.value = [];
         newCustomerForm.phone = props.contactPhone;
         newCustomerForm.name = props.contactName || '';
@@ -312,7 +321,8 @@ const handleConfirm = () => {
     if (linkForm.customerUuid) {
         emit('linked', {
             isNew: false,
-            customerUuid: linkForm.customerUuid
+            customerUuid: linkForm.customerUuid,
+            contactName: linkForm.contactName
         });
     } else {
         if (!newCustomerFormRef.value) return;

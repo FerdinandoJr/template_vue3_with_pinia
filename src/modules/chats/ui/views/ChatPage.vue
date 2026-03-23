@@ -140,8 +140,23 @@ const handleCustomerLinked = async (payload: any) => {
       if (!payload.isNew) {
         const customer = customerStore.items.find(c => c.uuid === payload.customerUuid);
         if (customer) {
-          store.linkCustomerToChat(activeContact.id, { id: customer.uuid, name: customer.name, company: customer.companyName });
+          store.linkCustomerToChat(activeContact.id, { id: customer.uuid, name: payload.contactName || customer.name, company: customer.companyName });
+          
+          const currentContacts = customer.contacts || [];
+          if (!currentContacts.includes(activeContact.id)) {
+            await customerStore.updateCustomer(customer.uuid, { contacts: [...currentContacts, activeContact.id] });
+          }
+          
           ElMessage.success('Cliente vinculado!');
+        }
+      } else {
+        const data = payload.customerData;
+        data.contacts = [activeContact.id];
+        
+        const newCustomer = await customerStore.createCustomer(data);
+        if (newCustomer) {
+          store.linkCustomerToChat(activeContact.id, { id: newCustomer.uuid, name: newCustomer.name, company: newCustomer.companyName });
+          ElMessage.success('Novo cliente criado e vinculado!');
         }
       }
     }

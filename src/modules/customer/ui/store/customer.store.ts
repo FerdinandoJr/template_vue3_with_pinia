@@ -20,15 +20,14 @@ export const useCustomerStore = defineStore('customer', {
         filteredTotal: 0,
         loading: false,
         filter: {},
-        currentPage: 1,  // Página atual default
-        pageSize: 10     // Quantidade de clientes por página default
+        currentPage: 1,
+        pageSize: 10
     }),
 
     actions: {
         async fetch() {
             this.loading = true
             try {
-                // Injeta a página e o limite no filtro antes de chamar a API
                 this.filter.page = this.currentPage;
                 this.filter.limit = this.pageSize;
 
@@ -50,13 +49,13 @@ export const useCustomerStore = defineStore('customer', {
 
         async setPageSize(size: number) {
             this.pageSize = size;
-            this.currentPage = 1; // Volta pra primeira página ao alterar quantidade
+            this.currentPage = 1;
             await this.fetch();
         },
 
         async setQuery(query: string) {
             this.filter.query = query;
-            this.currentPage = 1; // Reseta a paginação ao realizar uma nova pesquisa
+            this.currentPage = 1;
             await this.fetch();
         },
 
@@ -72,15 +71,17 @@ export const useCustomerStore = defineStore('customer', {
             }
         },
 
-        async createCustomer(data: Omit<ICustomer, 'uuid' | 'lastInteraction' | 'openTickets' | 'csat'>) {
+        async createCustomer(data: Omit<ICustomer, 'uuid' | 'lastInteraction' | 'openTickets' | 'csat'>): Promise<ICustomer | undefined> {
             const { showToast } = useToast();
             this.loading = true;
             try {
-                await customerServices.create(data);
+                const newCustomer = await customerServices.create(data);
                 showToast("Cliente cadastrado com sucesso!", "success");
                 await this.fetch();
+                return newCustomer;
             } catch (error) {
                 showToast("Erro ao cadastrar cliente.", "error");
+                return undefined;
             } finally {
                 this.loading = false;
             }
