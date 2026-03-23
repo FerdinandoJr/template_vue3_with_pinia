@@ -31,7 +31,7 @@
 
         <div class="flex-1 overflow-auto">
           <TicketTable :tickets="store.items" @view="handleViewTicket" @edit="handleEditTicket"
-            @delete="handleDeleteTicket" class="!border-none !rounded-none" />
+            @delete="handleDeleteTicket" @convert-to-kb="handleConvertToKb" class="!border-none !rounded-none" />
         </div>
 
         <div
@@ -50,6 +50,9 @@
 
   <TicketModal :is-open="isModalOpen" :ticket="currentTicket" :is-viewing="isViewing" @close="closeModal"
     @save="handleSave" @switch-edit="isViewing = false" />
+
+  <ArticleFormModal v-if="isKbModalOpen" :is-open="isKbModalOpen" :article="kbArticleData"
+    @close="isKbModalOpen = false" @save="handleSaveKbArticle" />
 </template>
 
 <script setup lang="ts">
@@ -61,12 +64,18 @@ import TicketFilters from '../components/TicketFilters.vue';
 import TicketTable from '../components/TicketTable.vue';
 import TicketModal from '../components/TicketModal.vue';
 import type { ITicket } from '../../domain/entities/Ticket';
+import { ElMessage } from 'element-plus';
+import ArticleFormModal from '@/modules/kb/ui/components/ArticleFormModal.vue';
+import { useKbStore } from '@/modules/kb/ui/store/kb.store';
 
 const store = useTicketsStore();
 
 const isModalOpen = ref(false);
 const currentTicket = ref<ITicket | undefined>(undefined);
 const isViewing = ref(false);
+
+const isKbModalOpen = ref(false);
+const kbArticleData = ref<any>(null);
 
 onMounted(async () => {
   await store.fetch();
@@ -107,5 +116,32 @@ const closeModal = () => {
   isModalOpen.value = false;
   currentTicket.value = undefined;
   isViewing.value = false;
+};
+
+const handleConvertToKb = (ticket: ITicket) => {
+    const ticketContent = ticket.description || '<p>Nenhuma descrição fornecida.</p>';
+    const finalHtmlContent = `
+    <p><strong>Problema/Solicitação Original:</strong></p>
+    ${ticketContent}
+    <br/>
+    <p><strong>Resolução/Passos de Solução:</strong></p>
+    <p><em>Escreva aqui os passos aplicados...</em></p>
+  `.trim();
+
+    kbArticleData.value = {
+        title: `[Resolução] ${ticket.title}`,
+        content: finalHtmlContent,
+        category: 'Tutorial',
+        status: 'Rascunho',
+        icon: 'Document'
+    };
+    isKbModalOpen.value = true;
+};
+
+const handleSaveKbArticle = async (data: any) => {
+    const kbStore = useKbStore();
+    await kbStore.saveArticle(data, data.id);
+    isKbModalOpen.value = false;
+    ElMessage.success('Artigo gerado com sucesso na Base de Conhecimento!');
 };
 </script>

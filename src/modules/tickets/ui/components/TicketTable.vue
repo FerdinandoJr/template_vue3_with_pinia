@@ -47,7 +47,7 @@
                 </template>
             </el-table-column>
 
-            <el-table-column label="Ações" width="160" align="right">
+            <el-table-column label="Ações" width="200" align="right">
                 <template #default="scope">
                     <div class="flex justify-end gap-2 pr-2">
                         <el-button type="primary" circle plain size="small" @click="$emit('view', scope.row)"
@@ -60,6 +60,13 @@
                             title="Editar">
                             <el-icon>
                                 <Edit />
+                            </el-icon>
+                        </el-button>
+                        <el-button v-if="['internal', 'resolved', 'done'].includes(String(scope.row.status))" 
+                            type="warning" circle plain size="small" @click="$emit('convertToKb', scope.row)"
+                            title="Tornar Base de Conhecimento">
+                            <el-icon>
+                                <Notebook />
                             </el-icon>
                         </el-button>
                         <el-popconfirm title="Tem certeza que deseja excluir?" confirm-button-text="Sim"
@@ -86,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { View, Edit, Delete, UserFilled } from '@element-plus/icons-vue';
+import { View, Edit, Delete, UserFilled, Notebook } from '@element-plus/icons-vue';
 import type { ITicket } from '../../domain/entities/Ticket';
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 
@@ -98,6 +105,7 @@ defineEmits<{
     (e: 'view', ticket: ITicket): void;
     (e: 'edit', ticket: ITicket): void;
     (e: 'delete', id: number): void;
+    (e: 'convertToKb', ticket: ITicket): void;
 }>();
 
 const kanbanStore = useKanbanStore();
@@ -110,7 +118,8 @@ const getStatusType = (status: string) => {
         'waiting': 'warning',
         'aguardando': 'warning',
         'resolved': 'success',
-        'done': 'success'
+        'done': 'success',
+        'internal': 'info'
     };
     return map[status] || 'info';
 };
@@ -126,7 +135,8 @@ const getStatusLabel = (status: string) => {
         'waiting': 'Aguardando',
         'aguardando': 'Aguardando',
         'resolved': 'Resolvido',
-        'done': 'Finalizado'
+        'done': 'Finalizado',
+        'internal': 'Interno'
     };
     return map[status] || status;
 };

@@ -123,7 +123,7 @@
                                     :class="['max-w-[80%] rounded-2xl px-4 py-3 shadow-sm relative', msg.isAgent ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm']">
                                     <div class="flex items-center gap-2 mb-1.5 opacity-80">
                                         <span class="text-[10px] font-black uppercase tracking-wider">{{ msg.sender
-                                            }}</span>
+                                        }}</span>
                                         <span class="text-[10px]">{{ msg.time }}</span>
                                     </div>
                                     <p class="text-sm font-medium leading-relaxed whitespace-pre-wrap">{{ msg.text }}
@@ -304,10 +304,9 @@ const headerTitle = computed(() => {
 });
 
 const teamMembers = [
-    { id: 'u1', name: 'João Silva' },
-    { id: 'u2', name: 'Maria Santos' },
-    { id: 'u3', name: 'Ana Costa' },
-    { id: 'u4', name: 'Pedro Almeida' },
+    { id: '1', name: 'Admin (Você)' },
+    { id: '2', name: 'João Atendimento' },
+    { id: '3', name: 'Maria Vendas' }
 ];
 
 const form = reactive({
@@ -323,7 +322,6 @@ const form = reactive({
     attachments: [] as any[],
 });
 
-// 🔥 TRADUTOR UNIVERSAL: Garante que os nomes feios do Banco de Dados nunca apareçam para o usuário
 const translateLabel = (valueToCheck: string, originalLabel: string) => {
     const dict: Record<string, string> = {
         'open': 'Aberto',
@@ -334,7 +332,6 @@ const translateLabel = (valueToCheck: string, originalLabel: string) => {
         'resolved': 'Resolvido',
         'done': 'Finalizado'
     };
-    // Tenta achar a tradução, senão devolve o nome original
     return dict[valueToCheck] || dict[originalLabel] || originalLabel;
 };
 
@@ -342,9 +339,13 @@ const statusOptions = computed(() => {
     const columns = kanbanStore.columns || [];
 
     const options = columns.map(col => ({
-        label: translateLabel(String(col.id), col.title), // Intercepta até o título original da coluna
+        label: translateLabel(String(col.id), col.title),
         value: String(col.id)
     }));
+
+    if (!options.some(opt => opt.value === 'internal')) {
+        options.push({ label: 'Interno', value: 'internal' });
+    }
 
     if (form.status && !options.some(opt => String(opt.value) === String(form.status))) {
         options.push({
@@ -373,7 +374,7 @@ const initForm = () => {
         form.description = props.ticket.description || '';
 
         let st = String(props.ticket.status || 'open');
-        if (st === 'in-progress') st = 'in_progress'; // Prevenção de tickets antigos
+        if (st === 'in-progress') st = 'in_progress';
         form.status = st;
 
         form.priority = (props.ticket.priority as unknown as string) || 'low';
@@ -456,9 +457,13 @@ const submit = () => {
     }
     loading.value = true;
     setTimeout(() => {
+        const assigneeNames = form.assignees.map(id => getTeamMemberName(id)).join(', ');
+
         emit('save', {
             id: props.ticket?.id,
             ...form,
+            assigneeName: assigneeNames || null,
+            assigneeId: form.assignees[0] || null,
             createdAt: props.ticket?.createdAt || new Date()
         });
         loading.value = false;
@@ -476,7 +481,8 @@ const getStatusColor = (status: string) => {
         'waiting': 'bg-orange-500',
         'aguardando': 'bg-orange-500',
         'resolved': 'bg-green-500',
-        'done': 'bg-green-500'
+        'done': 'bg-green-500',
+        'internal': 'bg-slate-500'
     };
     return map[status] || 'bg-slate-400';
 };

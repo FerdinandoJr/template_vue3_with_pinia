@@ -27,6 +27,7 @@
           <el-radio-button value="open">Abertos</el-radio-button>
           <el-radio-button value="in-progress">Aguardando</el-radio-button>
           <el-radio-button value="resolved">Resolvidos</el-radio-button>
+          <el-radio-button value="internal">Internos</el-radio-button>
         </el-radio-group>
       </div>
     </div>
