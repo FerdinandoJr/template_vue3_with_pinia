@@ -32,11 +32,28 @@
                     <el-tabs v-model="activeTab" class="enterprise-tabs">
                         <el-tab-pane name="main">
                             <template #label>
-                                <span class="flex items-center gap-2 text-sm">
-                                    <el-icon>
-                                        <Document />
-                                    </el-icon>
-                                    Informações do Ticket
+                                <span class="flex items-center gap-2 text-sm font-semibold">
+                                    <el-icon><Document /></el-icon> Detalhes
+                                </span>
+                            </template>
+                        </el-tab-pane>
+                        <el-tab-pane name="checklist">
+                            <template #label>
+                                <span class="flex items-center gap-2 text-sm font-semibold">
+                                    <el-icon><Finished /></el-icon> Subtarefas
+                                    <span v-if="form.checklist.length" class="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">
+                                        {{ form.checklist.length }}
+                                    </span>
+                                </span>
+                            </template>
+                        </el-tab-pane>
+                        <el-tab-pane name="attachments">
+                            <template #label>
+                                <span class="flex items-center gap-2 text-sm font-semibold">
+                                    <el-icon><UploadFilled /></el-icon> Anexos
+                                    <span v-if="form.attachments.length" class="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">
+                                        {{ form.attachments.length }}
+                                    </span>
                                 </span>
                             </template>
                         </el-tab-pane>
@@ -59,70 +76,16 @@
 
                 <div class="flex-1 overflow-y-auto p-6 custom-scroll bg-slate-50/30">
                     <div v-show="activeTab === 'main'" class="space-y-6 max-w-3xl animate-in fade-in duration-300">
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-                            <div class="md:col-span-12">
-                                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                                    Título da Solicitação <span class="text-red-500">*</span>
-                                </label>
-                                <el-input v-model="form.title" :disabled="isViewing" size="large"
-                                    placeholder="Ex: Erro ao gerar relatório de vendas"
-                                    class="enterprise-input font-medium" />
-                            </div>
-                            <div class="md:col-span-12">
-                                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                                    Cliente / Empresa Solicitante <span class="text-red-500">*</span>
-                                </label>
-                                <el-select v-model="form.customer" filterable placeholder="Buscar cliente na base..."
-                                    class="w-full enterprise-select" size="large" :disabled="isViewing">
-                                    <template #prefix>
-                                        <el-icon>
-                                            <User />
-                                        </el-icon>
-                                    </template>
-                                    <el-option v-for="client in customerStore.items" :key="client.uuid"
-                                        :label="client.tradeName || client.companyName || client.name"
-                                        :value="client.tradeName || client.companyName || client.name" />
-                                </el-select>
-                            </div>
-                        </div>
-
-                        <div class="md:col-span-12 mt-4">
+                        <div class="md:col-span-12">
                             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                                Status do Ticket
+                                Título da Solicitação <span class="text-red-500">*</span>
                             </label>
-                            <el-select v-model="form.status" class="w-full enterprise-select" size="large"
-                                :disabled="isViewing || form.status === 'pending_approval'">
-                                <el-option v-for="option in statusOptions" :key="option.value" :label="option.label"
-                                    :value="option.value" />
-                            </el-select>
+                            <el-input v-model="form.title" :disabled="isViewing" size="large"
+                                placeholder="Ex: Erro ao gerar relatório de vendas"
+                                class="enterprise-input font-medium" />
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mt-4 border-t border-slate-100 pt-5">
-                            <div class="md:col-span-4">
-                                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                                    <el-icon class="mr-1"><Calendar /></el-icon>
-                                    Data de Início
-                                </label>
-                                <el-date-picker v-model="form.startDate" type="date" placeholder="DD/MM/YYYY" format="DD/MM/YYYY"
-                                    class="w-full" size="large" :disabled="isViewing" />
-                            </div>
-                            <div class="md:col-span-4">
-                                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                                    <el-icon class="mr-1"><Clock /></el-icon>
-                                    Data Final (Previsão)
-                                </label>
-                                <el-date-picker v-model="form.endDate" type="date" placeholder="DD/MM/YYYY" format="DD/MM/YYYY"
-                                    class="w-full" size="large" :disabled="isViewing" />
-                            </div>
-                            <div class="md:col-span-4">
-                                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                                    Tempo Estimado (Horas)
-                                </label>
-                                <el-input-number v-model="form.estimatedHours" :min="0" :step="1" class="w-full" size="large" controls-position="right" :disabled="isViewing" />
-                            </div>
-                        </div>
-
-                        <div>
+                        <div class="pt-4 border-t border-slate-100">
                             <label class="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
                                 <span>Descrição Detalhada do Problema</span>
                             </label>
@@ -136,7 +99,9 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
 
+                    <div v-show="activeTab === 'checklist'" class="max-w-3xl animate-in fade-in duration-300 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <TicketChecklist v-model:items="form.checklist" :readonly="isViewing" />
                     </div>
 
@@ -216,60 +181,93 @@
                 </div>
             </div>
 
-            <div
-                class="w-full lg:w-[320px] bg-slate-50/50 p-6 flex flex-col gap-0 h-auto lg:h-full overflow-y-visible lg:overflow-y-auto custom-scroll shrink-0">
-
-                <div class="pb-5 border-b border-slate-200/80 mb-5">
-                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2.5">Fase
-                        Atual</span>
-                    <el-select v-model="form.status" class="w-full enterprise-select" :disabled="isViewing || form.status === 'pending_approval'"
-                        size="large">
-                        <template #prefix>
-                            <div :class="['w-2 h-2 rounded-full', getStatusColor(form.status)]"></div>
+            <div class="w-full lg:w-[350px] bg-slate-50/60 p-5 flex flex-col gap-0 h-auto lg:h-[750px] overflow-y-auto custom-scroll shrink-0 border-l border-slate-200">
+                
+                <el-collapse v-model="activeCollapses" class="enterprise-collapse border-none">
+                    
+                    <el-collapse-item name="routing" class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+                        <template #title>
+                            <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1"><el-icon size="16"><Promotion/></el-icon> Roteamento & Status</span>
                         </template>
-                        <el-option v-for="option in statusOptions" :key="option.value" :label="option.label"
-                            :value="option.value" />
-                    </el-select>
-                </div>
-
-                <div class="pb-5 border-b border-slate-200/80 mb-5">
-                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2.5">Equipe
-                        Atribuída</span>
-                    <el-select v-model="form.assignees" multiple filterable placeholder="Atribuir membros..."
-                        class="w-full mb-3 enterprise-select" :disabled="isViewing">
-                        <el-option v-for="user in teamMembers" :key="user.id" :label="user.name" :value="user.id" />
-                    </el-select>
-                    <div v-if="form.assignees.length > 0" class="flex -space-x-2 overflow-hidden px-1">
-                        <el-avatar v-for="uid in form.assignees" :key="uid" :size="34"
-                            class="border-2 border-white bg-indigo-600 font-bold text-xs shadow-sm">
-                            {{ getTeamMemberName(uid).charAt(0) }}
-                        </el-avatar>
-                    </div>
-                </div>
-
-                <div class="pb-5 border-b border-slate-200/80 mb-5">
-                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2.5">Nível de
-                        Prioridade</span>
-                    <div class="flex flex-wrap lg:flex-nowrap gap-1 w-full bg-slate-200/50 p-1 rounded-lg"
-                        :class="{ 'opacity-75 pointer-events-none': isViewing }">
-                        <div v-for="p in ['low', 'medium', 'high', 'urgent']" :key="p" @click="form.priority = p"
-                            :class="['flex-1 min-w-[60px] text-center py-2 rounded-md text-xs font-bold cursor-pointer transition-all', form.priority === p ? getPriorityStyle(p) + ' shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50']">
-                            {{ getPriorityName(p) }}
+                        <div class="p-4 flex flex-col gap-4 border-t border-slate-100">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Cliente</label>
+                                <el-select v-model="form.customer" filterable placeholder="Buscar cliente..." class="w-full enterprise-select" :disabled="isViewing">
+                                    <template #prefix><el-icon><User /></el-icon></template>
+                                    <el-option v-for="client in customerStore.items" :key="client.uuid" :label="client.tradeName || client.companyName || client.name" :value="client.tradeName || client.companyName || client.name" />
+                                </el-select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Fase Atual</label>
+                                <el-select v-model="form.status" class="w-full enterprise-select" :disabled="isViewing || form.status === 'pending_approval'">
+                                    <template #prefix><div :class="['w-2 h-2 rounded-full', getStatusColor(form.status)]"></div></template>
+                                    <el-option v-for="option in statusOptions" :key="option.value" :label="option.label" :value="option.value" />
+                                </el-select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Tipo de Solicitação</label>
+                                <el-select v-model="form.type" class="w-full enterprise-select" :disabled="isViewing">
+                                    <el-option label="💻 Suporte / Dúvida" value="support" />
+                                    <el-option label="🐞 Relato de Bug" value="bug" />
+                                    <el-option label="✨ Melhoria" value="feature" />
+                                    <el-option label="⚙️ Tarefa Interna" value="internal" />
+                                </el-select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Nível de Prioridade</label>
+                                <div class="flex flex-wrap gap-1 w-full bg-slate-100 p-1 rounded-lg" :class="{ 'opacity-75 pointer-events-none': isViewing }">
+                                    <div v-for="p in ['low', 'medium', 'high', 'urgent']" :key="p" @click="form.priority = p"
+                                        :class="['flex-1 min-w-[50px] text-center py-1.5 rounded text-[10px] sm:text-[11px] font-bold cursor-pointer transition-all', form.priority === p ? getPriorityStyle(p) + ' shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50']">
+                                        {{ getPriorityName(p) }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </el-collapse-item>
 
-                <div class="pb-5 border-b border-slate-200/80 mb-5">
-                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2.5">Tipo de Solicitação</span>
-                    <el-select v-model="form.type" class="w-full enterprise-select" :disabled="isViewing" size="large">
-                        <el-option label="💻 Suporte / Dúvida" value="support" />
-                        <el-option label="🐞 Relato de Bug" value="bug" />
-                        <el-option label="✨ Melhoria" value="feature" />
-                        <el-option label="⚙️ Tarefa Interna" value="internal" />
-                    </el-select>
-                </div>
+                    <el-collapse-item name="sla" class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+                        <template #title>
+                            <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1"><el-icon size="16"><Clock/></el-icon> SLA & Prazos</span>
+                        </template>
+                        <div class="p-4 flex flex-col gap-4 border-t border-slate-100">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Data de Início</label>
+                                <el-date-picker v-model="form.startDate" type="date" placeholder="DD/MM/YYYY" format="DD/MM/YYYY" class="!w-full max-w-full" :disabled="isViewing" />
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Previsão de Conclusão</label>
+                                <el-date-picker v-model="form.endDate" type="date" placeholder="DD/MM/YYYY" format="DD/MM/YYYY" class="!w-full max-w-full" :disabled="isViewing" />
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Esforço Estimado (Horas)</label>
+                                <el-input-number v-model="form.estimatedHours" :min="0" :step="1" class="w-full" controls-position="right" :disabled="isViewing" />
+                            </div>
+                        </div>
+                    </el-collapse-item>
 
-                <TicketTagsSelector v-model:selectedTags="form.tags" :readonly="isViewing" />
+                    <el-collapse-item name="team" class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
+                        <template #title>
+                            <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1"><el-icon size="16"><User/></el-icon> Equipe & Tags</span>
+                        </template>
+                        <div class="p-4 flex flex-col gap-4 border-t border-slate-100">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Equipe Atribuída</label>
+                                <el-select v-model="form.assignees" multiple filterable placeholder="Atribuir..." class="w-full mb-3 enterprise-select" :disabled="isViewing">
+                                    <el-option v-for="user in teamMembers" :key="user.id" :label="user.name" :value="user.id" />
+                                </el-select>
+                                <div v-if="form.assignees.length > 0" class="flex -space-x-2 overflow-hidden px-1">
+                                    <el-avatar v-for="uid in form.assignees" :key="uid" :size="34" class="border-2 border-white bg-indigo-600 font-bold text-xs shadow-sm">
+                                        {{ getTeamMemberName(uid).charAt(0) }}
+                                    </el-avatar>
+                                </div>
+                            </div>
+                            <div>
+                                <TicketTagsSelector v-model:selectedTags="form.tags" :readonly="isViewing" />
+                            </div>
+                        </div>
+                    </el-collapse-item>
+
+                </el-collapse>
 
                 <div class="mt-8 lg:mt-auto pt-5 border-t border-slate-200/80 flex flex-col gap-3">
                     <el-button v-if="form.status === 'resolved' || form.status === 'done'" type="success" size="large"
@@ -308,7 +306,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
-import { Close, User, Edit, ChatLineRound, Promotion, UploadFilled, Delete, Document, Calendar, Clock, Select } from '@element-plus/icons-vue';
+import { Close, User, Edit, ChatLineRound, Promotion, UploadFilled, Delete, Document, Calendar, Clock, Select, Finished } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import TicketChecklist from './TicketChecklist.vue';
 import TicketTagsSelector from './TicketTagsSelector.vue';
@@ -339,6 +337,8 @@ const newChatMessage = ref('');
 
 const isKbModalOpen = ref(false);
 const kbArticleData = ref<any>(null);
+
+const activeCollapses = ref(['routing', 'sla', 'team']);
 
 const headerTitle = computed(() => {
     if (props.isViewing) return `TICKET #${props.ticket?.id}`;
