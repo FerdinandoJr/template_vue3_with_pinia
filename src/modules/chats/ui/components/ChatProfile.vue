@@ -49,40 +49,61 @@
           <div class="p-4 border-t border-slate-100">
             <div class="flex justify-between items-center mb-3">
               <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Marcadores</h4>
-              <el-popover placement="bottom-end" :width="260" trigger="click" v-model:visible="isTagMenuOpen">
+              <el-popover placement="bottom-end" :width="280" trigger="click" v-model:visible="isTagMenuOpen" popper-class="!p-0 !rounded-xl !overflow-hidden !border-slate-200 shadow-xl">
                 <template #reference>
-                  <el-button size="small" circle>
+                  <el-button size="small" circle class="shadow-sm border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-colors">
                     <el-icon>
                       <Plus />
                     </el-icon>
                   </el-button>
                 </template>
-                <div class="p-1">
-                  <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                    <span class="text-xs font-bold text-slate-600">{{ isManagingTags ? 'Gerenciar' : 'Adicionar Tag'
-                      }}</span>
-                    <el-button link size="small" @click="isManagingTags = !isManagingTags">{{ isManagingTags ? 'Voltar'
-                      :
-                      'Gerenciar' }}</el-button>
+                <div class="bg-white">
+                  <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                    <span class="text-[11px] font-black tracking-widest uppercase text-slate-700">
+                      {{ isManagingTags ? 'Configurar Etiqueta' : 'Vincular Etiquetas' }}
+                    </span>
+                    <el-button link size="small" class="!text-[10px] !font-bold uppercase tracking-wider text-indigo-600 hover:bg-indigo-50 px-2 rounded transition-colors" @click="isManagingTags = !isManagingTags">
+                      {{ isManagingTags ? 'Voltar' : 'Criar Nova' }}
+                    </el-button>
                   </div>
-                  <template v-if="!isManagingTags">
-                    <div class="max-h-48 overflow-y-auto space-y-1">
-                      <div v-for="(tag, idx) in availableTags" :key="idx" @click="addTagToContact(tag.label)"
-                        class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer transition-colors">
-                        <span :class="['w-3 h-3 rounded-full', tag.color.split(' ')[0]]"></span>
-                        <span class="text-xs text-slate-700 font-medium">{{ tag.label }}</span>
+                  
+                  <div class="p-4">
+                    <template v-if="!isManagingTags">
+                      <div class="max-h-56 overflow-y-auto space-y-1 custom-scroll pr-1">
+                        <div v-for="(tag, idx) in availableTags" :key="idx" @click="addTagToContact(tag.label)"
+                          class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-slate-200 group">
+                          <span :class="['w-4 h-4 rounded-md shadow-sm', tag.color.split(' ')[0]]"></span>
+                          <span class="text-xs text-slate-700 font-bold group-hover:text-indigo-600 transition-colors">{{ tag.label }}</span>
+                        </div>
+                        <div v-if="availableTags.length === 0" class="text-center py-6 text-xs text-slate-400">
+                          Nenhuma tag disponível.<br/>Clique em "Criar Nova".
+                        </div>
                       </div>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <el-input v-model="newTagLabel" size="small" placeholder="Nome da tag" class="mb-2" />
-                    <div class="flex flex-wrap gap-1 mb-3">
-                      <button v-for="color in tagColors" :key="color" @click="newTagColor = color"
-                        :class="['w-5 h-5 rounded-full border transition-all', color.split(' ')[0], newTagColor === color ? 'ring-2 ring-blue-500 scale-110 border-white' : 'border-slate-100']"></button>
-                    </div>
-                    <el-button type="primary" size="small" class="w-full" @click="saveTag"
-                      :disabled="!newTagLabel">Salvar</el-button>
-                  </template>
+                    </template>
+                    
+                    <template v-else>
+                      <div class="space-y-5">
+                        <div>
+                          <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                            <el-icon><CollectionTag/></el-icon> Nome da Etiqueta
+                          </label>
+                          <el-input v-model="newTagLabel" placeholder="Ex: Cliente VIP..." class="w-full [&_input]:!text-xs [&_input]:!font-medium [&_input]:!rounded-lg" />
+                        </div>
+                        <div>
+                          <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Cor de Exibição</label>
+                          <div class="grid grid-cols-6 gap-2">
+                            <button v-for="color in tagColors" :key="color" @click="newTagColor = color"
+                              :class="['w-8 h-8 rounded-lg border flex items-center justify-center transition-all', color.split(' ')[0], newTagColor === color ? 'ring-2 ring-indigo-500 ring-offset-2 border-white shadow-md scale-105' : 'border-slate-200 hover:scale-105 opacity-80 hover:opacity-100']">
+                              <el-icon v-if="newTagColor === color" class="text-white drop-shadow-md text-sm"><Check/></el-icon>
+                            </button>
+                          </div>
+                        </div>
+                        <el-button type="primary" class="w-full !bg-slate-800 !border-none hover:!bg-indigo-600 !rounded-xl font-bold tracking-wide shadow-sm hover:shadow-md transition-colors" @click="saveTag" :disabled="!newTagLabel">
+                          Salvar Etiqueta
+                        </el-button>
+                      </div>
+                    </template>
+                  </div>
                 </div>
               </el-popover>
             </div>
@@ -118,7 +139,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Message, Phone, Plus, OfficeBuilding, CollectionTag, Ticket } from '@element-plus/icons-vue';
+import { Message, Phone, Plus, OfficeBuilding, CollectionTag, Ticket, Check } from '@element-plus/icons-vue';
 import type { IContact } from '../../domain/entities/chat';
 import { useChatStore } from '../store/chat.store';
 

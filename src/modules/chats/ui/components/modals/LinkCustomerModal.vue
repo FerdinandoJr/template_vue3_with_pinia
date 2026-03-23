@@ -13,167 +13,181 @@
             </div>
         </div>
 
-        <el-tabs type="border-card" class="shadow-sm">
-            <el-tab-pane>
+        <el-tabs class="enterprise-main-tabs mt-4" v-model="activeMainTab">
+            <el-tab-pane name="link">
                 <template #label>
-                    <span class="flex items-center gap-2">
-                        <el-icon>
-                            <Search />
-                        </el-icon> Vincular Existente
+                    <span class="flex items-center gap-2 px-2 text-[13px] font-black tracking-wide uppercase">
+                        <el-icon size="16"><Search /></el-icon> Vincular Existente
                     </span>
                 </template>
-                <el-form label-position="top" class="mt-4 p-4">
-                    <el-form-item label="Buscar Cliente na Base" class="!mb-4">
-                        <el-select v-model="linkForm.customerUuid" filterable remote
-                            :remote-method="remoteSearchCustomer" :loading="loadingSearch" class="w-full"
-                            placeholder="Digite Nome, Razão Social, Telefone ou CPF/CNPJ..." size="large">
-                            <el-option v-for="item in searchResults" :key="item.uuid" :label="item.name"
-                                :value="item.uuid" />
-                        </el-select>
-                        <p class="text-xs text-slate-400 mt-2">Selecione um cliente já registado para vincular a este
-                            número.</p>
-                    </el-form-item>
+                <div class="p-6 bg-white border border-slate-200 rounded-xl mt-4 shadow-sm h-[380px]">
+                    <el-form label-position="top" class="enterprise-form">
+                        <el-form-item label="Buscar Cliente na Base" class="!mb-6">
+                            <el-select v-model="linkForm.customerUuid" filterable remote
+                                :remote-method="remoteSearchCustomer" :loading="loadingSearch" class="w-full enterprise-select"
+                                placeholder="Digite Nome, Razão Social, Telefone ou CPF/CNPJ..." size="large">
+                                <template #prefix><el-icon><Search /></el-icon></template>
+                                <el-option v-for="item in searchResults" :key="item.uuid" :label="item.name"
+                                    :value="item.uuid" />
+                            </el-select>
+                            <p class="text-[11px] font-medium text-slate-400 mt-2 flex items-center gap-1.5">
+                                <el-icon><InfoFilled /></el-icon> Selecione um cliente já registado para vincular a este número de WhatsApp.
+                            </p>
+                        </el-form-item>
 
-                    <el-form-item v-if="linkForm.customerUuid" label="Nome do Contato *" required>
-                        <el-input v-model="linkForm.contactName" size="large"
-                            placeholder="Ex: João da Silva (Financeiro)" />
-                        <p class="text-xs text-slate-400 mt-1">Identifique o nome da pessoa deste número dentro da
-                            empresa selecionada.
-                        </p>
-                    </el-form-item>
-                </el-form>
+                        <div v-if="linkForm.customerUuid" class="animate-in fade-in slide-in-from-top-4 duration-300 border-t border-slate-100 pt-5">
+                            <el-form-item label="Nome da Pessoa de Contato *" required class="!mb-2">
+                                <el-input v-model="linkForm.contactName" size="large"
+                                    placeholder="Ex: João da Silva (Financeiro)" class="enterprise-input" />
+                                <p class="text-[11px] text-indigo-500 font-bold mt-1.5">Identifique o nome de quem está falando deste número dentro da empresa selecionada.</p>
+                            </el-form-item>
+                        </div>
+                    </el-form>
+                </div>
             </el-tab-pane>
 
-            <el-tab-pane>
+            <el-tab-pane name="new">
                 <template #label>
-                    <span class="flex items-center gap-2">
-                        <el-icon>
-                            <Plus />
-                        </el-icon> Novo Registo Completo
+                    <span class="flex items-center gap-2 px-2 text-[13px] font-black tracking-wide uppercase">
+                        <el-icon size="16"><Plus /></el-icon> Novo Registo Completo
                     </span>
                 </template>
-                <el-form ref="newCustomerFormRef" :model="newCustomerForm" :rules="formRules" label-position="top"
-                    class="mt-2 p-0">
-                    <el-tabs v-model="activeInnerTab" class="enterprise-tabs px-4">
-                        <el-tab-pane label="Dados Pessoais" name="personal">
-                            <div
-                                class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 max-h-[320px] overflow-y-auto custom-scroll pr-2">
-                                <div class="col-span-1 sm:col-span-2">
-                                    <el-form-item label="Tipo" class="!mb-2">
-                                        <el-radio-group v-model="newCustomerForm.type" size="default"
-                                            @change="resetDocument">
-                                            <el-radio-button label="PF" value="PF" />
-                                            <el-radio-button label="PJ" value="PJ" />
-                                        </el-radio-group>
-                                    </el-form-item>
+                <div class="bg-white border border-slate-200 rounded-xl mt-4 shadow-sm overflow-hidden h-[380px]">
+                    <el-form ref="newCustomerFormRef" :model="newCustomerForm" :rules="formRules" label-position="top"
+                        class="p-0 enterprise-form">
+                        <el-tabs v-model="activeInnerTab" class="enterprise-inner-tabs px-6 pt-3 bg-slate-50 border-b border-slate-100">
+                            <el-tab-pane label="Dados Pessoais" name="personal">
+                                <div
+                                    class="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-3 p-6 bg-white h-[320px] overflow-y-auto custom-scroll">
+                                    <div class="col-span-1 sm:col-span-2">
+                                        <el-form-item label="Tipo Jurídico" class="!mb-2">
+                                            <el-radio-group v-model="newCustomerForm.type" size="default"
+                                                @change="resetDocument">
+                                                <el-radio-button label="Pessoa Física (PF)" value="PF" />
+                                                <el-radio-button label="Pessoa Jurídica (PJ)" value="PJ" />
+                                            </el-radio-group>
+                                        </el-form-item>
+                                    </div>
+                                    <div class="col-span-1 sm:col-span-2">
+                                        <el-form-item
+                                            :label="newCustomerForm.type === 'PJ' ? 'Razão Social' : 'Nome Completo'"
+                                            prop="name" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.name" class="enterprise-input" placeholder="Digite o nome..." />
+                                        </el-form-item>
+                                    </div>
+                                    <div v-if="newCustomerForm.type === 'PJ'" class="col-span-1 sm:col-span-2">
+                                        <el-form-item label="Nome Fantasia" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.tradeName" class="enterprise-input" placeholder="Digite o nome fantasia..." />
+                                        </el-form-item>
+                                    </div>
+                                    <div>
+                                        <el-form-item :label="newCustomerForm.type === 'PJ' ? 'CNPJ' : 'CPF'"
+                                            prop="document" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.document" @input="handleDocumentInput"
+                                                class="enterprise-input"
+                                                :placeholder="newCustomerForm.type === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'"
+                                                :maxlength="newCustomerForm.type === 'PF' ? 14 : 18" />
+                                        </el-form-item>
+                                    </div>
+                                    <div>
+                                        <el-form-item label="Telefone / WhatsApp (Vinculado)" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.phone" disabled class="enterprise-input !bg-slate-50" />
+                                        </el-form-item>
+                                    </div>
+                                    <div>
+                                        <el-form-item label="E-mail Principal" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.email" class="enterprise-input" placeholder="email@exemplo.com" />
+                                        </el-form-item>
+                                    </div>
+                                    <div>
+                                        <el-form-item label="Data de Nascimento / Fundação" class="!mb-2">
+                                            <el-date-picker v-model="newCustomerForm.birthDate" type="date"
+                                                placeholder="DD/MM/AAAA" format="DD/MM/YYYY" class="!w-full enterprise-input" />
+                                        </el-form-item>
+                                    </div>
                                 </div>
-                                <div class="col-span-1 sm:col-span-2">
-                                    <el-form-item
-                                        :label="newCustomerForm.type === 'PJ' ? 'Razão Social' : 'Nome Completo'"
-                                        prop="name" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.name" />
-                                    </el-form-item>
-                                </div>
-                                <div v-if="newCustomerForm.type === 'PJ'" class="col-span-1 sm:col-span-2">
-                                    <el-form-item label="Nome Fantasia" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.tradeName" />
-                                    </el-form-item>
-                                </div>
-                                <div>
-                                    <el-form-item :label="newCustomerForm.type === 'PJ' ? 'CNPJ' : 'CPF'"
-                                        prop="document" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.document" @input="handleDocumentInput"
-                                            :placeholder="newCustomerForm.type === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'"
-                                            :maxlength="newCustomerForm.type === 'PF' ? 14 : 18" />
-                                    </el-form-item>
-                                </div>
-                                <div>
-                                    <el-form-item label="Telefone / WhatsApp (Vinculado)" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.phone" disabled class="bg-slate-50" />
-                                    </el-form-item>
-                                </div>
-                                <div>
-                                    <el-form-item label="E-mail" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.email" placeholder="email@exemplo.com" />
-                                    </el-form-item>
-                                </div>
-                                <div>
-                                    <el-form-item label="Nascimento" class="!mb-2">
-                                        <el-date-picker v-model="newCustomerForm.birthDate" type="date"
-                                            placeholder="DD/MM/AAAA" format="DD/MM/YYYY" class="!w-full" />
-                                    </el-form-item>
-                                </div>
-                            </div>
-                        </el-tab-pane>
+                            </el-tab-pane>
 
-                        <el-tab-pane label="Endereço" name="address">
-                            <div
-                                class="grid grid-cols-1 sm:grid-cols-12 gap-4 mt-4 max-h-[320px] overflow-y-auto custom-scroll pr-2">
-                                <div class="col-span-1 sm:col-span-4">
-                                    <el-form-item label="CEP" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.zipCode" placeholder="00000-000"
-                                            @blur="fetchCep" />
-                                    </el-form-item>
+                            <el-tab-pane label="Endereço Fiscal" name="address">
+                                <div
+                                    class="grid grid-cols-1 sm:grid-cols-12 gap-x-4 gap-y-3 p-6 bg-white h-[320px] overflow-y-auto custom-scroll">
+                                    <div class="col-span-1 sm:col-span-4">
+                                        <el-form-item label="CEP" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.zipCode" class="enterprise-input" placeholder="00000-000"
+                                                @blur="fetchCep" />
+                                        </el-form-item>
+                                    </div>
+                                    <div class="col-span-1 sm:col-span-8">
+                                        <el-form-item label="Logradouro" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.street" class="enterprise-input" placeholder="Rua das Flores" />
+                                        </el-form-item>
+                                    </div>
+                                    <div class="col-span-1 sm:col-span-4">
+                                        <el-form-item label="Número" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.number" id="numero-input" class="enterprise-input"
+                                                placeholder="123" />
+                                        </el-form-item>
+                                    </div>
+                                    <div class="col-span-1 sm:col-span-8">
+                                        <el-form-item label="Complemento" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.complement" class="enterprise-input" placeholder="Apto 45, Bloco B" />
+                                        </el-form-item>
+                                    </div>
+                                    <div class="col-span-1 sm:col-span-5">
+                                        <el-form-item label="Bairro" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.neighborhood" class="enterprise-input" placeholder="Centro" />
+                                        </el-form-item>
+                                    </div>
+                                    <div class="col-span-1 sm:col-span-5">
+                                        <el-form-item label="Cidade" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.city" class="enterprise-input" placeholder="São Paulo" />
+                                        </el-form-item>
+                                    </div>
+                                    <div class="col-span-1 sm:col-span-2">
+                                        <el-form-item label="UF" class="!mb-2">
+                                            <el-input v-model="newCustomerForm.state" class="enterprise-input" placeholder="SP" maxlength="2" />
+                                        </el-form-item>
+                                    </div>
                                 </div>
-                                <div class="col-span-1 sm:col-span-8">
-                                    <el-form-item label="Logradouro" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.street" placeholder="Rua das Flores" />
-                                    </el-form-item>
-                                </div>
-                                <div class="col-span-1 sm:col-span-4">
-                                    <el-form-item label="Número" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.number" id="numero-input"
-                                            placeholder="123" />
-                                    </el-form-item>
-                                </div>
-                                <div class="col-span-1 sm:col-span-8">
-                                    <el-form-item label="Complemento" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.complement" placeholder="Apto 45, Bloco B" />
-                                    </el-form-item>
-                                </div>
-                                <div class="col-span-1 sm:col-span-5">
-                                    <el-form-item label="Bairro" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.neighborhood" placeholder="Centro" />
-                                    </el-form-item>
-                                </div>
-                                <div class="col-span-1 sm:col-span-5">
-                                    <el-form-item label="Cidade" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.city" placeholder="São Paulo" />
-                                    </el-form-item>
-                                </div>
-                                <div class="col-span-1 sm:col-span-2">
-                                    <el-form-item label="UF" class="!mb-2">
-                                        <el-input v-model="newCustomerForm.state" placeholder="SP" maxlength="2" />
-                                    </el-form-item>
-                                </div>
-                            </div>
-                        </el-tab-pane>
+                            </el-tab-pane>
 
-                        <el-tab-pane label="Adicionais" name="additional">
-                            <div class="grid grid-cols-1 gap-4 mt-4 max-h-[320px] overflow-y-auto custom-scroll pr-2">
-                                <div>
-                                    <label
-                                        class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">
-                                        Origem do Cliente
-                                    </label>
-                                    <el-select v-model="newCustomerForm.source" class="w-full" filterable
-                                        :loading="sourceStore.isLoading" placeholder="Selecione a origem...">
-                                        <el-option v-for="origem in sourceStore.items" :key="origem.id"
-                                            :label="origem.name" :value="origem.name" />
-                                    </el-select>
+                            <el-tab-pane label="Dados Adicionais" name="additional">
+                                <div class="p-8 bg-white h-[320px] overflow-y-auto custom-scroll">
+                                    <div class="bg-blue-50/50 border border-blue-100/50 rounded-2xl p-6 mb-6 flex items-start gap-4">
+                                        <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                                            <el-icon class="text-blue-600 text-xl"><Flag /></el-icon>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-bold text-slate-800 mb-1">Classificação de Origem</h4>
+                                            <p class="text-xs text-slate-500 leading-relaxed">
+                                                Identificar de onde este cliente veio ajuda a medir a eficiência dos seus canais de aquisição (Ex: Instagram, Indicação, Google).
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="max-w-md">
+                                        <el-form-item label="Origem do Cliente / Lead" class="!mb-2">
+                                            <el-select v-model="newCustomerForm.source" class="w-full enterprise-select" filterable
+                                                :loading="sourceStore.isLoading" placeholder="Selecione a origem deste lead/cliente...">
+                                                <template #prefix><el-icon><Promotion /></el-icon></template>
+                                                <el-option v-for="origem in sourceStore.items" :key="origem.id"
+                                                    :label="origem.name" :value="origem.name" />
+                                            </el-select>
+                                        </el-form-item>
+                                    </div>
                                 </div>
-                            </div>
-                        </el-tab-pane>
-                    </el-tabs>
-                </el-form>
+                            </el-tab-pane>
+                        </el-tabs>
+                    </el-form>
+                </div>
             </el-tab-pane>
         </el-tabs>
 
         <template #footer>
-            <div class="flex justify-end gap-3 pt-4">
-                <el-button @click="$emit('close')">Cancelar</el-button>
-                <el-button type="primary" class="!font-bold" @click="handleConfirm">
-                    Confirmar e Vincular
+            <div class="flex border-t border-slate-100 bg-slate-50 -mx-4 -mb-4 px-6 py-4 rounded-b-lg justify-end gap-3 mt-4">
+                <el-button @click="$emit('close')" class="!rounded-lg !px-6 !font-bold">Cancelar</el-button>
+                <el-button type="primary" class="!rounded-lg !px-8 !font-black tracking-wide shadow-md" @click="handleConfirm">
+                    {{ activeMainTab === 'link' ? 'Vincular Existente' : 'Criar Novo Registro' }}
                 </el-button>
             </div>
         </template>
@@ -182,7 +196,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue';
-import { Search, Plus } from '@element-plus/icons-vue';
+import { Search, Plus, InfoFilled, Promotion, Flag } from '@element-plus/icons-vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import { cepService } from '@/core/services/cep.service';
@@ -198,6 +212,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['close', 'linked']);
 const activeInnerTab = ref('personal');
+const activeMainTab = ref('link');
 
 const linkForm = reactive({ customerUuid: '', contactName: '' });
 const loadingSearch = ref(false);
@@ -275,6 +290,7 @@ watch(() => props.isOpen, (val) => {
         newCustomerForm.phone = props.contactPhone;
         newCustomerForm.name = props.contactName || '';
         activeInnerTab.value = 'personal';
+        activeMainTab.value = 'link';
     }
 });
 
@@ -343,13 +359,64 @@ const handleConfirm = () => {
 </script>
 
 <style scoped>
-:deep(.enterprise-tabs .el-tabs__item) {
-    font-weight: 600;
+:deep(.enterprise-main-tabs .el-tabs__item) {
+    font-size: 14px;
+    height: 48px;
     color: #64748b;
 }
 
-:deep(.enterprise-tabs .el-tabs__item.is-active) {
-    color: #2563eb;
+:deep(.enterprise-main-tabs .el-tabs__item.is-active) {
+    color: #4f46e5;
+}
+
+:deep(.enterprise-main-tabs .el-tabs__nav-wrap::after) {
+    height: 1px;
+    background-color: #e2e8f0;
+}
+
+:deep(.enterprise-main-tabs .el-tabs__active-bar) {
+    background-color: #4f46e5;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+}
+
+:deep(.enterprise-inner-tabs .el-tabs__item) {
+    font-weight: 700;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+:deep(.enterprise-inner-tabs .el-tabs__item.is-active) {
+    color: #3b82f6;
+}
+
+:deep(.enterprise-inner-tabs .el-tabs__active-bar) {
+    background-color: #3b82f6;
+}
+
+:deep(.enterprise-form .el-form-item__label) {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 6px;
+    line-height: 1;
+}
+
+:deep(.enterprise-input .el-input__wrapper),
+:deep(.enterprise-select .el-select__wrapper) {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: all 0.2s ease;
+}
+
+:deep(.enterprise-input .el-input__wrapper.is-focus),
+:deep(.enterprise-select .el-select__wrapper.is-focus) {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important;
 }
 
 .custom-scroll::-webkit-scrollbar {
