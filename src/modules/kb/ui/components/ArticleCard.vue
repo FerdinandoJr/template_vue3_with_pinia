@@ -40,6 +40,11 @@
             class="bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
             {{ article.category }}
           </span>
+
+          <span v-if="article.visibility === 'Privado'"
+            class="bg-red-50 border border-red-100 text-red-500 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+            Privado
+          </span>
         </div>
       </div>
 

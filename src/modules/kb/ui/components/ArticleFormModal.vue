@@ -48,6 +48,15 @@
                     </el-form-item>
                 </div>
 
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 mb-4">
+                    <el-form-item label="Visibilidade" prop="visibility" class="col-span-1 sm:col-span-12">
+                        <el-radio-group v-model="form.visibility" size="large">
+                            <el-radio-button label="Publico">Público</el-radio-button>
+                            <el-radio-button label="Privado">Privado</el-radio-button>
+                        </el-radio-group>
+                    </el-form-item>
+                </div>
+
                 <el-form-item prop="content" class="mb-0">
                     <template #label>
                         <div class="flex justify-between items-center w-full">
@@ -136,7 +145,8 @@ const form = reactive({
     excerpt: '',
     content: '',
     icon: 'Document',
-    status: 'Rascunho'
+    status: 'Rascunho',
+    visibility: 'Publico'
 });
 
 const rules = reactive<FormRules>({
@@ -164,6 +174,7 @@ watch(() => props.isOpen, async (val) => {
             form.content = props.article.content || props.article.description || props.article.body || '';
             form.icon = props.article.icon || 'Document';
             form.status = props.article.status || 'Rascunho';
+            form.visibility = props.article.visibility || 'Publico';
         } else {
             form.id = '';
             form.title = '';
@@ -172,6 +183,7 @@ watch(() => props.isOpen, async (val) => {
             form.content = '';
             form.icon = 'Document';
             form.status = 'Rascunho';
+            form.visibility = 'Publico';
         }
     }
 }, { immediate: true });
