@@ -14,4 +14,5 @@ export interface ITicket {
   startDate?: string | Date;
   endDate?: string | Date;
   estimatedHours?: number;
+  type?: 'bug' | 'feature' | 'support' | 'internal';
 }

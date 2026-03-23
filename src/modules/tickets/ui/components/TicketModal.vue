@@ -91,7 +91,7 @@
                                 Status do Ticket
                             </label>
                             <el-select v-model="form.status" class="w-full enterprise-select" size="large"
-                                :disabled="isViewing">
+                                :disabled="isViewing || form.status === 'pending_approval'">
                                 <el-option v-for="option in statusOptions" :key="option.value" :label="option.label"
                                     :value="option.value" />
                             </el-select>
@@ -222,7 +222,7 @@
                 <div class="pb-5 border-b border-slate-200/80 mb-5">
                     <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2.5">Fase
                         Atual</span>
-                    <el-select v-model="form.status" class="w-full enterprise-select" :disabled="isViewing"
+                    <el-select v-model="form.status" class="w-full enterprise-select" :disabled="isViewing || form.status === 'pending_approval'"
                         size="large">
                         <template #prefix>
                             <div :class="['w-2 h-2 rounded-full', getStatusColor(form.status)]"></div>
@@ -259,6 +259,16 @@
                     </div>
                 </div>
 
+                <div class="pb-5 border-b border-slate-200/80 mb-5">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2.5">Tipo de Solicitação</span>
+                    <el-select v-model="form.type" class="w-full enterprise-select" :disabled="isViewing" size="large">
+                        <el-option label="💻 Suporte / Dúvida" value="support" />
+                        <el-option label="🐞 Relato de Bug" value="bug" />
+                        <el-option label="✨ Melhoria" value="feature" />
+                        <el-option label="⚙️ Tarefa Interna" value="internal" />
+                    </el-select>
+                </div>
+
                 <TicketTagsSelector v-model:selectedTags="form.tags" :readonly="isViewing" />
 
                 <div class="mt-8 lg:mt-auto pt-5 border-t border-slate-200/80 flex flex-col gap-3">
@@ -268,6 +278,13 @@
                             <Document />
                         </el-icon>
                         Gerar Base de Conhecimento
+                    </el-button>
+                    <el-button v-if="form.status === 'pending_approval' && !isViewing" type="success" size="large" class="w-full !ml-0 !font-bold shadow-md shadow-green-200"
+                        @click="$emit('approve-kanban', { ...form, id: ticket?.id })">
+                        <el-icon class="mr-2">
+                            <Select />
+                        </el-icon>
+                        Aprovar para Kanban
                     </el-button>
                     <el-button v-if="isViewing" type="primary" size="large" class="w-full !ml-0 !font-bold"
                         @click="$emit('switch-edit')">
@@ -291,7 +308,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
-import { Close, User, Edit, ChatLineRound, Promotion, UploadFilled, Delete, Document, Calendar, Clock } from '@element-plus/icons-vue';
+import { Close, User, Edit, ChatLineRound, Promotion, UploadFilled, Delete, Document, Calendar, Clock, Select } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import TicketChecklist from './TicketChecklist.vue';
 import TicketTagsSelector from './TicketTagsSelector.vue';
@@ -311,7 +328,7 @@ const props = defineProps<{
     initialData?: any;
 }>();
 
-const emit = defineEmits(['close', 'save', 'switch-edit']);
+const emit = defineEmits(['close', 'save', 'switch-edit', 'approve-kanban']);
 
 const customerStore = useCustomerStore();
 const kanbanStore = useKanbanStore();
@@ -348,6 +365,7 @@ const form = reactive({
     startDate: null as string | Date | null,
     endDate: null as string | Date | null,
     estimatedHours: null as number | null,
+    type: 'support' as 'bug' | 'feature' | 'support' | 'internal',
 });
 
 const translateLabel = (valueToCheck: string, originalLabel: string) => {
@@ -358,7 +376,8 @@ const translateLabel = (valueToCheck: string, originalLabel: string) => {
         'waiting': 'Aguardando',
         'aguardando': 'Aguardando',
         'resolved': 'Resolvido',
-        'done': 'Finalizado'
+        'done': 'Finalizado',
+        'pending_approval': 'Triagem'
     };
     return dict[valueToCheck] || dict[originalLabel] || originalLabel;
 };
@@ -415,6 +434,7 @@ const initForm = () => {
         form.startDate = props.ticket.startDate || null;
         form.endDate = props.ticket.endDate || null;
         form.estimatedHours = props.ticket.estimatedHours || null;
+        form.type = props.ticket.type || 'support';
     } else if (props.initialData) {
         form.title = props.initialData.title || '';
         form.customer = props.initialData.customer || '';
@@ -434,13 +454,14 @@ const initForm = () => {
         form.startDate = props.initialData.startDate || null;
         form.endDate = props.initialData.endDate || null;
         form.estimatedHours = props.initialData.estimatedHours || null;
+        form.type = props.initialData.type || 'support';
         
         if (form.chatHistory.length > 0) activeTab.value = 'chat';
     } else {
         form.title = '';
         form.customer = '';
         form.description = '';
-        form.status = String(kanbanStore.columns[0]?.id || 'open');
+        form.status = 'pending_approval';
         form.priority = 'low';
         form.assignees = [];
         form.tags = [];
@@ -450,6 +471,7 @@ const initForm = () => {
         form.startDate = null;
         form.endDate = null;
         form.estimatedHours = null;
+        form.type = 'support';
     }
 };
 
@@ -522,7 +544,8 @@ const getStatusColor = (status: string) => {
         'aguardando': 'bg-orange-500',
         'resolved': 'bg-green-500',
         'done': 'bg-green-500',
-        'internal': 'bg-slate-500'
+        'internal': 'bg-slate-500',
+        'pending_approval': 'bg-purple-500'
     };
     return map[status] || 'bg-slate-400';
 };

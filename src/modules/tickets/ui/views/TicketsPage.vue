@@ -49,7 +49,7 @@
   </div>
 
   <TicketModal :is-open="isModalOpen" :ticket="currentTicket" :is-viewing="isViewing" @close="closeModal"
-    @save="handleSave" @switch-edit="isViewing = false" />
+    @save="handleSave" @switch-edit="isViewing = false" @approve-kanban="handleApproveKanban" />
 
   <ArticleFormModal v-if="isKbModalOpen" :is-open="isKbModalOpen" :article="kbArticleData"
     @close="isKbModalOpen = false" @save="handleSaveKbArticle" />
@@ -64,9 +64,11 @@ import TicketFilters from '../components/TicketFilters.vue';
 import TicketTable from '../components/TicketTable.vue';
 import TicketModal from '../components/TicketModal.vue';
 import type { ITicket } from '../../domain/entities/Ticket';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import ArticleFormModal from '@/modules/kb/ui/components/ArticleFormModal.vue';
 import { useKbStore } from '@/modules/kb/ui/store/kb.store';
+import { kanbanServices } from '@/modules/kanban/data/kanban.services';
+import { KanbanStatus } from '@/modules/kanban/domain/valueObjects/kanban-status.enum';
 
 const store = useTicketsStore();
 
@@ -143,5 +145,37 @@ const handleSaveKbArticle = async (data: any) => {
     await kbStore.saveArticle(data, data.id);
     isKbModalOpen.value = false;
     ElMessage.success('Artigo gerado com sucesso na Base de Conhecimento!');
+};
+
+const handleApproveKanban = async (ticketData: any) => {
+    try {
+        await ElMessageBox.confirm(
+            'Deseja aprovar este ticket e enviar para a fila de desenvolvimento do Kanban?',
+            'Aprovar Triagem',
+            { confirmButtonText: 'Sim, Aprovar', cancelButtonText: 'Cancelar', type: 'success' }
+        );
+
+        const updatedTicket = { ...ticketData, status: 'in-progress' };
+        if (currentTicket.value) {
+            await store.updateTicket(currentTicket.value.id, updatedTicket);
+        }
+
+        await kanbanServices.createCard({
+            title: `[${ticketData.type?.toUpperCase() || 'BUG'}] ${ticketData.title}`,
+            description: ticketData.description || 'Originado do atendimento',
+            customerName: ticketData.customer || 'Desconhecido',
+            status: KanbanStatus.TODO,
+            priority: ticketData.priority === 'urgent' || ticketData.priority === 'high' ? 'high' : 'medium',
+            dateDisplay: new Date().toLocaleDateString('pt-BR'),
+            avatars: [],
+            tags: [
+                { label: 'Ticket', colorClass: 'bg-indigo-100 text-indigo-700' }
+            ]
+        });
+
+        ElMessage.success('Ticket Aprovado! Card adicionado ao Backlog dos Desenvolvedores.');
+        closeModal();
+    } catch (e) {
+    }
 };
 </script>

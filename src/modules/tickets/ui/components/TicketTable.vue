@@ -119,7 +119,8 @@ const getStatusType = (status: string) => {
         'aguardando': 'warning',
         'resolved': 'success',
         'done': 'success',
-        'internal': 'info'
+        'internal': 'info',
+        'pending_approval': 'danger'
     };
     return map[status] || 'info';
 };
@@ -136,7 +137,8 @@ const getStatusLabel = (status: string) => {
         'aguardando': 'Aguardando',
         'resolved': 'Resolvido',
         'done': 'Finalizado',
-        'internal': 'Interno'
+        'internal': 'Interno',
+        'pending_approval': 'Triagem'
     };
     return map[status] || status;
 };

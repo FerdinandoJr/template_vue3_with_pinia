@@ -42,5 +42,17 @@ export const kanbanServices = {
       if (card) card.status = newStatus;
       resolve();
     });
+  },
+  async createCard(data: Omit<IKanbanCard, 'id'>): Promise<IKanbanCard> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        const newCard: IKanbanCard = {
+          ...data,
+          id: Date.now().toString()
+        };
+        mock.push(newCard);
+        resolve(newCard);
+      }, 300);
+    });
   }
 };
