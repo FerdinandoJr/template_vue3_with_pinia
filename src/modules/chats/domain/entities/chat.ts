@@ -31,4 +31,8 @@ export interface IContact {
   accumulatedTime?: number;
   lastActiveAt?: number | null;
   isTyping?: boolean;
+  createdAt?: number;
+  serviceStartedAt?: number;
+  slaNotifiedQueued?: boolean;
+  slaNotifiedService?: boolean;
 }

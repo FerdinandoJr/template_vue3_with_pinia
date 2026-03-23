@@ -4,6 +4,9 @@ import type { IContact, IMessage } from '../../domain/entities/chat';
 import { ChatFilter, ChatSortOption, MessageType, ChatChannel } from '../../domain/valueObjects/chat-enums';
 import type { SendMessageDTO } from '../../domain/dto/chat.dto';
 import { generateUUIDv7, getTimeWeight } from '../../../../util/helpers';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { ElNotification } from 'element-plus';
+import { h } from 'vue';
 
 export const useChatStore = defineStore('chat', () => {
   const activeContactId = ref<string | null>(null);
@@ -15,10 +18,10 @@ export const useChatStore = defineStore('chat', () => {
   const replyingTo = ref<IMessage | null>(null);
 
   const contacts = ref<IContact[]>([
-    { id: '1', name: 'Fernanda Lima', company: 'Tech Solutions', avatar: 'https://i.pravatar.cc/150?u=fernanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_55', unreadCount: 1, email: 'fernanda@tech.com', phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP'] },
-    { id: '2', name: 'Roberto Carlos', company: 'Logística S.A', avatar: 'https://i.pravatar.cc/150?u=roberto', channel: ChatChannel.WHATSAPP, lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_102', unreadCount: 0, email: 'roberto@log.com', phone: '(11) 97777-6666', tags: ['Suporte'] },
-    { id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil', avatar: 'https://i.pravatar.cc/150?u=amanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem', status: 'queued', serviceId: null, agentId: null, customerId: null, unreadCount: 0, email: 'amanda@eco.com', phone: '(11) 98888-7777', tags: ['Dúvida'] },
-    { id: 'novo-numero-123', name: '+55 (47) 99123-4567', company: '', phone: '+55 (47) 99123-4567', avatar: '', status: 'queued', channel: ChatChannel.WHATSAPP, lastMessage: 'Olá, gostaria de um orçamento', lastMessageTime: '09:00', serviceId: null, agentId: null, customerId: null, unreadCount: 1, email: '', tags: [] }
+    { id: '1', name: 'Fernanda Lima', company: 'Tech Solutions', avatar: 'https://i.pravatar.cc/150?u=fernanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_55', unreadCount: 1, email: 'fernanda@tech.com', phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP'], serviceStartedAt: Date.now() - 5 * 60 * 1000 },
+    { id: '2', name: 'Roberto Carlos', company: 'Logística S.A', avatar: 'https://i.pravatar.cc/150?u=roberto', channel: ChatChannel.WHATSAPP, lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_102', unreadCount: 0, email: 'roberto@log.com', phone: '(11) 97777-6666', tags: ['Suporte'], serviceStartedAt: Date.now() - 31 * 60 * 1000 },
+    { id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil', avatar: 'https://i.pravatar.cc/150?u=amanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem', status: 'queued', serviceId: null, agentId: null, customerId: null, unreadCount: 0, email: 'amanda@eco.com', phone: '(11) 98888-7777', tags: ['Dúvida'], createdAt: Date.now() - 16 * 60 * 1000 },
+    { id: 'novo-numero-123', name: '+55 (47) 99123-4567', company: '', phone: '+55 (47) 99123-4567', avatar: '', status: 'queued', channel: ChatChannel.WHATSAPP, lastMessage: 'Olá, gostaria de um orçamento', lastMessageTime: '09:00', serviceId: null, agentId: null, customerId: null, unreadCount: 1, email: '', tags: [], createdAt: Date.now() - 2 * 60 * 1000 }
   ]);
 
   const messagesDb = ref<Record<string, IMessage[]>>({
@@ -149,6 +152,7 @@ export const useChatStore = defineStore('chat', () => {
       contact.serviceId = newServiceId;
       contact.agentId = currentUser.value.id;
       contact.accumulatedTime = 0;
+      contact.serviceStartedAt = Date.now();
       if (activeContactId.value === contactId) contact.lastActiveAt = Date.now();
 
       let msgs = messagesDb.value[contactId];
@@ -233,10 +237,60 @@ export const useChatStore = defineStore('chat', () => {
   function setFilter(f: ChatFilter) { currentFilter.value = f; activeContactId.value = null; }
   function setSearchQuery(q: string) { searchTerm.value = q; }
 
+  let slaInterval: any = null;
+
+  function initSlaMonitor() {
+    if (slaInterval) clearInterval(slaInterval);
+    
+    slaInterval = setInterval(() => {
+      const authStore = useAuthStore();
+      const userRole = authStore.user?.role;
+      if (userRole !== 'ADMIN' && userRole !== 'MANAGER') return;
+      
+      const now = Date.now();
+      const QUEUE_LIMIT = 15 * 60 * 1000;
+      const SERVICE_LIMIT = 30 * 60 * 1000;
+      
+      contacts.value.forEach(contact => {
+        if (contact.status === 'queued' && contact.createdAt && !contact.slaNotifiedQueued) {
+          if (now - contact.createdAt > QUEUE_LIMIT) {
+            contact.slaNotifiedQueued = true;
+            ElNotification({
+              title: 'Alerta de Fila',
+              message: h('div', { class: 'mt-1 text-sm text-slate-600' }, [
+                h('strong', { class: 'text-red-600' }, contact.name),
+                ` está aguardando na fila há mais de 15 minutos.`
+              ]),
+              type: 'error',
+              duration: 10000,
+            });
+          }
+        }
+        
+        if (contact.status === 'in_progress' && contact.serviceStartedAt && !contact.slaNotifiedService) {
+          if (now - contact.serviceStartedAt > SERVICE_LIMIT) {
+            contact.slaNotifiedService = true;
+            ElNotification({
+              title: 'Alerta de Atendimento',
+              message: h('div', { class: 'mt-1 text-sm text-slate-600' }, [
+                `O atendimento de `,
+                h('strong', { class: 'text-amber-600' }, contact.name),
+                ` já dura mais de 30 minutos.`
+              ]),
+              type: 'warning',
+              duration: 10000,
+            });
+          }
+        }
+      });
+    }, 5000);
+  }
+
   return {
     contacts, activeContactId, currentFilter, currentSort, messages, selectedContact, filteredContacts, filaCount, currentUser, replyingTo,
     setFilter, selectContact, setSearchQuery, sendMessage, assumirChat, finalizarChat, transferirChat, updateContact, linkCustomerToChat, setReplyingTo, clearReplyingTo,
     retryMessage,
-    finishChat
+    finishChat,
+    initSlaMonitor
   };
 });

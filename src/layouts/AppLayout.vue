@@ -27,12 +27,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import ToastContainer from '@/core/components/ToastContainer.vue'
 import AppHeader from './AppHeader.vue'
+import { useChatStore } from '@/modules/chats/ui/store/chat.store'
 
 const route = useRoute()
 const isSidebarOpen = ref(false)
+const chatStore = useChatStore()
+
+onMounted(() => {
+  chatStore.initSlaMonitor()
+})
 </script>
