@@ -97,6 +97,31 @@
                             </el-select>
                         </div>
 
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mt-4 border-t border-slate-100 pt-5">
+                            <div class="md:col-span-4">
+                                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
+                                    <el-icon class="mr-1"><Calendar /></el-icon>
+                                    Data de Início
+                                </label>
+                                <el-date-picker v-model="form.startDate" type="date" placeholder="DD/MM/YYYY" format="DD/MM/YYYY"
+                                    class="w-full" size="large" :disabled="isViewing" />
+                            </div>
+                            <div class="md:col-span-4">
+                                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
+                                    <el-icon class="mr-1"><Clock /></el-icon>
+                                    Data Final (Previsão)
+                                </label>
+                                <el-date-picker v-model="form.endDate" type="date" placeholder="DD/MM/YYYY" format="DD/MM/YYYY"
+                                    class="w-full" size="large" :disabled="isViewing" />
+                            </div>
+                            <div class="md:col-span-4">
+                                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
+                                    Tempo Estimado (Horas)
+                                </label>
+                                <el-input-number v-model="form.estimatedHours" :min="0" :step="1" class="w-full" size="large" controls-position="right" :disabled="isViewing" />
+                            </div>
+                        </div>
+
                         <div>
                             <label class="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
                                 <span>Descrição Detalhada do Problema</span>
@@ -266,7 +291,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
-import { Close, User, Edit, ChatLineRound, Promotion, UploadFilled, Delete, Document } from '@element-plus/icons-vue';
+import { Close, User, Edit, ChatLineRound, Promotion, UploadFilled, Delete, Document, Calendar, Clock } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import TicketChecklist from './TicketChecklist.vue';
 import TicketTagsSelector from './TicketTagsSelector.vue';
@@ -320,6 +345,9 @@ const form = reactive({
     checklist: [] as any[],
     chatHistory: [] as any[],
     attachments: [] as any[],
+    startDate: null as string | Date | null,
+    endDate: null as string | Date | null,
+    estimatedHours: null as number | null,
 });
 
 const translateLabel = (valueToCheck: string, originalLabel: string) => {
@@ -383,6 +411,10 @@ const initForm = () => {
         form.checklist = (props.ticket as any).checklist || [];
         form.chatHistory = Array.isArray((props.ticket as any).chatHistory) ? [...(props.ticket as any).chatHistory] : [];
         form.attachments = (props.ticket as any).attachments || [];
+        
+        form.startDate = props.ticket.startDate || null;
+        form.endDate = props.ticket.endDate || null;
+        form.estimatedHours = props.ticket.estimatedHours || null;
     } else if (props.initialData) {
         form.title = props.initialData.title || '';
         form.customer = props.initialData.customer || '';
@@ -398,6 +430,11 @@ const initForm = () => {
         form.checklist = props.initialData.checklist || [];
         form.chatHistory = Array.isArray(props.initialData.chatHistory) ? [...props.initialData.chatHistory] : [];
         form.attachments = props.initialData.attachments || [];
+        
+        form.startDate = props.initialData.startDate || null;
+        form.endDate = props.initialData.endDate || null;
+        form.estimatedHours = props.initialData.estimatedHours || null;
+        
         if (form.chatHistory.length > 0) activeTab.value = 'chat';
     } else {
         form.title = '';
@@ -410,6 +447,9 @@ const initForm = () => {
         form.checklist = [];
         form.chatHistory = [];
         form.attachments = [];
+        form.startDate = null;
+        form.endDate = null;
+        form.estimatedHours = null;
     }
 };
 

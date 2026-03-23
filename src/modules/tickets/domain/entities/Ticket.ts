@@ -11,4 +11,7 @@ export interface ITicket {
   description?: string;
   assigneeId?: string;
   assigneeName?: string;
+  startDate?: string | Date;
+  endDate?: string | Date;
+  estimatedHours?: number;
 }
