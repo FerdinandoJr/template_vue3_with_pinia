@@ -1,14 +1,16 @@
 import { ref, reactive, watch, computed } from 'vue';
 import { useCalendarStore } from '../store/calendar.store';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
-import { ElMessage } from 'element-plus';
-import { cepService } from '@/core/services/cep.service';
+import { ElMessage, type FormInstance } from 'element-plus';
+import { useCepLocator } from '@/core/composables/useCepLocator';
+import type { ICalendarEvent } from '../../domain/entities/calendar';
+import type { ICustomer } from '@/modules/customer/domain/entities/customer';
 
-export function useEventModal(props: any, emit: any) {
+export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICalendarEvent> }, emit: (event: 'close' | 'save' | 'delete', payload?: any) => void) {
     const store = useCalendarStore();
     const customerStore = useCustomerStore();
 
-    const ruleFormRef = ref<any>(null);
+    const ruleFormRef = ref<FormInstance | null>(null);
     const activeTab = ref('general');
     const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
@@ -126,13 +128,13 @@ export function useEventModal(props: any, emit: any) {
         if (query) {
             const lowerQuery = query.toLowerCase();
             clientOptions.value = customerStore.items
-                .filter((c: any) => {
+                .filter((c: ICustomer) => {
                     const name = c.tradeName || c.companyName || c.name || '';
                     return name.toLowerCase().includes(lowerQuery);
                 })
-                .map((c: any) => ({ id: c.uuid, name: c.tradeName || c.companyName || c.name }));
+                .map((c: ICustomer) => ({ id: c.uuid, name: c.tradeName || c.companyName || c.name }));
         } else {
-            clientOptions.value = customerStore.items.slice(0, 50).map((c: any) => ({
+            clientOptions.value = customerStore.items.slice(0, 50).map((c: ICustomer) => ({
                 id: c.uuid, name: c.tradeName || c.companyName || c.name
             }));
         }
@@ -147,21 +149,12 @@ export function useEventModal(props: any, emit: any) {
         form.endTime = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
     };
 
-    const formatAndSearchCep = async (val: string) => {
-        let v = val.replace(/\D/g, '');
-        if (v.length > 5) v = v.replace(/^(\d{5})(\d)/, '$1-$2');
-        form.cep = v;
+    const { formatAndSearchCep: _formatCep } = useCepLocator();
 
-        if (v.length === 9) {
-            const cleanCep = v.replace('-', '');
-            try {
-                const address = await cepService.getAddressByCep(cleanCep);
-                form.address = `${address.logradouro}, ${address.bairro}, ${address.cidade} - ${address.uf}`;
-                ElMessage.success('Endereço preenchido!');
-            } catch (error) {
-                ElMessage.warning('CEP não encontrado');
-            }
-        }
+    const formatAndSearchCep = async (val: string) => {
+        form.cep = await _formatCep(val, (fullAddress) => {
+            form.address = fullAddress;
+        });
     };
 
     const selectType = (color: any) => {
