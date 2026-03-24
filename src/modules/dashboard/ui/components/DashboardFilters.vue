@@ -15,7 +15,6 @@ defineEmits<{ (e: 'update:period', value: DashboardPeriod): void }>();
 const options = [
   { label: 'Hoje', value: DashboardPeriod.TODAY },
   { label: '7 Dias', value: DashboardPeriod.LAST_7_DAYS },
-  { label: '30 Dias', value: DashboardPeriod.LAST_30_DAYS },
   { label: 'Mensal', value: DashboardPeriod.MONTHLY },
 ];
 </script>

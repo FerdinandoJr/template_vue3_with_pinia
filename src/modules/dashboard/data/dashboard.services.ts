@@ -21,13 +21,6 @@ export const dashboardServices = {
                 revenueData: [15, 20, 18, 25, 30, 22, 19],
                 ticketDistribution: [12, 15, 5], period
               });
-            case DashboardPeriod.LAST_30_DAYS:
-              return resolve({
-                totalCustomers: 320, activeTickets: 18, resolvedToday: 145,
-                averageResponseTime: "6 min",
-                revenueData: [50, 60, 45, 80, 90, 85, 100],
-                ticketDistribution: [40, 65, 15], period
-              });
             default:
               return resolve({
                 totalCustomers: 450, activeTickets: 25, resolvedToday: 210,
@@ -53,13 +46,6 @@ export const dashboardServices = {
                 averageResponseTime: "12 min",
                 revenueData: [150, 200, 180, 250, 300, 220, 190],
                 ticketDistribution: [120, 150, 50], period
-              });
-            case DashboardPeriod.LAST_30_DAYS:
-              return resolve({
-                totalCustomers: 3200, activeTickets: 180, resolvedToday: 1450,
-                averageResponseTime: "15 min",
-                revenueData: [500, 600, 450, 800, 900, 850, 1000],
-                ticketDistribution: [400, 650, 150], period
               });
             default:
               return resolve({
