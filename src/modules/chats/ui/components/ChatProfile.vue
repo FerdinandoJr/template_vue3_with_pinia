@@ -117,20 +117,7 @@
           </div>
         </el-collapse-item>
 
-        <el-collapse-item name="tickets"
-          class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
-          <template #title>
-            <span class="font-bold text-slate-700 text-[11px] tracking-widest uppercase flex items-center gap-2.5 ml-1">
-              <el-icon size="16">
-                <Ticket />
-              </el-icon> Tickets Vinculados
-            </span>
-          </template>
-          <div class="p-4 border-t border-slate-100 flex flex-col items-center justify-center min-h-[100px]">
-            <el-empty description="Nenhum ticket" :image-size="40" class="!py-0" />
-            <el-button size="small" type="primary" plain class="mt-2 w-full">Novo Ticket</el-button>
-          </div>
-        </el-collapse-item>
+
 
       </el-collapse>
     </div>
@@ -139,13 +126,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Message, Phone, Plus, OfficeBuilding, CollectionTag, Ticket, Check } from '@element-plus/icons-vue';
+import { Message, Phone, Plus, OfficeBuilding, CollectionTag, Check } from '@element-plus/icons-vue';
 import type { IContact } from '../../domain/entities/chat';
 import { useChatStore } from '../store/chat.store';
 
 const props = defineProps<{ contact: IContact | null }>();
 const store = useChatStore();
-const activeCollapses = ref(['contact', 'tags', 'tickets']);
+const activeCollapses = ref(['contact', 'tags']);
 
 type TicketTag = { label: string; color: string };
 const availableTags = ref<TicketTag[]>([
