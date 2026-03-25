@@ -2,6 +2,7 @@
     <div class="pb-2">
         <div class="flex justify-between items-center mb-3">
             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Marcadores (Tags)</span>
+
             <el-popover v-if="!readonly" placement="left-start" :width="280" trigger="click" :visible="isOpen">
                 <template #reference>
                     <el-button size="small" circle class="!bg-white shadow-sm border-slate-200"
@@ -11,6 +12,7 @@
                         </el-icon>
                     </el-button>
                 </template>
+
                 <div class="p-2">
                     <h4 class="text-xs font-bold text-slate-800 mb-3 pb-2 border-b">
                         <span v-if="editingTagId">Editar Marcador</span>
@@ -20,8 +22,8 @@
                     <div v-if="!editingTagId" class="space-y-1 mb-4 max-h-48 overflow-y-auto custom-scroll pr-1">
                         <div v-for="tag in availableTags" :key="tag.id"
                             class="flex items-center justify-between p-1.5 rounded-md hover:bg-slate-50 group border border-transparent hover:border-slate-100">
-                            <div class="flex items-center gap-2 cursor-pointer flex-1" @click="toggleTag(tag.id)">
-                                <el-checkbox :model-value="selectedTags.includes(tag.id)" size="small" />
+                            <div class="flex items-center gap-2 cursor-pointer flex-1" @click="toggleTag(tag.name)">
+                                <el-checkbox :model-value="isChecked(tag)" size="small" />
                                 <el-tag size="small" :type="tag.type as any" effect="light" round
                                     class="!border-0 font-bold">{{
                                     tag.name }}</el-tag>
@@ -62,17 +64,18 @@
                             </template>
                         </div>
                     </div>
+
                     <el-button type="primary" plain class="w-full" size="small"
                         @click="isOpen = false">Concluir</el-button>
                 </div>
             </el-popover>
         </div>
+
         <div class="flex flex-wrap gap-2">
-            <el-tag v-for="tagId in selectedTags" :key="tagId" :type="getTagName(tagId).type as any" closable
-                @close="toggleTag(tagId)" size="default" effect="light" round
-                class="font-semibold !border-none shadow-sm">{{
-                    getTagName(tagId).name }}</el-tag>
-            <span v-if="selectedTags.length === 0"
+            <el-tag v-for="(tag, index) in normalizedSelectedTags" :key="index" :type="tag.type as any" closable
+                @close="toggleTag(tag.originalValue)" size="default" effect="light" round
+                class="font-semibold !border-none shadow-sm">{{ tag.name }}</el-tag>
+            <span v-if="normalizedSelectedTags.length === 0"
                 class="text-xs text-slate-400 font-medium bg-white px-3 py-1 rounded-full border border-slate-200">Sem
                 marcadores</span>
         </div>
@@ -80,42 +83,106 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Setting, Edit, Delete, Close } from '@element-plus/icons-vue';
 
 const props = defineProps<{
-    selectedTags: string[];
+    selectedTags: any[];
     readonly?: boolean;
 }>();
 
 const emit = defineEmits<{
-    (e: 'update:selectedTags', val: string[]): void
+    (e: 'update:selectedTags', val: any[]): void;
 }>();
 
-// Dados Locais (Na vida real viriam da API)
-const availableTags = ref([
-    { id: 't1', name: 'Financeiro', type: 'success' },
-    { id: 't2', name: 'Urgente', type: 'danger' }
-]);
-
 const isOpen = ref(false);
-const editingTagId = ref<string | null>(null);
 const newTagInput = ref('');
 const newTagType = ref('info');
+const editingTagId = ref<number | null>(null);
 
-const toggleTag = (id: string) => {
+const availableTags = ref([
+    { id: 1, name: 'Bug', type: 'danger' },
+    { id: 2, name: 'Crítico', type: 'danger' },
+    { id: 3, name: 'Dúvida', type: 'warning' },
+    { id: 4, name: 'Financeiro', type: 'success' },
+    { id: 5, name: 'Urgente', type: 'warning' },
+    { id: 6, name: 'Nova Funcionalidade', type: 'success' },
+    { id: 7, name: 'Melhoria', type: 'primary' },
+    { id: 8, name: 'Sugestão', type: 'info' }
+]);
+
+// MÁGICA: Normaliza qualquer coisa (String, Objeto, ID) para renderizar corretamente
+const normalizedSelectedTags = computed(() => {
+    if (!props.selectedTags) return [];
+    return props.selectedTags.map(val => {
+        // Se for número
+        if (typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val)))) {
+            const found = availableTags.value.find(t => t.id === Number(val));
+            if (found) return { ...found, originalValue: val };
+        }
+        // Se for string (o Kanban envia assim)
+        if (typeof val === 'string') {
+            const found = availableTags.value.find(t => t.name.toLowerCase() === val.toLowerCase());
+            if (found) return { ...found, originalValue: val };
+            return { id: val, name: val, type: 'info', originalValue: val };
+        }
+        // Se for objeto
+        if (typeof val === 'object' && val !== null) {
+            return { id: val.id || val.label, name: val.label || val.name, type: val.type || 'info', originalValue: val };
+        }
+        return { id: 'unknown', name: val, type: 'info', originalValue: val };
+    });
+});
+
+const isChecked = (tag: any) => {
+    return props.selectedTags?.some(val => {
+        if (val === tag.id) return true;
+        if (typeof val === 'string' && val.toLowerCase() === tag.name.toLowerCase()) return true;
+        return false;
+    }) || false;
+};
+
+const toggleTag = (tagValue: any) => {
     if (props.readonly) return;
-    const updated = [...props.selectedTags];
-    const idx = updated.indexOf(id);
-    if (idx === -1) updated.push(id);
-    else updated.splice(idx, 1);
+
+    let updated = [...(props.selectedTags || [])];
+
+    const index = updated.findIndex(val => {
+        if (val === tagValue) return true;
+        if (typeof tagValue === 'string' && typeof val === 'string' && val.toLowerCase() === tagValue.toLowerCase()) return true;
+        if (typeof tagValue === 'number' && Number(val) === tagValue) return true;
+        return false;
+    });
+
+    if (index === -1) {
+        updated.push(tagValue);
+    } else {
+        updated.splice(index, 1);
+    }
+
     emit('update:selectedTags', updated);
 };
 
 const createTag = () => {
-    if (!newTagInput.value) return;
-    availableTags.value.push({ id: `t${Date.now()}`, name: newTagInput.value, type: newTagType.value });
+    if (!newTagInput.value.trim()) return;
+    const newId = Math.max(...availableTags.value.map(t => t.id), 0) + 1;
+    availableTags.value.push({
+        id: newId,
+        name: newTagInput.value.trim(),
+        type: newTagType.value
+    });
     newTagInput.value = '';
+    newTagType.value = 'info';
+};
+
+const deleteTag = (id: number) => {
+    const idx = availableTags.value.findIndex(t => t.id === id);
+    if (idx !== -1) availableTags.value.splice(idx, 1);
+
+    const updated = props.selectedTags.filter(val => val !== id);
+    if (updated.length !== props.selectedTags?.length) {
+        emit('update:selectedTags', updated);
+    }
 };
 
 const startEdit = (tag: any) => {
@@ -125,9 +192,10 @@ const startEdit = (tag: any) => {
 };
 
 const saveEdit = () => {
+    if (!newTagInput.value.trim() || !editingTagId.value) return;
     const tag = availableTags.value.find(t => t.id === editingTagId.value);
     if (tag) {
-        tag.name = newTagInput.value;
+        tag.name = newTagInput.value.trim();
         tag.type = newTagType.value;
     }
     cancelEdit();
@@ -136,15 +204,8 @@ const saveEdit = () => {
 const cancelEdit = () => {
     editingTagId.value = null;
     newTagInput.value = '';
+    newTagType.value = 'info';
 };
-
-const deleteTag = (id: string) => {
-    availableTags.value = availableTags.value.filter(t => t.id !== id);
-    const updated = props.selectedTags.filter(tid => tid !== id);
-    emit('update:selectedTags', updated);
-};
-
-const getTagName = (id: string) => availableTags.value.find(t => t.id === id) || { name: '?', type: 'info' };
 </script>
 
 <style scoped>
@@ -152,16 +213,8 @@ const getTagName = (id: string) => availableTags.value.find(t => t.id === id) ||
     width: 6px;
 }
 
-.custom-scroll::-webkit-scrollbar-track {
-    background: transparent;
-}
-
 .custom-scroll::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background-color: #cbd5e1;
     border-radius: 10px;
-}
-
-.custom-scroll::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
 }
 </style>

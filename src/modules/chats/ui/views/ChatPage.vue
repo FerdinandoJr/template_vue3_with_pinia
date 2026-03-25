@@ -6,14 +6,12 @@
     <template v-if="selectedContact">
       <div class="flex-1 flex w-full h-full relative"
         :class="['transition-all duration-300', isProfileOpen ? 'hidden lg:flex' : 'flex']">
-
         <button @click="handleBackToList"
           class="md:hidden absolute top-3 left-3 z-[60] bg-white border border-slate-200 shadow-md rounded-full p-2 text-slate-600 hover:bg-slate-50 flex items-center justify-center transition-all">
           <el-icon :size="20">
             <ArrowLeft />
           </el-icon>
         </button>
-
         <ChatArea class="w-full h-full" :contact="selectedContact" :messages="messages" @send="handleSendMessage"
           @assumir="handleAssumirChat" @finalizar="openFinishModal" @transferir="isTransferModalOpen = true"
           @vincular="openLinkModal" @abrir-modal-ticket="openTicketModal" @toggle-profile="toggleProfile" />
@@ -45,7 +43,7 @@
       @close="isLinkModalOpen = false" @linked="handleCustomerLinked" />
 
     <TicketModal :is-open="isTicketModalOpen" :ticket="null" :initial-data="ticketInitialData"
-      @close="isTicketModalOpen = false" @save="submitTicket" />
+      @close="isTicketModalOpen = false" @save="submitTicket" @approve-kanban="handleApproveKanban" />
 
     <el-dialog v-model="isTransferModalOpen" title="Transferir Atendimento" width="95%" style="max-width: 400px;"
       align-center>
@@ -110,22 +108,46 @@ const transferDest = ref('');
 const isFinishModalOpen = ref(false);
 const finishFormRef = ref();
 const finishForm = reactive({ reason: '', description: '' });
-const finishRules = { 
+
+const finishRules = {
   reason: [{ required: true, message: 'Informe a resolução', trigger: 'blur' }],
   description: [{ required: true, message: 'A descrição das observações é obrigatória', trigger: 'blur' }]
 };
+
 const isTicketModalOpen = ref(false);
 const ticketInitialData = ref<any>(null);
-const handleSelectContact = (contact: any) => { store.selectContact(contact); isProfileOpen.value = false; };
-const handleBackToList = () => { store.selectContact(null as any); isProfileOpen.value = false; };
-const toggleProfile = () => { isProfileOpen.value = !isProfileOpen.value; };
 
-const handleSendMessage = (payload: any) => {
-  if (selectedContact.value) store.sendMessage({ contactId: selectedContact.value.id, text: payload.text, type: payload.type, file: payload.file });
+const handleSelectContact = (contact: any) => {
+  store.selectContact(contact);
+  isProfileOpen.value = false;
 };
 
-const handleAssumirChat = () => { if (selectedContact.value) store.assumirChat(selectedContact.value.id); };
-const openLinkModal = () => { isLinkModalOpen.value = true; };
+const handleBackToList = () => {
+  store.selectContact(null as any);
+  isProfileOpen.value = false;
+};
+
+const toggleProfile = () => {
+  isProfileOpen.value = !isProfileOpen.value;
+};
+
+const handleSendMessage = (payload: any) => {
+  if (selectedContact.value)
+    store.sendMessage({
+      contactId: selectedContact.value.id,
+      text: payload.text,
+      type: payload.type,
+      file: payload.file
+    });
+};
+
+const handleAssumirChat = () => {
+  if (selectedContact.value) store.assumirChat(selectedContact.value.id);
+};
+
+const openLinkModal = () => {
+  isLinkModalOpen.value = true;
+};
 
 const confirmTransfer = () => {
   if (selectedContact.value && transferDest.value) {
@@ -143,31 +165,42 @@ const handleCustomerLinked = async (payload: any) => {
       if (!payload.isNew) {
         const customer = customerStore.items.find(c => c.uuid === payload.customerUuid);
         if (customer) {
-          store.linkCustomerToChat(activeContact.id, { id: customer.uuid, name: payload.contactName || customer.name, company: customer.companyName });
-          
+          store.linkCustomerToChat(activeContact.id, {
+            id: customer.uuid,
+            name: payload.contactName || customer.name,
+            company: customer.companyName
+          });
           const currentContacts = customer.contacts || [];
           if (!currentContacts.includes(activeContact.id)) {
             await customerStore.updateCustomer(customer.uuid, { contacts: [...currentContacts, activeContact.id] });
           }
-          
           ElMessage.success('Cliente vinculado!');
         }
       } else {
         const data = payload.customerData;
         data.contacts = [activeContact.id];
-        
         const newCustomer = await customerStore.createCustomer(data);
         if (newCustomer) {
-          store.linkCustomerToChat(activeContact.id, { id: newCustomer.uuid, name: newCustomer.name, company: newCustomer.companyName });
+          store.linkCustomerToChat(activeContact.id, {
+            id: newCustomer.uuid,
+            name: newCustomer.name,
+            company: newCustomer.companyName
+          });
           ElMessage.success('Novo cliente criado e vinculado!');
         }
       }
     }
     isLinkModalOpen.value = false;
-  } catch (error) { ElMessage.error('Erro ao vincular.'); }
+  } catch (error) {
+    ElMessage.error('Erro ao vincular.');
+  }
 };
 
-const openFinishModal = () => { finishForm.reason = ''; finishForm.description = ''; isFinishModalOpen.value = true; };
+const openFinishModal = () => {
+  finishForm.reason = '';
+  finishForm.description = '';
+  isFinishModalOpen.value = true;
+};
 
 const submitFinish = async () => {
   if (!finishFormRef.value) return;
@@ -182,7 +215,6 @@ const submitFinish = async () => {
 
 const openTicketModal = (contact: any) => {
   if (!contact) return;
-
   const chatHistoryExport = (messages.value || []).map((msg: any) => ({
     sender: msg.type === 'out' ? 'Você (Agente)' : (contact?.name || 'Cliente'),
     text: msg.text,
@@ -197,7 +229,6 @@ const openTicketModal = (contact: any) => {
     chatHistory: chatHistoryExport,
     status: 'pending_approval'
   };
-
   isTicketModalOpen.value = true;
 };
 
@@ -211,5 +242,33 @@ const submitTicket = async (data: any) => {
   }
   isTicketModalOpen.value = false;
   ElMessage.success('Ticket criado com sucesso!');
+};
+
+const handleApproveKanban = async (ticketData: any) => {
+  try {
+    ticketData.status = 'open';
+
+    if (ticketData.id) {
+      if (typeof (ticketsStore as any).updateTicket === 'function') {
+        await (ticketsStore as any).updateTicket(ticketData.id, ticketData);
+      } else if (typeof (ticketsStore as any).update === 'function') {
+        await (ticketsStore as any).update(ticketData.id, ticketData);
+      }
+    } else {
+      if (typeof (ticketsStore as any).createTicket === 'function') {
+        await (ticketsStore as any).createTicket(ticketData);
+      } else if (typeof (ticketsStore as any).create === 'function') {
+        await (ticketsStore as any).create(ticketData);
+      } else if (typeof (ticketsStore as any).addTicket === 'function') {
+        await (ticketsStore as any).addTicket(ticketData);
+      }
+    }
+
+    ElMessage.success('Ticket aprovado para o Kanban!');
+    isTicketModalOpen.value = false;
+  } catch (error) {
+    ElMessage.error('Erro ao enviar o ticket para o Kanban.');
+    console.error(error);
+  }
 };
 </script>

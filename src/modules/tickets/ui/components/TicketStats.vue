@@ -1,79 +1,90 @@
 <template>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
 
-    <div
-      class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between hover:shadow-md transition-shadow cursor-default group">
-      <div>
-        <h3
-          class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">
-          Total de Tickets</h3>
-        <p class="text-3xl font-black text-slate-800 leading-none">{{ total }}</p>
-      </div>
-      <div
-        class="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:scale-110 group-hover:bg-slate-100 group-hover:text-slate-600 transition-all">
-        <el-icon size="22">
-          <Document />
-        </el-icon>
-      </div>
-    </div>
+    <template v-if="isMounted">
 
-    <div
-      class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between hover:shadow-md transition-shadow cursor-default group">
-      <div>
-        <h3
-          class="text-[11px] font-bold text-amber-500 uppercase tracking-widest mb-1 group-hover:text-amber-600 transition-colors">
-          Abertos</h3>
-        <p class="text-3xl font-black text-slate-800 leading-none">{{ open }}</p>
-      </div>
       <div
-        class="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-all">
-        <el-icon size="22">
-          <WarnTriangleFilled />
-        </el-icon>
+        class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between transition-transform hover:scale-[1.02]">
+        <div>
+          <p class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Total</p>
+          <h3 class="text-3xl font-black text-slate-800">{{ total }}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+          <el-icon :size="24">
+            <Document />
+          </el-icon>
+        </div>
       </div>
-    </div>
 
-    <div
-      class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between hover:shadow-md transition-shadow cursor-default group">
-      <div>
-        <h3
-          class="text-[11px] font-bold text-blue-500 uppercase tracking-widest mb-1 group-hover:text-blue-600 transition-colors">
-          Aguardando</h3>
-        <p class="text-3xl font-black text-slate-800 leading-none">{{ inProgress }}</p>
-      </div>
       <div
-        class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-all">
-        <el-icon size="22">
-          <Timer />
-        </el-icon>
+        class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between transition-transform hover:scale-[1.02]">
+        <div>
+          <p class="text-sm font-bold text-blue-500 uppercase tracking-wider mb-1">Abertos</p>
+          <h3 class="text-3xl font-black text-blue-600">{{ open }}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+          <el-icon :size="24">
+            <FolderOpened />
+          </el-icon>
+        </div>
       </div>
-    </div>
 
-    <div
-      class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center justify-between hover:shadow-md transition-shadow cursor-default group">
-      <div>
-        <h3
-          class="text-[11px] font-bold text-emerald-500 uppercase tracking-widest mb-1 group-hover:text-emerald-600 transition-colors">
-          Resolvidos</h3>
-        <p class="text-3xl font-black text-slate-800 leading-none">{{ resolved }}</p>
-      </div>
       <div
-        class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-all">
-        <el-icon size="22">
-          <CircleCheckFilled />
-        </el-icon>
+        class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between transition-transform hover:scale-[1.02]">
+        <div>
+          <p class="text-sm font-bold text-amber-500 uppercase tracking-wider mb-1">Em Andamento</p>
+          <h3 class="text-3xl font-black text-amber-500">{{ inProgress }}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-500">
+          <el-icon :size="24">
+            <Loading />
+          </el-icon>
+        </div>
       </div>
-    </div>
+
+      <div
+        class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between transition-transform hover:scale-[1.02]">
+        <div>
+          <p class="text-sm font-bold text-emerald-500 uppercase tracking-wider mb-1">Resolvidos</p>
+          <h3 class="text-3xl font-black text-emerald-500">{{ resolved }}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+          <el-icon :size="24">
+            <CircleCheck />
+          </el-icon>
+        </div>
+      </div>
+
+    </template>
+
+    <template v-else>
+      <div v-for="i in 4" :key="i" class="bg-slate-100 p-5 rounded-2xl border border-slate-200 h-[104px] animate-pulse">
+      </div>
+    </template>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { Document, WarnTriangleFilled, Timer, CircleCheckFilled } from '@element-plus/icons-vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { Document, FolderOpened, Loading, CircleCheck } from '@element-plus/icons-vue';
 
-defineProps<{
+const props = defineProps<{
   total: number;
   open: number;
   inProgress: number;
   resolved: number;
 }>();
+
+const isMounted = ref(false);
+
+onMounted(() => {
+  setTimeout(() => {
+    isMounted.value = true;
+  }, 100);
+});
+
+onBeforeUnmount(() => {
+  isMounted.value = false;
+});
 </script>

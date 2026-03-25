@@ -15,18 +15,14 @@
     </div>
 
     <div class="flex-1 flex gap-6 overflow-x-auto pb-4 custom-scroll-x items-start">
-
       <KanbanColumn v-for="col in kanbanStore.columns" :key="col.id" :column-id="col.id" v-model:title="col.title"
-        :color="col.color" :cards="getTicketsByColumn(col.id)" @remove="handleRemoveColumn"
-        @open-ticket="openTicketDetails" />
-
+        :color="col.color" :cards="col.cards" @remove="handleRemoveColumn" @open-ticket="openTicketDetails" />
       <button @click="kanbanStore.addColumn()"
         class="w-[340px] shrink-0 flex items-center justify-center gap-2 py-4 bg-transparent rounded-2xl border-2 border-dashed border-slate-300 text-slate-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50/50 transition-all font-bold cursor-pointer">
         <el-icon>
           <Plus />
         </el-icon> Adicionar Lista
       </button>
-
     </div>
 
     <TicketModal v-if="isModalOpen" :is-open="isModalOpen" :ticket="selectedTicket" @close="isModalOpen = false"
@@ -41,41 +37,31 @@ import { ElMessageBox } from 'element-plus';
 
 import { useKanbanStore } from '../store/kanban.store';
 import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
-import { useCustomerStore } from '@/modules/customer/ui/store/customer.store'; // <-- IMPORTADO O STORE DE CLIENTES
+import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import type { ITicket } from '@/modules/tickets/domain/entities/Ticket';
 
 import KanbanColumn from '../components/KanbanColumn.vue';
 import TicketModal from '@/modules/tickets/ui/components/TicketModal.vue';
 
-const kanbanStore = useKanbanStore();
-const ticketsStore = useTicketsStore();
-const customerStore = useCustomerStore(); // <-- INICIALIZADO
+const kanbanStore = useKanbanStore() as any;
+const ticketsStore = useTicketsStore() as any;
+const customerStore = useCustomerStore() as any;
 
 const isModalOpen = ref(false);
 const selectedTicket = ref<ITicket | null>(null);
 
 onMounted(async () => {
   await kanbanStore.fetchKanbanData();
-
-  // <-- MÁGICA: Puxa a lista de Clientes ao abrir o Kanban
-  if (customerStore.items.length === 0) {
-    await customerStore.fetch();
+  if (customerStore.items?.length === 0) {
+    if (typeof customerStore.fetch === 'function') await customerStore.fetch();
   }
 });
 
-const getTicketsByColumn = (columnId: string) => {
-  if (!ticketsStore.items) return [];
-  return ticketsStore.items.filter(t => (t.status as unknown as string) === columnId);
-};
-
 const handleRemoveColumn = (id: string) => {
   ElMessageBox.confirm(
-    'Tem a certeza que deseja excluir esta coluna? Os tickets nela não serão apagados, mas ficarão ocultos até receberem novo status.',
-    'Atenção',
+    'Tem a certeza que deseja excluir esta coluna?', 'Atenção',
     { confirmButtonText: 'Sim, excluir', cancelButtonText: 'Cancelar', type: 'warning' }
-  ).then(() => {
-    kanbanStore.removeColumn(id);
-  }).catch(() => { });
+  ).then(() => { kanbanStore.removeColumn(id); }).catch(() => { });
 };
 
 const openNewTicketModal = () => {
@@ -83,8 +69,21 @@ const openNewTicketModal = () => {
   isModalOpen.value = true;
 };
 
-const openTicketDetails = (ticket: ITicket) => {
-  selectedTicket.value = ticket;
+// =======================================================
+// CONVERSÃO PERFEITA: Objetos Ricos <--> Textos Simples
+// =======================================================
+const openTicketDetails = (ticket: any) => {
+  const formattedTicket = JSON.parse(JSON.stringify(ticket));
+
+  if (Array.isArray(formattedTicket.tags)) {
+    formattedTicket.tags = formattedTicket.tags.map((tag: any) => {
+      return typeof tag === 'string' ? tag : (tag?.label || tag?.name || tag?.value || '');
+    }).filter(Boolean);
+  } else {
+    formattedTicket.tags = [];
+  }
+
+  selectedTicket.value = formattedTicket;
   isModalOpen.value = true;
 };
 
@@ -92,18 +91,34 @@ const onTicketSaved = async (ticketData: any) => {
   isModalOpen.value = false;
 
   if (ticketData.id) {
-    await ticketsStore.updateTicket(ticketData.id, ticketData);
+    if (typeof ticketsStore.updateTicket === 'function') await ticketsStore.updateTicket(ticketData.id, ticketData);
+    else if (typeof ticketsStore.update === 'function') await ticketsStore.update(ticketData.id, ticketData);
   } else {
-    if (typeof (ticketsStore as any).createTicket === 'function') {
-      await (ticketsStore as any).createTicket(ticketData);
-    } else if (typeof (ticketsStore as any).create === 'function') {
-      await (ticketsStore as any).create(ticketData);
-    } else if (typeof (ticketsStore as any).addTicket === 'function') {
-      await (ticketsStore as any).addTicket(ticketData);
-    }
+    if (typeof ticketsStore.createTicket === 'function') await ticketsStore.createTicket(ticketData);
+    else if (typeof ticketsStore.create === 'function') await ticketsStore.create(ticketData);
   }
 
-  await kanbanStore.fetchKanbanData();
+  // Define cores bonitas de acordo com a tag escolhida no Modal
+  const kanbanFriendlyTags = (ticketData.tags || []).map((tag: any) => {
+    if (typeof tag === 'object' && tag !== null && tag.label) return tag;
+    const label = String(tag);
+    let colorClass = 'bg-slate-100 text-slate-700';
+    if (label === 'Bug') colorClass = 'bg-red-100 text-red-700';
+    else if (label === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
+    else if (label === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
+    else if (label === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
+    else if (label === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
+    return { label, colorClass };
+  });
+
+  for (const col of kanbanStore.columns) {
+    const cardIndex = col.cards.findIndex((c: any) => String(c.id) === String(ticketData.id));
+    if (cardIndex !== -1) {
+      col.cards[cardIndex] = { ...col.cards[cardIndex], ...ticketData, tags: kanbanFriendlyTags };
+      if (typeof kanbanStore.saveBoard === 'function') kanbanStore.saveBoard();
+      break;
+    }
+  }
 };
 </script>
 

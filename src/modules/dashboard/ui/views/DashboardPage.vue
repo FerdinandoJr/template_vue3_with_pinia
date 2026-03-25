@@ -41,14 +41,15 @@
         <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
           <h3 class="text-lg font-bold text-slate-800 mb-6">Volume de Atendimentos</h3>
           <div class="flex-1 min-h-[300px]">
-            <VolumeChart :key="store.currentPeriod + 'volume'" :data="store.stats.revenueData" />
+            <VolumeChart v-if="isChartsMounted" :key="store.currentPeriod + 'volume'" :data="store.stats.revenueData" />
           </div>
         </div>
 
         <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
           <h3 class="text-lg font-bold text-slate-800 mb-6">Distribuição por Status</h3>
           <div class="flex-1 min-h-[300px]">
-            <StatusChart :key="store.currentPeriod + 'status'" :data="store.stats.ticketDistribution" />
+            <StatusChart v-if="isChartsMounted" :key="store.currentPeriod + 'status'"
+              :data="store.stats.ticketDistribution" />
           </div>
         </div>
 
@@ -62,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, markRaw } from 'vue';
+import { ref, onMounted, onBeforeUnmount, markRaw } from 'vue';
 import { useDashboardStore } from '../store/dashboard.store';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import { DashboardPeriod } from '../../domain/valueObjects/dashboard-period.enum';
@@ -78,6 +79,7 @@ const RawUsers = markRaw(Users);
 const RawTicket = markRaw(Ticket);
 const RawCheck = markRaw(Check);
 const RawTimer = markRaw(Timer);
+const isChartsMounted = ref(false);
 
 const handlePeriodChange = (newPeriod: DashboardPeriod) => {
   store.setPeriod(newPeriod);
@@ -85,5 +87,13 @@ const handlePeriodChange = (newPeriod: DashboardPeriod) => {
 
 onMounted(async () => {
   await store.fetchDashboardData();
+
+  setTimeout(() => {
+    isChartsMounted.value = true;
+  }, 100);
+});
+
+onBeforeUnmount(() => {
+  isChartsMounted.value = false;
 });
 </script>

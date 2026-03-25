@@ -1,42 +1,60 @@
-import { defineStore } from "pinia";
-import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
-
-interface KanbanColumn {
-  id: string;
-  title: string;
-  color: string;
-}
-
-interface KanbanState {
-  columns: KanbanColumn[];
-}
+import { defineStore } from 'pinia';
+import { kanbanServices } from '../../data/kanban.services';
+import { ElMessage } from 'element-plus';
 
 export const useKanbanStore = defineStore('kanban', {
-  state: (): KanbanState => ({
-    columns: [
-      { id: 'open', title: 'Abertos (Novos)', color: 'bg-blue-500' },
-      { id: 'in_progress', title: 'Em Andamento', color: 'bg-amber-500' },
-      { id: 'resolved', title: 'Resolvidos', color: 'bg-green-500' }
-    ]
+  state: () => ({
+    columns: [] as any[],
+    loading: false
   }),
 
   actions: {
     async fetchKanbanData() {
-      const ticketsStore = useTicketsStore();
-      if (typeof ticketsStore.fetch === 'function') {
-        await ticketsStore.fetch();
+      this.loading = true;
+      try {
+        const data = await kanbanServices.fetchKanbanData();
+        this.columns = data;
+      } catch (error) {
+        console.error("Erro ao carregar dados do Kanban:", error);
+      } finally {
+        this.loading = false;
       }
     },
 
-    addColumn() {
-      const colors = ['bg-blue-500', 'bg-amber-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500'];
-      const newId = 'col_' + Date.now();
-      const randomColor = colors[Math.floor(Math.random() * colors.length)] || 'bg-blue-500';
-      this.columns.push({ id: newId, title: 'Nova Lista', color: randomColor });
+    async fetchCards() {
+      await this.fetchKanbanData();
     },
 
-    removeColumn(id: string) {
-      this.columns = this.columns.filter(col => col.id !== id);
+    async addCard(card: any) {
+      await this.fetchKanbanData();
+    },
+
+    async saveBoard() {
+      await kanbanServices.updateColumns(this.columns);
+    },
+
+    async addColumn() {
+      const newColumnId = `col-${Date.now()}`;
+
+      this.columns.push({
+        id: newColumnId,
+        title: 'Nova Lista',
+        color: '#94a3b8',
+        cards: [],
+        items: [],
+        tasks: [],
+        list: []
+      });
+
+      await this.saveBoard();
+      ElMessage.success('Nova lista adicionada com sucesso!');
+    },
+
+    async removeColumn(id: string) {
+      this.columns = this.columns.filter((col: any) => col.id !== id);
+
+      await this.saveBoard();
+      ElMessage.success('Lista removida com sucesso!');
     }
   }
 });

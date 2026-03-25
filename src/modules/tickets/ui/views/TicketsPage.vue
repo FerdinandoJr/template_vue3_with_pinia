@@ -69,6 +69,7 @@ import ArticleFormModal from '@/modules/kb/ui/components/ArticleFormModal.vue';
 import { useKbStore } from '@/modules/kb/ui/store/kb.store';
 import { kanbanServices } from '@/modules/kanban/data/kanban.services';
 import { KanbanStatus } from '@/modules/kanban/domain/valueObjects/kanban-status.enum';
+import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 
 const store = useTicketsStore();
 
@@ -102,16 +103,26 @@ const handleEditTicket = (ticket: ITicket) => {
 };
 
 const handleDeleteTicket = async (id: number) => {
-  await store.deleteTicket(id);
+  try {
+    await store.deleteTicket(id);
+    ElMessage.success('Ticket excluído com sucesso.');
+  } catch (error) {
+    ElMessage.error('Falha ao excluir o ticket.');
+  }
 };
 
 const handleSave = async (ticketData: any) => {
-  if (currentTicket.value) {
-    await store.updateTicket(currentTicket.value.id, ticketData);
-  } else {
-    await store.createTicket(ticketData);
+  try {
+    if (currentTicket.value) {
+      await store.updateTicket(currentTicket.value.id, ticketData);
+    } else {
+      await store.createTicket(ticketData);
+    }
+    closeModal();
+    ElMessage.success('Ticket guardado com sucesso.');
+  } catch (error) {
+    ElMessage.error('Falha ao salvar o ticket.');
   }
-  closeModal();
 };
 
 const closeModal = () => {
@@ -121,8 +132,8 @@ const closeModal = () => {
 };
 
 const handleConvertToKb = (ticket: ITicket) => {
-    const ticketContent = ticket.description || '<p>Nenhuma descrição fornecida.</p>';
-    const finalHtmlContent = `
+  const ticketContent = ticket.description || '<p>Nenhuma descrição fornecida.</p>';
+  const finalHtmlContent = `
     <p><strong>Problema/Solicitação Original:</strong></p>
     ${ticketContent}
     <br/>
@@ -130,52 +141,101 @@ const handleConvertToKb = (ticket: ITicket) => {
     <p><em>Escreva aqui os passos aplicados...</em></p>
   `.trim();
 
-    kbArticleData.value = {
-        title: `[Resolução] ${ticket.title}`,
-        content: finalHtmlContent,
-        category: 'Tutorial',
-        status: 'Rascunho',
-        icon: 'Document'
-    };
-    isKbModalOpen.value = true;
+  kbArticleData.value = {
+    title: `[Resolução] ${ticket.title}`,
+    content: finalHtmlContent,
+    category: 'Tutorial',
+    status: 'Rascunho',
+    icon: 'Document'
+  };
+  isKbModalOpen.value = true;
 };
 
 const handleSaveKbArticle = async (data: any) => {
+  try {
     const kbStore = useKbStore();
     await kbStore.saveArticle(data, data.id);
     isKbModalOpen.value = false;
     ElMessage.success('Artigo gerado com sucesso na Base de Conhecimento!');
+  } catch (error) {
+    ElMessage.error('Falha ao gerar o artigo.');
+  }
 };
 
 const handleApproveKanban = async (ticketData: any) => {
-    try {
-        await ElMessageBox.confirm(
-            'Deseja aprovar este ticket e enviar para a fila de desenvolvimento do Kanban?',
-            'Aprovar Triagem',
-            { confirmButtonText: 'Sim, Aprovar', cancelButtonText: 'Cancelar', type: 'success' }
-        );
+  try {
+    await ElMessageBox.confirm(
+      'Deseja aprovar este ticket e enviar para a fila de desenvolvimento do Kanban?',
+      'Aprovar Triagem',
+      { confirmButtonText: 'Sim, Aprovar', cancelButtonText: 'Cancelar', type: 'success' }
+    );
 
-        const updatedTicket = { ...ticketData, status: 'in-progress' };
-        if (currentTicket.value) {
-            await store.updateTicket(currentTicket.value.id, updatedTicket);
-        }
+    const updatedTicket = { ...ticketData, status: 'in-progress' };
+    const ticketId = currentTicket.value?.id || ticketData.id;
 
-        await kanbanServices.createCard({
-            title: `[${ticketData.type?.toUpperCase() || 'BUG'}] ${ticketData.title}`,
-            description: ticketData.description || 'Originado do atendimento',
-            customerName: ticketData.customer || 'Desconhecido',
-            status: KanbanStatus.TODO,
-            priority: ticketData.priority === 'urgent' || ticketData.priority === 'high' ? 'high' : 'medium',
-            dateDisplay: new Date().toLocaleDateString('pt-BR'),
-            avatars: [],
-            tags: [
-                { label: 'Ticket', colorClass: 'bg-indigo-100 text-indigo-700' }
-            ]
-        });
-
-        ElMessage.success('Ticket Aprovado! Card adicionado ao Backlog dos Desenvolvedores.');
-        closeModal();
-    } catch (e) {
+    if (ticketId) {
+      await store.updateTicket(ticketId, updatedTicket);
+    } else {
+      await store.createTicket(updatedTicket);
     }
+
+    const computedPriority = (ticketData.priority === 'urgent' || ticketData.priority === 'high') ? 'high' : 'medium';
+
+    const originalTags = Array.isArray(ticketData.tags) ? ticketData.tags : [];
+    const kanbanTags = originalTags.map((tag: string) => {
+      let colorClass = 'bg-slate-100 text-slate-700';
+      if (tag === 'Bug') colorClass = 'bg-red-100 text-red-700';
+      else if (tag === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
+      else if (tag === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
+      else if (tag === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
+      else if (tag === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
+      return { label: tag, colorClass };
+    });
+
+    const cardId = `kb-${Date.now()}`;
+    const newKanbanCard = {
+      id: cardId,
+      title: `[${(ticketData.type || 'BUG').toUpperCase()}] ${ticketData.title}`,
+      description: ticketData.description || 'Originado do atendimento',
+      customerName: ticketData.customer || 'Desconhecido',
+      status: KanbanStatus.TODO,
+      priority: computedPriority as 'high' | 'medium' | 'low',
+      dateDisplay: new Date().toLocaleDateString('pt-BR'),
+      avatars: [] as string[],
+      tags: kanbanTags
+    };
+
+    let createdCard: any = newKanbanCard;
+    try {
+      const response = await kanbanServices.createCard(newKanbanCard);
+      if (response) createdCard = response;
+    } catch (apiError) {
+      console.warn('kanbanServices.createCard falhou, forçando o estado local', apiError);
+    }
+
+    const kanbanStore = useKanbanStore() as any;
+
+    if (typeof kanbanStore.addCard === 'function') {
+      kanbanStore.addCard(createdCard);
+    } else if (Array.isArray(kanbanStore.columns)) {
+      const todoColumn = kanbanStore.columns.find((col: any) =>
+        col.id === KanbanStatus.TODO || col.status === KanbanStatus.TODO || col.id === 'todo'
+      );
+      if (todoColumn && Array.isArray(todoColumn.cards)) {
+        todoColumn.cards.push(createdCard);
+      } else if (kanbanStore.columns.length > 0 && Array.isArray(kanbanStore.columns[0].cards)) {
+        kanbanStore.columns[0].cards.push(createdCard);
+      }
+    }
+
+    ElMessage.success('Ticket Aprovado! Card adicionado ao Backlog.');
+    closeModal();
+    await store.fetch();
+
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('Erro ao integrar o ticket ao Kanban.');
+    }
+  }
 };
 </script>

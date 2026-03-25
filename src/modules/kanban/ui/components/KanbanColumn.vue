@@ -47,6 +47,7 @@ import { Close } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import KanbanCard from './KanbanCard.vue';
 import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
+import { useKanbanStore } from '../store/kanban.store';
 
 const props = defineProps<{
   columnId: string;
@@ -57,7 +58,8 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:title', 'remove', 'open-ticket']);
 
-const ticketsStore = useTicketsStore();
+const ticketsStore = useTicketsStore() as any;
+const kanbanStore = useKanbanStore() as any;
 
 const localTitle = ref(props.title);
 watch(() => props.title, (newVal) => { localTitle.value = newVal; });
@@ -70,22 +72,49 @@ const onDragStart = (event: DragEvent, ticket: any) => {
   }
 };
 
+const findCardInKanban = (id: string) => {
+  for (const col of kanbanStore.columns) {
+    const index = col.cards.findIndex((c: any) => String(c.id) === id);
+    if (index !== -1) return { col, index, card: col.cards[index] };
+  }
+  return null;
+};
+
+const syncTicketBackend = async (id: string, newStatus: string) => {
+  const isTicket = ticketsStore.items?.find((t: any) => String(t.id) === String(id));
+  if (!isTicket) return;
+
+  try {
+    if (typeof ticketsStore.updateTicket === 'function') {
+      await ticketsStore.updateTicket(id, { status: newStatus });
+    } else if (typeof ticketsStore.update === 'function') {
+      await ticketsStore.update(id, { status: newStatus });
+    }
+  } catch (e: any) {
+  }
+};
+
 const onDropColumn = async (event: DragEvent) => {
   const ticketId = event.dataTransfer?.getData('ticketId');
   if (!ticketId) return;
 
-  const ticket = ticketsStore.items.find((t: any) => String(t.id) === ticketId);
+  const found = findCardInKanban(ticketId);
+  if (!found) return;
 
-  if (ticket && (ticket.status as unknown as string) !== props.columnId) {
-    const previousStatus = ticket.status;
-    ticket.status = props.columnId as any;
+  const { col: sourceCol, index: draggedIndex, card: draggedCard } = found;
 
-    try {
-      await ticketsStore.updateTicket(ticket.id, { status: props.columnId as any });
-    } catch (error) {
-      ticket.status = previousStatus;
-      ElMessage.error('Erro ao mover ticket');
-    }
+  if (sourceCol.id === props.columnId) return;
+
+  sourceCol.cards.splice(draggedIndex, 1);
+
+  const targetCol = kanbanStore.columns.find((c: any) => c.id === props.columnId);
+  if (targetCol) {
+    draggedCard.status = props.columnId;
+    targetCol.cards.push(draggedCard);
+
+    if (typeof kanbanStore.saveBoard === 'function') kanbanStore.saveBoard();
+
+    syncTicketBackend(draggedCard.id, props.columnId);
   }
 };
 
@@ -93,35 +122,35 @@ const onDropCard = async (event: DragEvent, targetTicket: any) => {
   const ticketId = event.dataTransfer?.getData('ticketId');
   if (!ticketId) return;
 
-  const draggedIndex = ticketsStore.items.findIndex((t: any) => String(t.id) === ticketId);
-  if (draggedIndex === -1) return;
+  const found = findCardInKanban(ticketId);
+  if (!found) return;
 
-  const draggedTicket = ticketsStore.items[draggedIndex];
-  if (!draggedTicket) return;
-
-  const previousStatus = draggedTicket.status;
+  const { col: sourceCol, index: draggedIndex, card: draggedCard } = found;
+  const previousStatus = draggedCard.status;
 
   const targetElement = event.currentTarget as HTMLElement;
   const bounding = targetElement.getBoundingClientRect();
   const offset = event.clientY - bounding.top;
   const isUpperHalf = offset < bounding.height / 2;
 
-  ticketsStore.items.splice(draggedIndex, 1);
-  let targetIndex = ticketsStore.items.findIndex((t: any) => String(t.id) === String(targetTicket.id));
+  sourceCol.cards.splice(draggedIndex, 1);
+
+  const targetCol = kanbanStore.columns.find((c: any) => c.id === props.columnId);
+  if (!targetCol) return;
+
+  let targetIndex = targetCol.cards.findIndex((t: any) => String(t.id) === String(targetTicket.id));
 
   if (!isUpperHalf) {
     targetIndex++;
   }
-  ticketsStore.items.splice(targetIndex, 0, draggedTicket);
 
-  if ((previousStatus as unknown as string) !== props.columnId) {
-    draggedTicket.status = props.columnId as any;
-    try {
-      await ticketsStore.updateTicket(draggedTicket.id, { status: props.columnId as any });
-    } catch (error) {
-      draggedTicket.status = previousStatus;
-      ElMessage.error('Erro ao atualizar ticket');
-    }
+  draggedCard.status = props.columnId;
+  targetCol.cards.splice(targetIndex, 0, draggedCard);
+
+  if (typeof kanbanStore.saveBoard === 'function') kanbanStore.saveBoard();
+
+  if (String(previousStatus) !== String(props.columnId)) {
+    syncTicketBackend(draggedCard.id, props.columnId);
   }
 };
 </script>
