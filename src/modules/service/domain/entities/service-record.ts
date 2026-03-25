@@ -1,15 +1,18 @@
-import { ServiceStatus, ServicePriority } from '@/modules/service/domain/valueObjects/service-status.enum'
+export type ServiceStatus =
+  | 'OPEN' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELED'
+  | 'open' | 'in_progress' | 'finished' | 'canceled';
 
-export interface IServiceItem {
-  id: string;
+export interface IServiceRecord {
+  id: string | number;
   protocol: string;
   customerName: string;
+  document?: string;
   subject: string;
-  description: string;
+  description?: string;
   status: ServiceStatus;
-  priority: ServicePriority;
-  startedAt: number;
-  finishedAt?: number;
-  accumulatedTime: number;
-  lastResumedAt?: number;
+  createdAt: string;
+  finishedAt?: string;
+  agentId?: string | number;
+  lastAction?: string;
+  timeElapsed?: string;
 }

@@ -26,7 +26,6 @@ export const useCalendarStore = defineStore('calendar', () => {
   const selectedUserIds = ref<string[]>(['1']);
   const selectedDate = ref(new Date());
 
-  // NOVA VARIÁVEL ADICIONADA: Dias fechados (pode ser um array de números [0, 6] para fins de semana ou strings 'YYYY-MM-DD')
   const closedDays = ref<any[]>([]);
 
   const filteredEvents = computed(() => {

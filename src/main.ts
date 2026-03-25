@@ -1,29 +1,41 @@
-import { createApp } from 'vue'
-import './assets/style.css'
-import App from './App.vue'
-import { createPinia } from 'pinia'
-import router from './core/router'
-import VueApexCharts from "vue3-apexcharts"
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
-import ptBr from 'element-plus/es/locale/lang/pt-br'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import { permissionDirective } from './core/directives/permission'
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
+import ElementPlus from 'element-plus';
+import 'element-plus/dist/index.css';
+import ptBr from 'element-plus/es/locale/lang/pt-br';
+import * as ElementPlusIconsVue from '@element-plus/icons-vue';
+// Importação do ApexCharts
+import VueApexCharts from 'vue3-apexcharts';
 
-const app = createApp(App)
+import App from './App.vue';
+import router from './core/router';
+import './assets/style.css';
+import { permissionDirective } from './core/directives/permission';
 
-app.use(createPinia())
-app.use(router)
-app.use(VueApexCharts)
+const app = createApp(App);
 
+// Configurando o Pinia com o plugin de persistência
+const pinia = createPinia();
+pinia.use(piniaPluginPersistedstate);
+
+app.use(pinia);
+app.use(router);
+
+// Configuração Global Element Plus com idioma Pt-Br
 app.use(ElementPlus, {
     locale: ptBr,
-})
+});
 
-app.directive('permission', permissionDirective)
-
+// Registrando Ícones do Element Plus Globalmente
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-    app.component(key, component)
+    app.component(key, component);
 }
 
-app.mount('#app')
+// Registrando o ApexCharts Globalmente
+app.use(VueApexCharts);
+
+// Diretiva de Permissão Global
+app.directive('permission', permissionDirective);
+
+app.mount('#app');

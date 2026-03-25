@@ -77,175 +77,153 @@
       </el-form>
       <template #footer>
         <el-button @click="isFinishModalOpen = false">Cancelar</el-button>
-        <el-button type="danger" @click="submitFinish">Finalizar</el-button>
+        <el-button type="danger" @click="confirmFinish">Finalizar Chat</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive } from 'vue';
 import { storeToRefs } from 'pinia';
-import { ArrowLeft, Close, ChatLineSquare } from '@element-plus/icons-vue';
 import { useChatStore } from '../store/chat.store';
-import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
-import { ElMessage } from 'element-plus';
+import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
+import { kanbanServices } from '@/modules/kanban/data/kanban.services';
+import { KanbanStatus } from '@/modules/kanban/domain/valueObjects/kanban-status.enum';
 import ContactList from '../components/ContactList.vue';
 import ChatArea from '../components/ChatArea.vue';
 import ChatProfile from '../components/ChatProfile.vue';
 import LinkCustomerModal from '../components/modals/LinkCustomerModal.vue';
 import TicketModal from '@/modules/tickets/ui/components/TicketModal.vue';
+import { ChatLineSquare, ArrowLeft, Close } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import type { IContact } from '../../domain/entities/chat';
+import type { FormInstance, FormRules } from 'element-plus';
 
 const store = useChatStore();
-const customerStore = useCustomerStore();
 const ticketsStore = useTicketsStore();
-const { messages, selectedContact } = storeToRefs(store);
+const { selectedContact, messages } = storeToRefs(store);
+
 const isProfileOpen = ref(false);
 const isLinkModalOpen = ref(false);
-const isTransferModalOpen = ref(false);
-const transferDest = ref('');
-const isFinishModalOpen = ref(false);
-const finishFormRef = ref();
-const finishForm = reactive({ reason: '', description: '' });
-
-const finishRules = {
-  reason: [{ required: true, message: 'Informe a resolução', trigger: 'blur' }],
-  description: [{ required: true, message: 'A descrição das observações é obrigatória', trigger: 'blur' }]
-};
-
 const isTicketModalOpen = ref(false);
-const ticketInitialData = ref<any>(null);
+const isTransferModalOpen = ref(false);
+const isFinishModalOpen = ref(false);
 
-const handleSelectContact = (contact: any) => {
+const transferDest = ref('');
+const ticketInitialData = ref({});
+
+const finishFormRef = ref<FormInstance>();
+const finishForm = reactive({
+  reason: '',
+  description: ''
+});
+const finishRules = reactive<FormRules>({
+  reason: [{ required: true, message: 'Selecione um motivo', trigger: 'change' }],
+  description: [{ required: true, message: 'Adicione uma descrição/observação do atendimento', trigger: 'blur' }]
+});
+
+const handleSelectContact = (contact: IContact) => {
+  // CORREÇÃO 1: Passar o objeto 'contact' inteiro, pois a tipagem de IContact é exigida.
   store.selectContact(contact);
   isProfileOpen.value = false;
 };
 
 const handleBackToList = () => {
-  store.selectContact(null as any);
-  isProfileOpen.value = false;
+  store.activeContactId = null;
 };
 
 const toggleProfile = () => {
   isProfileOpen.value = !isProfileOpen.value;
 };
 
-const handleSendMessage = (payload: any) => {
-  if (selectedContact.value)
+const handleSendMessage = ({ text, type, file }: any) => {
+  if (selectedContact.value) {
+    // CORREÇÃO 2: Passar as propriedades num objeto único, 
+    // agrupando os dados no formato Payload
     store.sendMessage({
       contactId: selectedContact.value.id,
-      text: payload.text,
-      type: payload.type,
-      file: payload.file
+      text,
+      type,
+      file
     });
+  }
 };
 
-const handleAssumirChat = () => {
-  if (selectedContact.value) store.assumirChat(selectedContact.value.id);
+const handleAssumirChat = (contactId?: string) => {
+  if (contactId) {
+    store.assumirChat(contactId);
+    ElMessage.success('Chamado assumido com sucesso!');
+  }
 };
 
 const openLinkModal = () => {
   isLinkModalOpen.value = true;
 };
 
-const confirmTransfer = () => {
-  if (selectedContact.value && transferDest.value) {
-    store.transferirChat(selectedContact.value.id, transferDest.value);
-    ElMessage.success(`Chat transferido para ${transferDest.value}`);
-    isTransferModalOpen.value = false;
-    transferDest.value = '';
+const handleCustomerLinked = (data: any) => {
+  if (selectedContact.value) {
+    if (data.isNew) {
+      const newCustomerData = {
+        id: `cust_${Date.now()}`,
+        name: data.customerData.name,
+        company: data.customerData.tradeName || data.customerData.companyName || ''
+      };
+      store.linkCustomerToChat(selectedContact.value.id, newCustomerData);
+      ElMessage.success('Cliente cadastrado e vinculado ao chat!');
+    } else {
+      const existingData = {
+        id: data.customerUuid,
+        name: data.contactName,
+        company: ''
+      };
+      store.linkCustomerToChat(selectedContact.value.id, existingData);
+      ElMessage.success('Cliente existente vinculado ao chat!');
+    }
+  }
+  isLinkModalOpen.value = false;
+};
+
+const openTicketModal = (contact?: IContact) => {
+  if (contact) {
+    ticketInitialData.value = {
+      title: `Chat - ${contact.name}`,
+      description: `Ticket originado do chat no WhatsApp.\nÚltima mensagem: ${contact.lastMessage}`,
+      customer: contact.company || contact.name,
+      priority: 'normal',
+      type: 'support',
+      tags: contact.tags || []
+    };
+    isTicketModalOpen.value = true;
   }
 };
 
-const handleCustomerLinked = async (payload: any) => {
+const submitTicket = async (ticketData: any) => {
   try {
-    const activeContact = store.selectedContact;
-    if (activeContact) {
-      if (!payload.isNew) {
-        const customer = customerStore.items.find(c => c.uuid === payload.customerUuid);
-        if (customer) {
-          store.linkCustomerToChat(activeContact.id, {
-            id: customer.uuid,
-            name: payload.contactName || customer.name,
-            company: customer.companyName
-          });
-          const currentContacts = customer.contacts || [];
-          if (!currentContacts.includes(activeContact.id)) {
-            await customerStore.updateCustomer(customer.uuid, { contacts: [...currentContacts, activeContact.id] });
-          }
-          ElMessage.success('Cliente vinculado!');
-        }
-      } else {
-        const data = payload.customerData;
-        data.contacts = [activeContact.id];
-        const newCustomer = await customerStore.createCustomer(data);
-        if (newCustomer) {
-          store.linkCustomerToChat(activeContact.id, {
-            id: newCustomer.uuid,
-            name: newCustomer.name,
-            company: newCustomer.companyName
-          });
-          ElMessage.success('Novo cliente criado e vinculado!');
-        }
-      }
+    if (typeof (ticketsStore as any).createTicket === 'function') {
+      await (ticketsStore as any).createTicket(ticketData);
+    } else if (typeof (ticketsStore as any).create === 'function') {
+      await (ticketsStore as any).create(ticketData);
+    } else if (typeof (ticketsStore as any).addTicket === 'function') {
+      await (ticketsStore as any).addTicket(ticketData);
     }
-    isLinkModalOpen.value = false;
+    ElMessage.success('Ticket criado com sucesso a partir do chat!');
+    isTicketModalOpen.value = false;
   } catch (error) {
-    ElMessage.error('Erro ao vincular.');
+    ElMessage.error('Erro ao criar ticket.');
+    console.error(error);
   }
-};
-
-const openFinishModal = () => {
-  finishForm.reason = '';
-  finishForm.description = '';
-  isFinishModalOpen.value = true;
-};
-
-const submitFinish = async () => {
-  if (!finishFormRef.value) return;
-  await finishFormRef.value.validate((valid: boolean) => {
-    if (valid && selectedContact.value) {
-      store.finishChat(selectedContact.value.id, finishForm.reason, finishForm.description);
-      ElMessage.success('Atendimento finalizado.');
-      isFinishModalOpen.value = false;
-    }
-  });
-};
-
-const openTicketModal = (contact: any) => {
-  if (!contact) return;
-  const chatHistoryExport = (messages.value || []).map((msg: any) => ({
-    sender: msg.type === 'out' ? 'Você (Agente)' : (contact?.name || 'Cliente'),
-    text: msg.text,
-    time: msg.time || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-    isAgent: msg.type === 'out'
-  }));
-
-  ticketInitialData.value = {
-    title: `Suporte para ${contact?.name || 'Cliente'}`,
-    customer: contact?.company || contact?.name || '',
-    description: `Ticket aberto a partir do atendimento do WhatsApp.\nContato: ${contact?.phone || ''}`,
-    chatHistory: chatHistoryExport,
-    status: 'pending_approval'
-  };
-  isTicketModalOpen.value = true;
-};
-
-const submitTicket = async (data: any) => {
-  if (typeof (ticketsStore as any).createTicket === 'function') {
-    await (ticketsStore as any).createTicket(data);
-  } else if (typeof (ticketsStore as any).create === 'function') {
-    await (ticketsStore as any).create(data);
-  } else if (typeof (ticketsStore as any).addTicket === 'function') {
-    await (ticketsStore as any).addTicket(data);
-  }
-  isTicketModalOpen.value = false;
-  ElMessage.success('Ticket criado com sucesso!');
 };
 
 const handleApproveKanban = async (ticketData: any) => {
   try {
+    await ElMessageBox.confirm(
+      'Deseja aprovar este ticket e enviar para a fila de desenvolvimento do Kanban?',
+      'Aprovar Triagem',
+      { confirmButtonText: 'Sim, Aprovar', cancelButtonText: 'Cancelar', type: 'success' }
+    );
+
     ticketData.status = 'open';
 
     if (ticketData.id) {
@@ -264,11 +242,85 @@ const handleApproveKanban = async (ticketData: any) => {
       }
     }
 
-    ElMessage.success('Ticket aprovado para o Kanban!');
+    const computedPriority = (ticketData.priority === 'urgent' || ticketData.priority === 'high') ? 'high' : 'medium';
+    const originalTags = Array.isArray(ticketData.tags) ? ticketData.tags : [];
+    const kanbanTags = originalTags.map((tag: string) => {
+      let colorClass = 'bg-slate-100 text-slate-700';
+      if (tag === 'Bug') colorClass = 'bg-red-100 text-red-700';
+      else if (tag === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
+      else if (tag === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
+      else if (tag === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
+      else if (tag === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
+      return { label: tag, colorClass };
+    });
+
+    const cardId = `kb-${Date.now()}`;
+    const newKanbanCard = {
+      id: cardId,
+      title: ticketData.title || ticketData.subject || 'Ticket sem título',
+      description: ticketData.description || 'Originado do atendimento',
+      customerName: ticketData.customer || 'Desconhecido',
+      status: KanbanStatus.TODO,
+      priority: computedPriority as 'high' | 'medium' | 'low',
+      dateDisplay: new Date().toLocaleDateString('pt-BR'),
+      avatars: [] as string[],
+      tags: kanbanTags
+    };
+
+    try {
+      await kanbanServices.createCard(newKanbanCard);
+    } catch (apiError) {
+      console.warn('kanbanServices.createCard falhou, forçando o estado local', apiError);
+    }
+
+    const kanbanStore = useKanbanStore();
+    if (kanbanStore.columns && kanbanStore.columns.length > 0) {
+      const todoCol = kanbanStore.columns.find((c: any) => c.id === KanbanStatus.TODO || c.id === 'todo');
+      if (todoCol) {
+        todoCol.cards.push(newKanbanCard);
+      } else {
+        kanbanStore.columns[0].cards.push(newKanbanCard);
+      }
+    }
+
+    ElMessage.success('Ticket aprovado e enviado para o Kanban com sucesso!');
     isTicketModalOpen.value = false;
+
   } catch (error) {
-    ElMessage.error('Erro ao enviar o ticket para o Kanban.');
-    console.error(error);
+    if (error !== 'cancel') {
+      ElMessage.error('Erro ao enviar o ticket para o Kanban.');
+      console.error(error);
+    }
   }
+};
+
+const confirmTransfer = () => {
+  if (selectedContact.value && transferDest.value) {
+    store.transferirChat(selectedContact.value.id, transferDest.value);
+    ElMessage.success('Atendimento transferido para o setor ' + transferDest.value);
+    isTransferModalOpen.value = false;
+    transferDest.value = '';
+  }
+};
+
+const openFinishModal = () => {
+  finishForm.reason = '';
+  finishForm.description = '';
+  isFinishModalOpen.value = true;
+};
+
+const confirmFinish = async () => {
+  if (!finishFormRef.value) return;
+  await finishFormRef.value.validate((valid) => {
+    if (valid) {
+      if (selectedContact.value) {
+        store.finishChat(selectedContact.value.id, finishForm.reason, finishForm.description);
+        ElMessage.success('Atendimento finalizado e dados salvos no histórico!');
+      }
+      isFinishModalOpen.value = false;
+    } else {
+      ElMessage.warning('Preencha os campos obrigatórios para finalizar.');
+    }
+  });
 };
 </script>

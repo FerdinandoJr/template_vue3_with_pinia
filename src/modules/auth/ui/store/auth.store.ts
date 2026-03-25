@@ -22,7 +22,6 @@ export const useAuthStore = defineStore('auth', {
     },
 
     actions: {
-
         hasRole(roles: string[]) {
             if (!this.user || !this.user.role) return false;
             return roles.includes(this.user.role);
@@ -63,5 +62,6 @@ export const useAuthStore = defineStore('auth', {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
         }
-    }
+    },
+    persist: true
 });

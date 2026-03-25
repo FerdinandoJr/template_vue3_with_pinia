@@ -1,3 +1,6 @@
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { ElMessage } from 'element-plus';
+
 export interface HttpClient {
     get<T>(url: string, headers?: Record<string, string>): Promise<T>;
     post<T>(url: string, body: any, headers?: Record<string, string>): Promise<T>;
@@ -10,6 +13,36 @@ export class FetchHttpClient implements HttpClient {
 
     constructor() {
         this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    }
+
+    private async handleResponse<T>(response: Response): Promise<T> {
+        if (!response.ok) {
+            if (response.status === 401) {
+                const authStore = useAuthStore();
+                authStore.logout();
+                window.location.href = '/login';
+                ElMessage.error('Sua sessão expirou. Por favor, faça login novamente.');
+                throw new Error('Unauthorized');
+            }
+
+            let errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                if (errorData && errorData.message) {
+                    errorMessage = errorData.message;
+                }
+            } catch {
+            }
+
+            ElMessage.error(errorMessage);
+            throw new Error(errorMessage);
+        }
+
+        if (response.status === 204) {
+            return {} as T;
+        }
+
+        return await response.json();
     }
 
     private async request<T>(endpoint: string, options: RequestInit): Promise<T> {
@@ -31,33 +64,7 @@ export class FetchHttpClient implements HttpClient {
                 ...options.headers,
             },
         });
-
-        if (response.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
-            throw new Error('Sessão expirada. Por favor, faça login novamente.');
-        }
-
-        if (!response.ok) {
-            let errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
-
-            try {
-                const errorData = await response.json();
-                if (errorData && errorData.message) {
-                    errorMessage = errorData.message;
-                }
-            } catch {
-            }
-
-            throw new Error(errorMessage);
-        }
-
-        if (response.status === 204) {
-            return {} as T;
-        }
-
-        return await response.json();
+        return this.handleResponse<T>(response);
     }
 
     async get<T>(url: string, headers?: Record<string, string>): Promise<T> {
@@ -76,3 +83,5 @@ export class FetchHttpClient implements HttpClient {
         return this.request<T>(url, { method: 'DELETE', headers });
     }
 }
+
+export const httpClient = new FetchHttpClient();

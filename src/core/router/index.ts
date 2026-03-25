@@ -1,6 +1,4 @@
 import { createWebHistory, createRouter } from "vue-router"
-import AppLayout from "@/layouts/AppLayout.vue"
-import LoginPage from "@/modules/auth/ui/views/LoginPage.vue"
 import { customerRouter } from "@/modules/customer/ui/router/routes"
 import ticketsRoutes from "@/modules/tickets/ui/router/routes"
 import atendimentosRoutes from "@/modules/service/ui/router/routes"
@@ -27,12 +25,12 @@ const routes = [
   {
     path: "/login",
     name: "Login",
-    component: LoginPage,
+    component: () => import("@/modules/auth/ui/views/LoginPage.vue"),
     meta: { requiresAuth: false }
   },
   {
     path: "/",
-    component: AppLayout,
+    component: () => import("@/layouts/AppLayout.vue"),
     meta: { requiresAuth: true },
     children: [
       ...dashboardRoutes,
@@ -60,24 +58,21 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
-  const isAuthenticated = !!localStorage.getItem('token');
+  const isAuthenticated = !!authStore.token || !!localStorage.getItem('token');
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login');
-    return;
+    return next('/login');
   }
 
   if (to.path === '/login' && isAuthenticated) {
-    next('/');
-    return;
+    return next('/');
   }
 
   if (to.meta.roles && Array.isArray(to.meta.roles)) {
     const userRole = authStore.user?.role;
 
     if (!userRole || !to.meta.roles.includes(userRole)) {
-      next('/');
-      return;
+      return next('/');
     }
   }
 

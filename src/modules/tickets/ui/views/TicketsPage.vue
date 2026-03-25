@@ -195,7 +195,7 @@ const handleApproveKanban = async (ticketData: any) => {
     const cardId = `kb-${Date.now()}`;
     const newKanbanCard = {
       id: cardId,
-      title: `[${(ticketData.type || 'BUG').toUpperCase()}] ${ticketData.title}`,
+      title: ticketData.title || ticketData.subject || 'Ticket sem título',
       description: ticketData.description || 'Originado do atendimento',
       customerName: ticketData.customer || 'Desconhecido',
       status: KanbanStatus.TODO,
