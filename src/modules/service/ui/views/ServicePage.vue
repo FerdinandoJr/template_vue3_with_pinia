@@ -77,7 +77,7 @@
             <span class="text-sm font-mono font-bold text-slate-700">{{ service.timeElapsed }}</span>
           </div>
           <div class="col-span-1 flex justify-center">
-            <el-tag :type="getStatusTag(service.status).type" effect="dark" size="small"
+            <el-tag :color="getStatusTag(service.status).color" effect="dark" size="small"
               class="!border-none !font-black px-3 !rounded-md">
               {{ getStatusTag(service.status).label }}
             </el-tag>
@@ -121,7 +121,7 @@
                 <h2 class="text-2xl font-black text-slate-800 font-mono tracking-tighter">
                   #{{ selectedService.protocol }}
                 </h2>
-                <el-tag :type="getStatusTag(selectedService.status).type" effect="dark"
+                <el-tag :color="getStatusTag(selectedService.status).color" effect="dark"
                   class="!font-black !border-none px-4 !rounded-lg">
                   {{ getStatusTag(selectedService.status).label }}
                 </el-tag>
@@ -131,8 +131,10 @@
           <div class="flex gap-3">
             <el-button type="info" plain :icon="Printer" @click="handlePrint"
               class="!rounded-xl font-bold">Imprimir</el-button>
-            <el-button type="success" :icon="Check" v-if="selectedService?.status !== 'finished'"
-              @click="handleFinishService" class="!rounded-xl !font-black !bg-emerald-500 px-8">
+
+            <el-button type="success" :icon="Check"
+              v-if="selectedService?.status !== 'finished' && selectedService?.status !== 'FINISHED'"
+              @click="openFinishDialog" class="!rounded-xl !font-black !bg-emerald-500 px-8">
               FINALIZAR
             </el-button>
           </div>
@@ -202,16 +204,67 @@
         </div>
       </div>
     </el-dialog>
+
+    <el-dialog v-model="isFinishDialogOpen" width="800px" align-center class="!rounded-[24px] overflow-hidden"
+      :show-close="false">
+      <template #header>
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+          <h3 class="text-xl font-black text-slate-800 flex items-center gap-3">
+            <el-icon class="text-emerald-500">
+              <Check />
+            </el-icon> Encerrar Atendimento
+          </h3>
+        </div>
+      </template>
+
+      <div class="py-2">
+        <label class="flex items-center text-[12px] font-black text-slate-500 uppercase tracking-widest mb-3">
+          Resolução / Anotação Final
+          <span class="text-red-500 ml-1 text-lg leading-none">*</span>
+        </label>
+
+        <div class="custom-quill-wrapper border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <QuillEditor v-model:content="anotacaoFinal" contentType="html" theme="snow" toolbar="full"
+            placeholder="Descreva detalhadamente como o atendimento foi concluído..." />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-4 pt-4">
+          <el-button @click="isFinishDialogOpen = false" size="large" class="!font-bold !rounded-xl">
+            Cancelar
+          </el-button>
+
+          <el-button type="success" size="large" class="!font-bold !rounded-xl transition-all !bg-emerald-500 px-8"
+            @click="confirmFinishService" :disabled="isAnotacaoInvalida">
+            Confirmar Encerramento
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { Search, Timer, Document, Printer, Check, ArrowLeft, Refresh } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import { useServiceStore } from '../store/service.store';
 
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
+
 const store = useServiceStore();
+
+const anotacaoFinal = ref('');
+const isFinishDialogOpen = ref(false);
+
+const isAnotacaoInvalida = computed(() => {
+  if (!anotacaoFinal.value) return true;
+  const textoLimpo = anotacaoFinal.value.replace(/<[^>]*>?/gm, '').trim();
+  return textoLimpo.length === 0;
+});
 
 const getDefaultDateRange = (): [string, string] => {
   const date = new Date();
@@ -246,7 +299,6 @@ const handleFilterChange = () => {
   store.setFilter({ status: filters.status });
 };
 
-// NOVA FUNÇÃO DO FILTRO DE DATA
 const handleDateChange = () => {
   store.setFilter({ dateRange: filters.dateRange });
 };
@@ -266,20 +318,31 @@ const shortcuts = [
 ];
 
 const getStatusTag = (s: string) => {
+  if (!s || s.toUpperCase() === 'N/A') return { label: 'ABERTO', color: '#3b82f6' };
+
+  const normalized = s.toLowerCase();
   const m: any = {
-    in_progress: { label: 'EM ANDAMENTO', type: 'success' },
-    waiting: { label: 'AGUARDANDO', type: 'warning' },
-    finished: { label: 'CONCLUÍDO', type: 'info' },
-    paused: { label: 'PAUSADO', type: 'warning' }
+    in_progress: { label: 'EM ANDAMENTO', color: '#8b5cf6' },
+    waiting: { label: 'AGUARDANDO', color: '#f59e0b' },
+    finished: { label: 'CONCLUÍDO', color: '#10b981' },
+    paused: { label: 'PAUSADO', color: '#ef4444' },
+    open: { label: 'ABERTO', color: '#3b82f6' },
+    closed: { label: 'ENCERRADO', color: '#64748b' }
   };
-  return m[s] || { label: 'N/A', type: 'info' };
+  return m[normalized] || { label: s.toUpperCase(), color: '#94a3b8' };
 };
 
-const getStatusBarColor = (status: string) => {
-  if (status === 'in_progress') return 'bg-emerald-500';
-  if (status === 'waiting') return 'bg-orange-400';
-  if (status === 'finished') return 'bg-slate-400';
-  if (status === 'paused') return 'bg-amber-400';
+const getStatusBarColor = (s: string) => {
+  if (!s || s.toUpperCase() === 'N/A') return 'bg-blue-500';
+
+  const normalized = s.toLowerCase();
+  if (normalized === 'in_progress') return 'bg-violet-500';
+  if (normalized === 'waiting') return 'bg-amber-500';
+  if (normalized === 'finished') return 'bg-emerald-500';
+  if (normalized === 'paused') return 'bg-red-500';
+  if (normalized === 'open') return 'bg-blue-500';
+  if (normalized === 'closed') return 'bg-slate-500';
+
   return 'bg-slate-300';
 };
 
@@ -288,18 +351,21 @@ const openServiceDetails = (s: any) => {
   isModalOpen.value = true;
 };
 
-const handleFinishService = () => {
-  if (!selectedService.value) return;
+const openFinishDialog = () => {
+  anotacaoFinal.value = '';
+  isFinishDialogOpen.value = true;
+};
 
-  ElMessageBox.prompt('Descrição da resolução:', 'Finalizar Atendimento', {
-    confirmButtonText: 'Finalizar',
-    cancelButtonText: 'Cancelar',
-    inputType: 'textarea'
-  }).then(({ value }) => {
-    store.finishService(selectedService.value.id, value);
-    isModalOpen.value = false;
-    ElMessage.success('Atendimento finalizado com sucesso!');
-  }).catch(() => { });
+const confirmFinishService = () => {
+  if (!selectedService.value || isAnotacaoInvalida.value) return;
+
+  store.finishService(selectedService.value.id, anotacaoFinal.value);
+
+  isFinishDialogOpen.value = false;
+  isModalOpen.value = false;
+  anotacaoFinal.value = '';
+
+  ElMessage.success('Atendimento finalizado com sucesso e log registrado!');
 };
 
 const handlePrint = () => window.print();
@@ -331,6 +397,40 @@ onMounted(() => {
   background: transparent !important;
   font-weight: 700;
   color: #475569 !important;
+}
+
+:deep(.custom-quill-wrapper) {
+  background-color: #ffffff;
+}
+
+:deep(.custom-quill-wrapper .ql-toolbar.ql-snow) {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  border-radius: 12px 12px 0 0;
+  font-family: inherit;
+  padding: 12px;
+}
+
+:deep(.custom-quill-wrapper .ql-container.ql-snow) {
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  min-height: 250px;
+}
+
+:deep(.custom-quill-wrapper .ql-editor) {
+  min-height: 250px;
+  max-height: 500px;
+  overflow-y: auto;
+  color: #334155;
+  line-height: 1.6;
+  padding: 1rem;
+}
+
+:deep(.custom-quill-wrapper .ql-editor.ql-blank::before) {
+  font-style: normal;
+  color: #94a3b8;
 }
 
 .animate-spin-slow {

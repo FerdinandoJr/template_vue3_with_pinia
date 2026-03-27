@@ -4,7 +4,6 @@ import { ServiceStatus, ServicePriority } from "../domain/valueObjects/service.e
 export interface ServiceFilter {
   query?: string;
   status?: string;
-  // Ampliamos a tipagem para evitar conflitos com o array que o Vue retorna
   dateRange?: string[] | [string, string] | null;
   page?: number;
   limit?: number;
@@ -98,12 +97,7 @@ export const serviceServices = {
             s.subject.toLowerCase().includes(q)
           );
         }
-
-        // =======================================================
-        // Filtro de Data corrigido para satisfazer o TypeScript
-        // =======================================================
         if (filter.dateRange && filter.dateRange[0] && filter.dateRange[1]) {
-          // Garantimos ao TS que estas posições são strings
           const startStr = filter.dateRange[0] as string;
           const endStr = filter.dateRange[1] as string;
 
@@ -114,7 +108,7 @@ export const serviceServices = {
           };
 
           const startTime = parseDate(startStr);
-          const endTime = parseDate(endStr) + 86399999; // + 1 dia (23:59:59)
+          const endTime = parseDate(endStr) + 86399999;
 
           filtered = filtered.filter(s => {
             if (!s.createdAt) return false;
@@ -126,7 +120,6 @@ export const serviceServices = {
             return itemTime >= startTime && itemTime <= endTime;
           });
         }
-        // =======================================================
 
         const page = filter.page || 1;
         const limit = filter.limit || 10;
