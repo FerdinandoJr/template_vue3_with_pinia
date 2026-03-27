@@ -1,7 +1,6 @@
 <template>
   <div class="h-[calc(100vh-4rem)] bg-[#f8fafc] overflow-y-auto custom-scrollbar">
     <div class="max-w-[1600px] mx-auto w-full p-6 flex flex-col min-h-full">
-
       <div class="flex justify-between items-center mb-6 shrink-0">
         <div>
           <h1 class="text-[28px] font-black text-slate-800 leading-none mb-1">Gestão de Tickets</h1>
@@ -11,8 +10,7 @@
           @click="openCreateModal">
           <el-icon class="mr-2">
             <Plus />
-          </el-icon>
-          Novo Ticket
+          </el-icon> Novo Ticket
         </el-button>
       </div>
 
@@ -28,12 +26,10 @@
         <div class="p-4 border-b border-slate-100 bg-white shrink-0">
           <TicketFilters :filters="store.filter" @update:filters="store.applyFilters" />
         </div>
-
         <div class="flex-1 overflow-auto">
           <TicketTable :tickets="store.items" @view="handleViewTicket" @edit="handleEditTicket"
             @delete="handleDeleteTicket" @convert-to-kb="handleConvertToKb" class="!border-none !rounded-none" />
         </div>
-
         <div
           class="p-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
           <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">
@@ -44,7 +40,6 @@
             @current-change="store.setPage" />
         </div>
       </div>
-
     </div>
   </div>
 
@@ -65,6 +60,7 @@ import TicketTable from '../components/TicketTable.vue';
 import TicketModal from '../components/TicketModal.vue';
 import type { ITicket } from '../../domain/entities/Ticket';
 import { ElMessage, ElMessageBox } from 'element-plus';
+
 import ArticleFormModal from '@/modules/kb/ui/components/ArticleFormModal.vue';
 import { useKbStore } from '@/modules/kb/ui/store/kb.store';
 import { kanbanServices } from '@/modules/kanban/data/kanban.services';
@@ -72,7 +68,6 @@ import { KanbanStatus } from '@/modules/kanban/domain/valueObjects/kanban-status
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 
 const store = useTicketsStore();
-
 const isModalOpen = ref(false);
 const currentTicket = ref<ITicket | undefined>(undefined);
 const isViewing = ref(false);
@@ -134,31 +129,30 @@ const closeModal = () => {
 const handleConvertToKb = (ticket: ITicket) => {
   const ticketContent = ticket.description || '<p>Nenhuma descrição fornecida.</p>';
   const finalHtmlContent = `
-    <p><strong>Problema/Solicitação Original:</strong></p>
-    ${ticketContent}
-    <br/>
-    <p><strong>Resolução/Passos de Solução:</strong></p>
-    <p><em>Escreva aqui os passos aplicados...</em></p>
-  `.trim();
+        <p><strong>Problema/Chamado Original:</strong> ${ticket.title}</p>
+        <hr/>
+        ${ticketContent}
+    `;
 
   kbArticleData.value = {
-    title: `[Resolução] ${ticket.title}`,
+    title: `Resolução: ${ticket.title}`,
+    category: 'Suporte',
     content: finalHtmlContent,
-    category: 'Tutorial',
-    status: 'Rascunho',
-    icon: 'Document'
+    icon: 'Document',
+    status: 'Rascunho'
   };
   isKbModalOpen.value = true;
 };
 
-const handleSaveKbArticle = async (data: any) => {
+const handleSaveKbArticle = async (articleData: any) => {
   try {
     const kbStore = useKbStore();
-    await kbStore.saveArticle(data, data.id);
+    // Utilizando saveArticle em vez de createArticle para corresponder à store atual
+    await kbStore.saveArticle(articleData);
+    // O ElMessage de sucesso foi removido, pois a store já notifica o utilizador
     isKbModalOpen.value = false;
-    ElMessage.success('Artigo gerado com sucesso na Base de Conhecimento!');
   } catch (error) {
-    ElMessage.error('Falha ao gerar o artigo.');
+    ElMessage.error('Erro ao processar o artigo.');
   }
 };
 
@@ -170,17 +164,15 @@ const handleApproveKanban = async (ticketData: any) => {
       { confirmButtonText: 'Sim, Aprovar', cancelButtonText: 'Cancelar', type: 'success' }
     );
 
-    const updatedTicket = { ...ticketData, status: 'in-progress' };
-    const ticketId = currentTicket.value?.id || ticketData.id;
+    ticketData.status = 'open';
 
-    if (ticketId) {
-      await store.updateTicket(ticketId, updatedTicket);
+    if (ticketData.id) {
+      await store.updateTicket(ticketData.id, ticketData);
     } else {
-      await store.createTicket(updatedTicket);
+      await store.createTicket(ticketData);
     }
 
     const computedPriority = (ticketData.priority === 'urgent' || ticketData.priority === 'high') ? 'high' : 'medium';
-
     const originalTags = Array.isArray(ticketData.tags) ? ticketData.tags : [];
     const kanbanTags = originalTags.map((tag: string) => {
       let colorClass = 'bg-slate-100 text-slate-700';
@@ -194,47 +186,41 @@ const handleApproveKanban = async (ticketData: any) => {
 
     const cardId = `kb-${Date.now()}`;
     const newKanbanCard = {
+      ...ticketData,
       id: cardId,
       title: ticketData.title || ticketData.subject || 'Ticket sem título',
       description: ticketData.description || 'Originado do atendimento',
       customerName: ticketData.customer || 'Desconhecido',
+      customer: ticketData.customer || 'Desconhecido',
       status: KanbanStatus.TODO,
       priority: computedPriority as 'high' | 'medium' | 'low',
       dateDisplay: new Date().toLocaleDateString('pt-BR'),
-      avatars: [] as string[],
+      avatars: ticketData.assignees || [],
       tags: kanbanTags
     };
 
-    let createdCard: any = newKanbanCard;
     try {
-      const response = await kanbanServices.createCard(newKanbanCard);
-      if (response) createdCard = response;
+      await kanbanServices.createCard(newKanbanCard);
     } catch (apiError) {
-      console.warn('kanbanServices.createCard falhou, forçando o estado local', apiError);
+      console.warn('kanbanServices.createCard falhou', apiError);
     }
 
-    const kanbanStore = useKanbanStore() as any;
-
-    if (typeof kanbanStore.addCard === 'function') {
-      kanbanStore.addCard(createdCard);
-    } else if (Array.isArray(kanbanStore.columns)) {
-      const todoColumn = kanbanStore.columns.find((col: any) =>
-        col.id === KanbanStatus.TODO || col.status === KanbanStatus.TODO || col.id === 'todo'
-      );
-      if (todoColumn && Array.isArray(todoColumn.cards)) {
-        todoColumn.cards.push(createdCard);
-      } else if (kanbanStore.columns.length > 0 && Array.isArray(kanbanStore.columns[0].cards)) {
-        kanbanStore.columns[0].cards.push(createdCard);
+    const kanbanStore = useKanbanStore();
+    if (kanbanStore.columns && kanbanStore.columns.length > 0) {
+      const todoCol = kanbanStore.columns.find((c: any) => c.id === KanbanStatus.TODO || c.id === 'todo');
+      if (todoCol) {
+        todoCol.cards.push(newKanbanCard);
+      } else {
+        kanbanStore.columns[0].cards.push(newKanbanCard);
       }
     }
 
-    ElMessage.success('Ticket Aprovado! Card adicionado ao Backlog.');
-    closeModal();
-    await store.fetch();
-
-  } catch (error: any) {
+    ElMessage.success('Ticket aprovado e enviado para o Kanban com sucesso!');
+    isModalOpen.value = false;
+  } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('Erro ao integrar o ticket ao Kanban.');
+      ElMessage.error('Erro ao enviar o ticket para o Kanban.');
+      console.error(error);
     }
   }
 };

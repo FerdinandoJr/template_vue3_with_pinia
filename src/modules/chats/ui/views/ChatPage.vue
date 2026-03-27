@@ -6,12 +6,14 @@
     <template v-if="selectedContact">
       <div class="flex-1 flex w-full h-full relative"
         :class="['transition-all duration-300', isProfileOpen ? 'hidden lg:flex' : 'flex']">
+
         <button @click="handleBackToList"
           class="md:hidden absolute top-3 left-3 z-[60] bg-white border border-slate-200 shadow-md rounded-full p-2 text-slate-600 hover:bg-slate-50 flex items-center justify-center transition-all">
           <el-icon :size="20">
             <ArrowLeft />
           </el-icon>
         </button>
+
         <ChatArea class="w-full h-full" :contact="selectedContact" :messages="messages" @send="handleSendMessage"
           @assumir="handleAssumirChat" @finalizar="openFinishModal" @transferir="isTransferModalOpen = true"
           @vincular="openLinkModal" @abrir-modal-ticket="openTicketModal" @toggle-profile="toggleProfile" />
@@ -70,6 +72,7 @@
             <el-option label="Outro" value="outro" />
           </el-select>
         </el-form-item>
+
         <el-form-item label="Descrição / Observações" prop="description">
           <el-input v-model="finishForm.description" type="textarea" :rows="4"
             placeholder="Adicione notas obrigatórias sobre o atendimento..." />
@@ -91,11 +94,13 @@ import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 import { kanbanServices } from '@/modules/kanban/data/kanban.services';
 import { KanbanStatus } from '@/modules/kanban/domain/valueObjects/kanban-status.enum';
+
 import ContactList from '../components/ContactList.vue';
 import ChatArea from '../components/ChatArea.vue';
 import ChatProfile from '../components/ChatProfile.vue';
 import LinkCustomerModal from '../components/modals/LinkCustomerModal.vue';
 import TicketModal from '@/modules/tickets/ui/components/TicketModal.vue';
+
 import { ChatLineSquare, ArrowLeft, Close } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { IContact } from '../../domain/entities/chat';
@@ -119,13 +124,13 @@ const finishForm = reactive({
   reason: '',
   description: ''
 });
+
 const finishRules = reactive<FormRules>({
   reason: [{ required: true, message: 'Selecione um motivo', trigger: 'change' }],
   description: [{ required: true, message: 'Adicione uma descrição/observação do atendimento', trigger: 'blur' }]
 });
 
 const handleSelectContact = (contact: IContact) => {
-  // CORREÇÃO 1: Passar o objeto 'contact' inteiro, pois a tipagem de IContact é exigida.
   store.selectContact(contact);
   isProfileOpen.value = false;
 };
@@ -140,14 +145,7 @@ const toggleProfile = () => {
 
 const handleSendMessage = ({ text, type, file }: any) => {
   if (selectedContact.value) {
-    // CORREÇÃO 2: Passar as propriedades num objeto único, 
-    // agrupando os dados no formato Payload
-    store.sendMessage({
-      contactId: selectedContact.value.id,
-      text,
-      type,
-      file
-    });
+    store.sendMessage({ contactId: selectedContact.value.id, text, type, file });
   }
 };
 
@@ -165,19 +163,11 @@ const openLinkModal = () => {
 const handleCustomerLinked = (data: any) => {
   if (selectedContact.value) {
     if (data.isNew) {
-      const newCustomerData = {
-        id: `cust_${Date.now()}`,
-        name: data.customerData.name,
-        company: data.customerData.tradeName || data.customerData.companyName || ''
-      };
+      const newCustomerData = { id: `cust_${Date.now()}`, name: data.customerData.name, company: data.customerData.tradeName || data.customerData.companyName || '' };
       store.linkCustomerToChat(selectedContact.value.id, newCustomerData);
       ElMessage.success('Cliente cadastrado e vinculado ao chat!');
     } else {
-      const existingData = {
-        id: data.customerUuid,
-        name: data.contactName,
-        company: ''
-      };
+      const existingData = { id: data.customerUuid, name: data.contactName, company: '' };
       store.linkCustomerToChat(selectedContact.value.id, existingData);
       ElMessage.success('Cliente existente vinculado ao chat!');
     }
@@ -256,14 +246,16 @@ const handleApproveKanban = async (ticketData: any) => {
 
     const cardId = `kb-${Date.now()}`;
     const newKanbanCard = {
+      ...ticketData,
       id: cardId,
       title: ticketData.title || ticketData.subject || 'Ticket sem título',
       description: ticketData.description || 'Originado do atendimento',
       customerName: ticketData.customer || 'Desconhecido',
+      customer: ticketData.customer || 'Desconhecido',
       status: KanbanStatus.TODO,
       priority: computedPriority as 'high' | 'medium' | 'low',
       dateDisplay: new Date().toLocaleDateString('pt-BR'),
-      avatars: [] as string[],
+      avatars: ticketData.assignees || [],
       tags: kanbanTags
     };
 
@@ -285,7 +277,6 @@ const handleApproveKanban = async (ticketData: any) => {
 
     ElMessage.success('Ticket aprovado e enviado para o Kanban com sucesso!');
     isTicketModalOpen.value = false;
-
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('Erro ao enviar o ticket para o Kanban.');

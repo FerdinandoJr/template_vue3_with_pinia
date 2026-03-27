@@ -32,7 +32,7 @@
                 </div>
             </div>
             <div class="bg-white p-4 sm:p-8 rounded-xl border border-slate-200 shadow-sm rich-text-content overflow-x-auto"
-                v-html="article.content">
+                v-safe-html="article.content">
             </div>
         </div>
         <template #footer>
