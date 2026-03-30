@@ -57,7 +57,6 @@ export const useTicketsStore = defineStore('tickets', {
             limit: this.pageSize
           };
           const { total, filteredTotal, items } = await ticketServices.list(currentFilter);
-
           this.total = total;
           this.filteredTotal = filteredTotal;
           this.items = items;
@@ -88,8 +87,13 @@ export const useTicketsStore = defineStore('tickets', {
       await this.fetch();
     },
     async updateTicket(id: number, data: Partial<ITicket>) {
-      await ticketServices.update(id, data);
-      await this.fetch();
+
+      const updatedTicket = await ticketServices.update(id, data);
+
+      const index = this.items.findIndex(t => t.id === id);
+      if (index !== -1) {
+        this.items[index] = { ...this.items[index], ...data, ...updatedTicket };
+      }
     },
     async deleteTicket(id: number) {
       await ticketServices.delete(id);

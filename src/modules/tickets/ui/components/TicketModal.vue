@@ -1,6 +1,7 @@
 <template>
     <el-dialog :model-value="isOpen" @update:model-value="!$event && handleClose()" width="95%"
         style="max-width: 1050px;" align-center destroy-on-close :show-close="false" class="enterprise-ticket-dialog">
+
         <template #header>
             <div
                 class="flex flex-wrap lg:flex-nowrap justify-between items-center w-full px-4 lg:px-6 py-4 border-b border-slate-200 bg-white rounded-t-xl gap-4">
@@ -27,7 +28,6 @@
         </template>
 
         <div class="flex flex-col lg:flex-row h-full min-h-[600px] lg:h-[750px] bg-white w-full">
-
             <div class="flex-1 flex flex-col min-w-0 border-r border-slate-200/80 bg-white">
                 <div class="px-6 py-2 border-b border-slate-100 shrink-0">
                     <el-tabs v-model="activeTab" class="enterprise-tabs">
@@ -84,29 +84,38 @@
 
                 <div class="flex-1 overflow-y-auto p-6 custom-scroll bg-slate-50/30">
                     <div v-show="activeTab === 'main'" class="space-y-6 max-w-3xl animate-in fade-in duration-300">
+
                         <div class="md:col-span-12">
                             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-                                Título da Solicitação
+                                Título da Solicitação <span class="text-red-500">*</span>
                             </label>
-                            <el-input v-model="form.title" :disabled="isViewing" size="large"
-                                placeholder="Ex: Erro ao gerar relatório de vendas"
-                                class="enterprise-input font-medium" />
+                            <div :class="{ 'rounded-lg ring-2 ring-red-500 transition-all': formErrors.title }">
+                                <el-input v-model="form.title" :disabled="isViewing" size="large"
+                                    placeholder="Ex: Erro ao gerar relatório de vendas"
+                                    class="enterprise-input font-medium" @input="formErrors.title = false" />
+                            </div>
+                            <span v-if="formErrors.title"
+                                class="text-red-500 text-[10px] font-medium mt-1 block">Obrigatório</span>
                         </div>
 
                         <div class="pt-4 border-t border-slate-100">
                             <label class="text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
-                                <span>Descrição Detalhada do Problema</span>
+                                <span>Descrição Detalhada do Problema <span class="text-red-500">*</span></span>
                             </label>
                             <div
-                                :class="['rounded-xl border transition-all overflow-hidden bg-white flex flex-col', isViewing ? 'border-slate-200 opacity-90' : 'border-slate-300 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50 shadow-sm']">
+                                :class="['rounded-xl border transition-all overflow-hidden bg-white flex flex-col', isViewing ? 'border-slate-200 opacity-90' : 'border-slate-300 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50 shadow-sm', formErrors.description ? 'ring-2 ring-red-500 border-red-500' : '']">
                                 <QuillEditor v-if="!isViewing" v-model:content="form.description" contentType="html"
                                     theme="snow" toolbar="full"
-                                    placeholder="Descreva o cenário, cole imagens, crie listas..." />
+                                    placeholder="Descreva o cenário, cole imagens, crie listas..."
+                                    @update:content="formErrors.description = false" />
                                 <div v-else class="p-5 prose prose-sm max-w-none text-slate-700 min-h-[350px]"
                                     v-safe-html="form.description || '<p class=\'text-slate-400 italic\'>Nenhuma descrição fornecida.</p>'">
                                 </div>
                             </div>
+                            <span v-if="formErrors.description"
+                                class="text-red-500 text-[10px] font-medium mt-1 block">Obrigatório</span>
                         </div>
+
                     </div>
 
                     <div v-show="activeTab === 'checklist'"
@@ -129,6 +138,7 @@
                                     </p>
                                 </div>
                             </div>
+
                             <div v-if="form.chatHistory.length === 0"
                                 class="flex flex-col items-center justify-center h-full text-slate-400 opacity-70 mt-20">
                                 <el-icon :size="48" class="mb-3">
@@ -184,6 +194,7 @@
                                     </el-icon>
                                 </el-button>
                             </div>
+
                             <div v-if="form.attachments.length === 0"
                                 class="col-span-1 sm:col-span-2 text-center py-12 text-sm text-slate-400 font-medium border-2 border-dashed border-slate-100 rounded-xl">
                                 Nenhum documento anexado a este ticket.
@@ -195,6 +206,7 @@
 
             <div
                 class="w-full lg:w-[350px] bg-slate-50/60 p-5 flex flex-col gap-0 h-auto lg:h-[750px] overflow-y-auto custom-scroll shrink-0 border-l border-slate-200">
+
                 <el-collapse v-model="activeCollapses" class="enterprise-collapse border-none">
                     <el-collapse-item name="routing"
                         class="mb-4 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/80 [&_.el-collapse-item\_\_header]:!px-5 [&_.el-collapse-item\_\_header]:h-12 [&_.el-collapse-item\_\_wrap]:border-none">
@@ -207,7 +219,6 @@
                             </span>
                         </template>
                         <div class="p-4 flex flex-col gap-4 border-t border-slate-100">
-
                             <div>
                                 <label
                                     class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Cliente
@@ -245,7 +256,8 @@
                             <div>
                                 <label
                                     class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Tipo
-                                    de Solicitação <span class="text-red-500">*</span></label>
+                                    de
+                                    Solicitação <span class="text-red-500">*</span></label>
                                 <div :class="{ 'rounded-lg ring-2 ring-red-500 transition-all': formErrors.type }">
                                     <el-select v-model="form.type" class="w-full enterprise-select"
                                         :disabled="isViewing" @change="formErrors.type = false">
@@ -262,7 +274,8 @@
                             <div>
                                 <label
                                     class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Nível
-                                    de Prioridade <span class="text-red-500">*</span></label>
+                                    de
+                                    Prioridade <span class="text-red-500">*</span></label>
                                 <div class="flex flex-wrap gap-1 w-full p-1 rounded-lg transition-all"
                                     :class="[{ 'opacity-75 pointer-events-none': isViewing }, formErrors.priority ? 'bg-red-50 ring-2 ring-red-500' : 'bg-slate-100']">
                                     <div v-for="p in ['low', 'medium', 'high', 'urgent']" :key="p"
@@ -274,7 +287,6 @@
                                 <span v-if="formErrors.priority"
                                     class="text-red-500 text-[10px] font-medium mt-1 block">Obrigatório</span>
                             </div>
-
                         </div>
                     </el-collapse-item>
 
@@ -292,14 +304,16 @@
                             <div>
                                 <label
                                     class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Data
-                                    de Início</label>
+                                    de
+                                    Início</label>
                                 <el-date-picker v-model="form.startDate" type="date" placeholder="DD/MM/YYYY"
                                     format="DD/MM/YYYY" class="!w-full max-w-full" :disabled="isViewing" />
                             </div>
                             <div>
                                 <label
                                     class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Previsão
-                                    de Conclusão</label>
+                                    de
+                                    Conclusão</label>
                                 <el-date-picker v-model="form.endDate" type="date" placeholder="DD/MM/YYYY"
                                     format="DD/MM/YYYY" class="!w-full max-w-full" :disabled="isViewing" />
                             </div>
@@ -331,21 +345,35 @@
                                 <el-select v-model="form.assignees" multiple filterable placeholder="Atribuir..."
                                     class="w-full mb-3 enterprise-select" :disabled="isViewing">
                                     <el-option v-for="user in teamMembers" :key="user.id" :label="user.name"
-                                        :value="user.id" />
+                                        :value="user.id">
+                                        <div class="flex items-center gap-2">
+                                            <el-avatar :size="20"
+                                                class="bg-blue-100 text-blue-600 font-bold text-[10px]">
+                                                {{ user.name.charAt(0).toUpperCase() }}
+                                            </el-avatar>
+                                            <span>{{ user.name }}</span>
+                                        </div>
+                                    </el-option>
                                 </el-select>
-                                <div v-if="form.assignees.length > 0" class="flex -space-x-2 overflow-hidden px-1">
-                                    <el-avatar v-for="uid in form.assignees" :key="uid" :size="34"
-                                        class="border-2 border-white bg-indigo-600 font-bold text-xs shadow-sm">
-                                        {{ getTeamMemberName(uid).charAt(0) }}
-                                    </el-avatar>
+
+                                <div v-if="form.assignees.length > 0" class="flex flex-col gap-2 mt-3">
+                                    <div v-for="id in form.assignees" :key="id"
+                                        class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm">
+                                        <el-avatar :size="24"
+                                            class="bg-indigo-100 text-indigo-700 font-bold text-xs shrink-0">
+                                            {{ getTeamMemberName(id).charAt(0).toUpperCase() }}
+                                        </el-avatar>
+                                        <span class="text-xs font-bold text-slate-700 truncate">{{ getTeamMemberName(id)
+                                            }}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
+
+                            <div class="pt-4 border-t border-slate-100">
                                 <TicketTagsSelector v-model:selectedTags="form.tags" :readonly="isViewing" />
                             </div>
                         </div>
                     </el-collapse-item>
-
                 </el-collapse>
 
                 <div class="mt-8 lg:mt-auto pt-5 border-t border-slate-200/80 flex flex-col gap-3">
@@ -353,21 +381,25 @@
                         plain class="w-full !ml-0 !font-bold" @click="generateKbArticle">
                         <el-icon class="mr-2">
                             <Document />
-                        </el-icon> Gerar Base de Conhecimento
+                        </el-icon>
+                        Gerar Base de Conhecimento
                     </el-button>
 
-                    <el-button v-if="form.status === 'pending_approval' && !isViewing" type="success" size="large"
-                        class="w-full !ml-0 !font-bold shadow-md shadow-green-200" @click="handleApproveKanban">
+                    <el-button v-if="form.status === 'pending_approval' && !isViewing && !isKanban" type="success"
+                        size="large" class="w-full !ml-0 !font-bold shadow-md shadow-green-200"
+                        @click="handleApproveKanban">
                         <el-icon class="mr-2">
                             <Select />
-                        </el-icon> Aprovar para Kanban
+                        </el-icon>
+                        Aprovar para Kanban
                     </el-button>
 
                     <el-button v-if="isViewing" type="primary" size="large" class="w-full !ml-0 !font-bold"
                         @click="$emit('switch-edit')">
                         <el-icon class="mr-2">
                             <Edit />
-                        </el-icon> Editar Ticket
+                        </el-icon>
+                        Editar Ticket
                     </el-button>
 
                     <el-button v-else type="primary" size="large" :loading="loading" class="w-full !ml-0 !font-bold"
@@ -375,7 +407,6 @@
                         Salvar Ticket
                     </el-button>
                 </div>
-
             </div>
         </div>
     </el-dialog>
@@ -403,6 +434,7 @@ const props = defineProps<{
     ticket?: ITicket | null;
     isViewing?: boolean;
     initialData?: any;
+    isKanban?: boolean; // Propriedade nova para desativar botão extra no Kanban
 }>();
 
 const emit = defineEmits(['close', 'save', 'switch-edit', 'approve-kanban']);
@@ -414,6 +446,7 @@ const activeTab = ref('main');
 const loading = ref(false);
 const newChatMessage = ref('');
 const fileInput = ref<HTMLInputElement | null>(null);
+
 const isKbModalOpen = ref(false);
 const kbArticleData = ref<any>(null);
 
@@ -448,17 +481,24 @@ const form = reactive({
 });
 
 const formErrors = reactive({
+    title: false,
+    description: false,
     customer: false,
     priority: false,
     type: false
 });
 
 const validateForm = () => {
+    formErrors.title = !form.title || form.title.trim() === '';
+
+    const plainDesc = form.description ? form.description.replace(/<[^>]*>?/gm, '').trim() : '';
+    formErrors.description = !form.description || plainDesc === '';
+
     formErrors.customer = !form.customer;
     formErrors.priority = !form.priority;
     formErrors.type = !form.type;
 
-    return !formErrors.customer && !formErrors.priority && !formErrors.type;
+    return !formErrors.title && !formErrors.description && !formErrors.customer && !formErrors.priority && !formErrors.type;
 };
 
 const translateLabel = (valueToCheck: string, originalLabel: string) => {
@@ -477,14 +517,20 @@ const translateLabel = (valueToCheck: string, originalLabel: string) => {
 
 const statusOptions = computed(() => {
     const columns = kanbanStore.columns || [];
-    const options = columns.map(col => ({ label: translateLabel(String(col.id), col.title), value: String(col.id) }));
+    const options = columns.map((col: any) => ({
+        label: translateLabel(String(col.id), col.title),
+        value: String(col.id)
+    }));
 
-    if (!options.some(opt => opt.value === 'internal')) {
+    if (!options.some((opt: any) => opt.value === 'internal')) {
         options.push({ label: 'Interno', value: 'internal' });
     }
 
-    if (form.status && !options.some(opt => String(opt.value) === String(form.status))) {
-        options.push({ label: translateLabel(String(form.status), String(form.status)), value: String(form.status) });
+    if (form.status && !options.some((opt: any) => String(opt.value) === String(form.status))) {
+        options.push({
+            label: translateLabel(String(form.status), String(form.status)),
+            value: String(form.status)
+        });
     }
 
     return options;
@@ -494,13 +540,15 @@ const initForm = () => {
     if (customerStore.items.length === 0) {
         customerStore.fetch();
     }
+
     if (kanbanStore.columns.length === 0 && typeof kanbanStore.fetchKanbanData === 'function') {
         kanbanStore.fetchKanbanData();
     }
 
     activeTab.value = 'main';
     newChatMessage.value = '';
-
+    formErrors.title = false;
+    formErrors.description = false;
     formErrors.customer = false;
     formErrors.priority = false;
     formErrors.type = false;
@@ -524,13 +572,16 @@ const initForm = () => {
         form.endDate = props.ticket.endDate || null;
         form.estimatedHours = props.ticket.estimatedHours || null;
         form.type = props.ticket.type || 'support';
+
     } else if (props.initialData) {
         form.title = props.initialData.title || '';
         form.customer = props.initialData.customer || '';
         form.description = props.initialData.description || '';
+
         let st = String(props.initialData.status || 'pending_approval');
         if (st === 'in-progress') st = 'in_progress';
         form.status = st;
+
         form.priority = props.initialData.priority || 'low';
         form.assignees = props.initialData.assignees || [];
         form.tags = props.initialData.tags || [];
@@ -543,6 +594,7 @@ const initForm = () => {
         form.type = props.initialData.type || 'support';
 
         if (form.chatHistory.length > 0) activeTab.value = 'chat';
+
     } else {
         form.title = '';
         form.customer = '';
@@ -584,7 +636,6 @@ const generateKbArticle = () => {
         status: 'Rascunho',
         icon: 'Document'
     };
-
     isKbModalOpen.value = true;
 };
 
@@ -600,6 +651,8 @@ const getTeamMemberName = (id: string) => {
 };
 
 const handleClose = () => {
+    formErrors.title = false;
+    formErrors.description = false;
     formErrors.customer = false;
     formErrors.priority = false;
     formErrors.type = false;
@@ -608,9 +661,17 @@ const handleClose = () => {
 
 const submit = async () => {
     if (!validateForm()) {
-        ElMessage.warning("Por favor, preencha os campos obrigatórios em Roteamento & Status.");
-        if (!activeCollapses.value.includes('routing')) {
-            activeCollapses.value.push('routing');
+        ElMessage.warning("Por favor, verifique os campos obrigatórios em destaque vermelho.");
+
+        // Força a navegação para a aba "Detalhes" caso falte Titulo ou Descrição
+        if (formErrors.title || formErrors.description) {
+            activeTab.value = 'main';
+        }
+        // Abre a aba do canto direito se faltar as métricas de roteamento
+        if (formErrors.customer || formErrors.priority || formErrors.type) {
+            if (!activeCollapses.value.includes('routing')) {
+                activeCollapses.value.push('routing');
+            }
         }
         return;
     }
@@ -618,9 +679,26 @@ const submit = async () => {
     loading.value = true;
     try {
         const payload = { ...form };
+
+        if (props.ticket?.id) {
+            (payload as any).id = props.ticket.id;
+        } else if (props.initialData?.id) {
+            (payload as any).id = props.initialData.id;
+        }
+
+        if (payload.assignees && payload.assignees.length > 0) {
+            const firstAssignee = teamMembers.find(m => m.id === payload.assignees[0]);
+            if (firstAssignee) {
+                (payload as any).assigneeName = firstAssignee.name;
+            }
+        } else {
+            (payload as any).assigneeName = null;
+        }
+
         if (typeof kanbanStore.saveBoard === 'function') {
             kanbanStore.saveBoard();
         }
+
         emit('save', payload);
     } catch (error) {
         console.error("Erro ao salvar o ticket:", error);
@@ -643,14 +721,12 @@ const handleApproveKanban = async () => {
 
 const addChatMessage = () => {
     if (!newChatMessage.value.trim()) return;
-
     form.chatHistory.push({
         text: newChatMessage.value,
         sender: 'Admin (Você)',
         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         isAgent: true
     });
-
     newChatMessage.value = '';
 };
 
@@ -682,6 +758,7 @@ const processFiles = (files: FileList) => {
             ElMessage.warning(`Ficheiro ${file.name} excede o limite de 10MB.`);
             continue;
         }
+
         form.attachments.push({
             name: file.name,
             size: file.size,
@@ -703,7 +780,12 @@ const getStatusColor = (status: string) => {
 };
 
 const getPriorityName = (p: string) => {
-    const map: Record<string, string> = { 'low': 'Baixa', 'medium': 'Média', 'high': 'Alta', 'urgent': 'Urgente' };
+    const map: Record<string, string> = {
+        'low': 'Baixa',
+        'medium': 'Média',
+        'high': 'Alta',
+        'urgent': 'Urgente'
+    };
     return map[p] || p;
 };
 
