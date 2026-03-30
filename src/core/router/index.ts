@@ -9,6 +9,7 @@ import agendaRoutes from "@/modules/calendar/ui/router/routes"
 import kbRoutes from '@/modules/kb/ui/router/routes'
 import reportsRoutes from "@/modules/reports/ui/router/routes"
 import settingsRoutes from "@/modules/settings/ui/router/routes"
+import monitorRoutes from "@/modules/monitor/ui/router/routes"
 import { useAuthStore } from "@/modules/auth/ui/store/auth.store"
 
 const withRoles = (routes: any[], roles: string[]) => {
@@ -40,9 +41,10 @@ const routes = [
       ...atendimentosRoutes,
       ...kanbanRoutes,
       ...kbRoutes,
+      ...withRoles(monitorRoutes, ['ADMIN', 'MANAGER']),
       ...withRoles(reportsRoutes, ['ADMIN', 'MANAGER']),
       ...withRoles(customerRouter, ['ADMIN', 'MANAGER']),
-      ...withRoles(settingsRoutes, ['ADMIN']),
+      ...withRoles(settingsRoutes, ['ADMIN', 'MANAGER']),
     ],
   },
   {
