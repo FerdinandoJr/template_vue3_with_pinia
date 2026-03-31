@@ -2,7 +2,7 @@
   <aside
     class="w-64 h-screen bg-[#1e293b] text-white flex flex-col shadow-2xl fixed left-0 top-0 z-50 font-sans border-r border-white/5">
 
-    <div class="h-20 flex items-center px-8 border-b border-white/5">
+    <div class="h-20 flex items-center px-8 border-b border-white/5 shrink-0">
       <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-blue-500/20">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -20,14 +20,16 @@
         <ul class="space-y-1.5">
           <li v-for="item in menuItems" :key="item.path">
             <router-link :to="item.path"
-              class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5"
-              active-class="!bg-blue-600 !text-white shadow-lg shadow-blue-900/40">
-              <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
+              class="flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-200 group text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent"
+              exact-active-class="!bg-blue-500/10 !text-blue-400 !border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.05)]">
 
-              <span class="text-sm font-bold tracking-tight">{{ item.label }}</span>
+              <component :is="item.icon"
+                class="w-5 h-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" />
 
-              <span v-if="item.badge" class="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full"
-                :class="$route.path === item.path ? 'bg-white text-blue-600' : 'bg-blue-500 text-white'">
+              <span class="text-sm font-semibold tracking-wide">{{ item.label }}</span>
+
+              <span v-if="item.badge" class="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full transition-colors"
+                :class="$route.path === item.path ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-slate-700/50 text-slate-400 border border-slate-600/50'">
                 {{ item.badge }}
               </span>
             </router-link>
@@ -36,7 +38,7 @@
       </div>
     </nav>
 
-    <div class="p-4 bg-[#1a2232] border-t border-white/5">
+    <div class="p-4 bg-[#1a2232] border-t border-white/5 shrink-0">
       <div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group">
         <div class="relative">
           <div
@@ -68,7 +70,7 @@
 <script setup lang="ts">
 import { h, ref } from 'vue'
 
-const IconDashboard = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('rect', { x: '3', y: '3', width: '7', height: '9' }), h('rect', { x: '14', y: '3', width: '7', height: '5' }), h('rect', { x: '14', y: '12', width: '7', height: '9' }), h('rect', { x: '3', y: '16', width: '7', height: '5' })])
+const IconDashboard = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('rect', { x: '3', y: '3', width: '7', height: '9', rx: '1' }), h('rect', { x: '14', y: '3', width: '7', height: '5', rx: '1' }), h('rect', { x: '14', y: '12', width: '7', height: '9', rx: '1' }), h('rect', { x: '3', y: '16', width: '7', height: '5', rx: '1' })])
 const IconAgenda = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('rect', { x: '3', y: '4', width: '18', height: '18', rx: '2', ry: '2' }), h('line', { x1: '16', y1: '2', x2: '16', y2: '6' }), h('line', { x1: '8', y1: '2', x2: '8', y2: '6' }), h('line', { x1: '3', y1: '10', x2: '21', y2: '10' })])
 const IconUsers = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('path', { d: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' }), h('circle', { cx: '9', cy: '7', r: '4' }), h('path', { d: 'M23 21v-2a4 4 0 0 0-3-3.87' }), h('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' })])
 const IconChat = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('path', { d: 'M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z' })])
@@ -85,10 +87,10 @@ const menuItems = ref([
   { label: 'Clientes', path: '/customer', icon: IconUsers },
   { label: 'Chats', path: '/chats', icon: IconChat, badge: '12' },
   { label: 'Atendimento', path: '/atendimentos', icon: IconPhone },
-  { label: 'Relatórios', path: '/relatorios', icon: IconReport },
-  { label: 'Base de conhecimento', path: '/kb', icon: IconKB },
-  { label: 'KanBan', path: '/kanban', icon: IconKanban },
   { label: 'Monitor', path: '/monitor', icon: IconMonitor },
+  { label: 'KanBan', path: '/kanban', icon: IconKanban },
+  { label: 'Base de conhecimento', path: '/kb', icon: IconKB },
+  { label: 'Relatórios', path: '/relatorios', icon: IconReport },
   { label: 'Configurações', path: '/configuracoes', icon: IconSettings },
 ])
 </script>
@@ -99,8 +101,12 @@ const menuItems = ref([
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
