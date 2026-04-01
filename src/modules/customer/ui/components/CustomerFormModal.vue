@@ -7,16 +7,13 @@
             <el-tabs v-model="activeTab" class="enterprise-tabs px-6">
                 <el-tab-pane label="Geral" name="general">
                     <div class="py-4 flex flex-col h-full">
-
                         <div
                             class="flex flex-col sm:flex-row items-center gap-6 mb-6 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm w-full box-border">
                             <el-avatar :size="70"
                                 class="bg-blue-600 text-white font-black text-2xl shadow-md flex-shrink-0">
                                 {{ form.tradeName?.charAt(0).toUpperCase() || form.companyName?.charAt(0).toUpperCase()
-                                    ||
-                                form.name?.charAt(0).toUpperCase() || '?' }}
+                                    || form.name?.charAt(0).toUpperCase() || '?' }}
                             </el-avatar>
-
                             <div class="flex-1 w-full overflow-hidden p-1 -m-1">
                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tipo de
                                     Cliente</p>
@@ -27,7 +24,6 @@
                                     <el-radio-button value="PF" class="flex-1 w-full">Pessoa Física</el-radio-button>
                                 </el-radio-group>
                             </div>
-
                             <div
                                 class="w-full sm:w-auto flex flex-col items-center sm:items-start p-1 border-t sm:border-t-0 sm:border-l border-slate-200 pt-4 sm:pt-0 sm:pl-6">
                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Status</p>
@@ -42,7 +38,6 @@
                                 <el-input v-model="form.companyName" placeholder="Nome oficial da empresa..."
                                     class="uppercase-input" />
                             </el-form-item>
-
                             <el-form-item v-if="form.type === 'PJ'" label="Nome Fantasia" prop="tradeName">
                                 <el-input v-model="form.tradeName" placeholder="Como a empresa é conhecida..."
                                     class="uppercase-input" />
@@ -58,22 +53,58 @@
                                     :placeholder="form.type === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'"
                                     :maxlength="form.type === 'PF' ? 14 : 18" />
                             </el-form-item>
+                        </div>
 
-                            <el-form-item label="Telefone / WhatsApp" prop="phone">
-                                <el-input v-model="form.phone" @input="handlePhoneInput" placeholder="(00) 00000-0000"
-                                    maxlength="15" />
+                        <div
+                            class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mt-4 border-t border-slate-100 pt-6">
+                            <el-form-item label="E-mail Principal" prop="email">
+                                <el-input v-model="form.email" placeholder="contato@empresa.com" type="email">
+                                    <template #prefix>
+                                        <el-icon>
+                                            <Message />
+                                        </el-icon>
+                                    </template>
+                                </el-input>
                             </el-form-item>
 
-                            <el-form-item label="E-mail de Contato" prop="email">
-                                <el-input v-model="form.email" placeholder="email@empresa.com" />
+                            <el-form-item label="Telefone Principal" prop="phone">
+                                <el-input v-model="form.phone" @input="handlePhoneInput" placeholder="(00) 00000-0000"
+                                    maxlength="15">
+                                    <template #prefix>
+                                        <el-icon>
+                                            <Phone />
+                                        </el-icon>
+                                    </template>
+                                </el-input>
+                            </el-form-item>
+
+                            <el-form-item label="Site / Redes Sociais" prop="website">
+                                <el-input v-model="form.website" placeholder="www.empresa.com.br">
+                                    <template #prefix>
+                                        <el-icon>
+                                            <Link />
+                                        </el-icon>
+                                    </template>
+                                </el-input>
                             </el-form-item>
 
                             <el-form-item label="Origem do Cliente" prop="source">
-                                <el-select v-model="form.source" placeholder="Selecione a origem..." class="w-full"
-                                    filterable :loading="sourceStore.isLoading">
-                                    <el-option v-for="origem in sourceStore.items" :key="origem.id" :label="origem.name"
-                                        :value="origem.name" />
-                                </el-select>
+                                <div class="flex gap-2 w-full items-center">
+                                    <el-select v-model="form.source" class="flex-1" filterable
+                                        :loading="sourceStore.isLoading" placeholder="Como este cliente nos encontrou?">
+                                        <template #prefix><el-icon>
+                                                <Promotion />
+                                            </el-icon></template>
+                                        <el-option v-for="origem in sourceStore.items" :key="origem.id"
+                                            :label="origem.name" :value="origem.name" />
+                                    </el-select>
+                                    <el-button circle plain type="info" @click="isSourceModalOpen = true"
+                                        title="Gerenciar Origens" class="!border-slate-300 flex-shrink-0">
+                                        <el-icon>
+                                            <Setting />
+                                        </el-icon>
+                                    </el-button>
+                                </div>
                             </el-form-item>
                         </div>
                     </div>
@@ -81,35 +112,42 @@
 
                 <el-tab-pane label="Endereço" name="address">
                     <div class="py-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2">
-                            <el-form-item label="CEP" prop="zipCode">
-                                <el-input v-model="form.zipCode" @input="handleCepInput" placeholder="00000-000"
-                                    maxlength="9" :loading="isFetchingCep">
-                                    <template v-if="isFetchingCep" #suffix>
-                                        <el-icon class="is-loading">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-2">
+                            <el-form-item label="CEP" prop="zipCode" class="md:col-span-4">
+                                <el-input v-model="form.zipCode" @input="handleZipCodeInput" placeholder="00000-000"
+                                    maxlength="9">
+                                    <template #suffix>
+                                        <el-icon v-if="loadingCep" class="is-loading">
                                             <Loading />
                                         </el-icon>
                                     </template>
                                 </el-input>
                             </el-form-item>
-                            <el-form-item label="Cidade" prop="city">
-                                <el-input v-model="form.city" placeholder="Nome da cidade..." />
-                            </el-form-item>
-                            <el-form-item label="UF" prop="state">
-                                <el-input v-model="form.state" placeholder="EX: SP, SC, RJ" maxlength="2"
-                                    class="uppercase-input" />
-                            </el-form-item>
-                            <el-form-item label="Rua / Logradouro" prop="street" class="md:col-span-2">
+
+                            <el-form-item label="Rua / Logradouro" prop="street" class="md:col-span-8">
                                 <el-input v-model="form.street" placeholder="Nome da rua, avenida..." />
                             </el-form-item>
-                            <el-form-item label="Número" prop="number">
-                                <el-input v-model="form.number" placeholder="123" />
+
+                            <el-form-item label="Número" prop="number" class="md:col-span-4">
+                                <el-input v-model="form.number" placeholder="123" ref="numberInputRef" />
                             </el-form-item>
-                            <el-form-item label="Bairro" prop="neighborhood" class="md:col-span-2">
-                                <el-input v-model="form.neighborhood" placeholder="Nome do bairro..." />
+
+                            <el-form-item label="Complemento" prop="complement" class="md:col-span-4">
+                                <el-input v-model="form.complement" placeholder="Sala, Apto, Bloco..." />
                             </el-form-item>
-                            <el-form-item label="Complemento" prop="complement">
-                                <el-input v-model="form.complement" placeholder="Apto, Sala..." />
+
+                            <el-form-item label="Bairro" prop="neighborhood" class="md:col-span-4">
+                                <el-input v-model="form.neighborhood" placeholder="Nome do bairro" />
+                            </el-form-item>
+
+                            <el-form-item label="Cidade" prop="city" class="md:col-span-8">
+                                <el-input v-model="form.city" placeholder="Nome da cidade" />
+                            </el-form-item>
+
+                            <el-form-item label="UF" prop="state" class="md:col-span-4">
+                                <el-select v-model="form.state" placeholder="Estado" class="w-full">
+                                    <el-option v-for="uf in ufs" :key="uf" :label="uf" :value="uf" />
+                                </el-select>
                             </el-form-item>
                         </div>
                     </div>
@@ -118,32 +156,49 @@
         </el-form>
 
         <template #footer>
-            <div class="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
-                <el-button @click="$emit('close')" size="large" class="w-full sm:w-auto">Cancelar</el-button>
-                <el-button type="primary" @click="handleSave" size="large" class="!font-bold w-full sm:w-auto">Salvar
-                    Cadastro</el-button>
+            <div class="flex justify-between items-center w-full px-2 pt-4 border-t border-slate-100">
+                <div class="text-xs text-slate-400 flex items-center gap-1.5 font-medium hidden sm:flex">
+                    <el-icon class="text-blue-500">
+                        <InfoFilled />
+                    </el-icon>
+                    Os campos com asterisco vermelho são obrigatórios.
+                </div>
+                <div class="flex gap-3 w-full sm:w-auto justify-end">
+                    <el-button @click="$emit('close')" size="large" class="!px-6">Cancelar</el-button>
+                    <el-button type="primary" @click="submit" size="large"
+                        class="!font-bold shadow-md shadow-blue-200 !px-8">
+                        {{ form.uuid ? 'Salvar Alterações' : 'Criar Registo' }}
+                    </el-button>
+                </div>
             </div>
         </template>
+
+        <CustomerSourceSettingsModal :is-open="isSourceModalOpen" @close="isSourceModalOpen = false" />
     </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
+import { Message, Phone, Link, Promotion, InfoFilled, Loading, Setting } from '@element-plus/icons-vue'
+import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
-
-// Importação corrigida de acordo com o seu projeto!
+import { useCepLocator } from '@/core/composables/useCepLocator'
+import type { ICustomer } from '../../domain/entities/customer'
 import { useCustomerSourceStore } from '../store/customer-source.store'
+import CustomerSourceSettingsModal from './CustomerSourceSettingsModal.vue'
 
-const props = defineProps<{ isOpen: boolean; customerData?: any }>()
+const props = defineProps<{
+    isOpen: boolean
+    customerData?: Partial<ICustomer> | null
+}>()
+
 const emit = defineEmits(['close', 'save'])
 
-const formRef = ref<any>()
+const formRef = ref<FormInstance>()
 const activeTab = ref('general')
-const isFetchingCep = ref(false)
-
-// Instancia da Store Oficial de Origens
+const numberInputRef = ref()
 const sourceStore = useCustomerSourceStore()
+const isSourceModalOpen = ref(false)
 
 const form = reactive({
     uuid: '',
@@ -152,7 +207,11 @@ const form = reactive({
     companyName: '',
     tradeName: '',
     document: '',
+    email: '',
+    phone: '',
     website: '',
+    status: 'active',
+    source: '',
     zipCode: '',
     street: '',
     number: '',
@@ -160,139 +219,170 @@ const form = reactive({
     neighborhood: '',
     city: '',
     state: '',
-    phone: '',
-    email: '',
-    status: 'active',
-    source: '',
-    avatar: '',
-    contacts: []
+    avatar: ''
 })
 
-const rules = {
-    companyName: [{ required: true, message: 'Obrigatório para PJ', trigger: 'blur' }],
-    name: [{ required: true, message: 'Obrigatório para PF', trigger: 'blur' }],
-    document: [{ required: true, message: 'Obrigatório', trigger: 'blur' }]
-}
+const { loadingCep, formatAndSearchCep } = useCepLocator()
+
+const ufs = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
+
+onMounted(() => {
+    if (props.isOpen) {
+        sourceStore.fetchSources()
+    }
+})
+
+watch(() => props.isOpen, (val) => {
+    if (val) {
+        activeTab.value = 'general'
+        if (formRef.value) formRef.value.resetFields()
+
+        sourceStore.fetchSources()
+
+        if (props.customerData) {
+            Object.assign(form, props.customerData)
+            if (form.companyName && !form.name) {
+                form.type = 'PJ'
+            } else if (form.name && !form.companyName) {
+                form.type = 'PF'
+            }
+        } else {
+            Object.assign(form, {
+                uuid: '',
+                type: 'PJ',
+                name: '',
+                companyName: '',
+                tradeName: '',
+                document: '',
+                email: '',
+                phone: '',
+                website: '',
+                status: 'active',
+                source: '',
+                zipCode: '',
+                street: '',
+                number: '',
+                complement: '',
+                neighborhood: '',
+                city: '',
+                state: '',
+                avatar: ''
+            })
+        }
+    }
+})
 
 const resetDocument = () => {
     form.document = ''
 }
 
-// MÁSCARA DE CPF E CNPJ
-const handleDocumentInput = (val: string) => {
-    let v = val.replace(/\D/g, '')
+const handleDocumentInput = (val: string | undefined) => {
+    let v = (val || '').replace(/\D/g, '')
+
     if (form.type === 'PF') {
         if (v.length > 11) v = v.slice(0, 11)
-        if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d)/, '$1.$2.$3-$4')
-        else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d)/, '$1.$2.$3')
-        else if (v.length > 3) v = v.replace(/(\d{3})(\d)/, '$1.$2')
+        if (v.length > 9) {
+            v = v.replace(/(\d{3})(\d{3})(\d{3})(\d)/, '$1.$2.$3-$4')
+        } else if (v.length > 6) {
+            v = v.replace(/(\d{3})(\d{3})(\d)/, '$1.$2.$3')
+        } else if (v.length > 3) {
+            v = v.replace(/(\d{3})(\d)/, '$1.$2')
+        }
     } else {
         if (v.length > 14) v = v.slice(0, 14)
-        if (v.length > 12) v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d)/, '$1.$2.$3/$4-$5')
-        else if (v.length > 8) v = v.replace(/(\d{2})(\d{3})(\d{3})(\d)/, '$1.$2.$3/$4')
-        else if (v.length > 5) v = v.replace(/(\d{2})(\d{3})(\d)/, '$1.$2.$3')
-        else if (v.length > 2) v = v.replace(/(\d{2})(\d)/, '$1.$2')
+        if (v.length > 12) {
+            v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d)/, '$1.$2.$3/$4-$5')
+        } else if (v.length > 8) {
+            v = v.replace(/(\d{2})(\d{3})(\d{3})(\d)/, '$1.$2.$3/$4')
+        } else if (v.length > 5) {
+            v = v.replace(/(\d{2})(\d{3})(\d)/, '$1.$2.$3')
+        } else if (v.length > 2) {
+            v = v.replace(/(\d{2})(\d)/, '$1.$2')
+        }
     }
+
     form.document = v
 }
 
-// MÁSCARA DE TELEFONE
-const handlePhoneInput = (val: string) => {
-    let v = val.replace(/\D/g, '')
+const handlePhoneInput = (val: string | undefined) => {
+    let v = (val || '').replace(/\D/g, '')
     if (v.length > 11) v = v.slice(0, 11)
+
     if (v.length > 10) {
-        v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3')
-    } else if (v.length > 5) {
-        v = v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3')
+        v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+    } else if (v.length > 6) {
+        v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3')
     } else if (v.length > 2) {
         v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2')
     }
+
     form.phone = v
 }
 
-// MÁSCARA DE CEP
-const handleCepInput = async (val: string) => {
-    let v = val.replace(/\D/g, '')
-    if (v.length > 8) v = v.slice(0, 8)
-    if (v.length > 5) {
-        v = v.replace(/^(\d{5})(\d{1,3})/, '$1-$2')
-    }
-    form.zipCode = v
+const handleZipCodeInput = async (val: string | undefined) => {
+    form.zipCode = await formatAndSearchCep(val || '', (fullAddress?: string) => {
+        if (!fullAddress) return
+        const parts = fullAddress.split(',')
 
-    const rawCep = v.replace(/\D/g, '')
-    if (rawCep.length === 8) {
-        await fetchAddressByCep(rawCep)
-    }
+        if (parts.length > 1) {
+            form.street = parts[0]?.trim() ?? ''
+            const afterStreet = parts[1]?.split('-') ?? []
+
+            if (afterStreet.length > 1) {
+                form.neighborhood = afterStreet[0]?.trim() ?? ''
+                const cityState = afterStreet[1]?.split(' - ') ?? []
+
+                if (cityState.length > 1) {
+                    form.city = cityState[0]?.trim() ?? ''
+                    form.state = cityState[1]?.trim() ?? ''
+                }
+            }
+        }
+        setTimeout(() => {
+            numberInputRef.value?.focus()
+        }, 100)
+    })
 }
 
-// BUSCA VIACEP
-const fetchAddressByCep = async (cep: string) => {
-    isFetchingCep.value = true
-    try {
-        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
-        const data = await response.json()
-        if (!data.erro) {
-            form.street = data.logradouro || ''
-            form.neighborhood = data.bairro || ''
-            form.city = data.localidade || ''
-            form.state = data.uf || ''
-            ElMessage.success('Endereço preenchido com sucesso!')
-        } else {
-            ElMessage.warning('CEP não encontrado.')
-        }
-    } catch (error) {
-        ElMessage.error('Erro ao buscar o CEP na internet.')
-    } finally {
-        isFetchingCep.value = false
-    }
-}
-
-const initFormData = () => {
-    if (props.customerData) {
-        Object.assign(form, props.customerData)
-
-        // Força a máscara aos dados carregados do banco
-        if (form.phone) handlePhoneInput(form.phone)
-        if (form.document) handleDocumentInput(form.document)
-        if (form.zipCode) {
-            let v = form.zipCode.replace(/\D/g, '')
-            if (v.length > 5) v = v.replace(/^(\d{5})(\d{1,3})/, '$1-$2')
-            form.zipCode = v
-        }
+const validateDocument = (rule: any, value: string | undefined, callback: any) => {
+    if (!value) {
+        callback(new Error('O documento é obrigatório'))
     } else {
-        Object.assign(form, {
-            uuid: '', type: 'PJ', name: '', companyName: '', tradeName: '', document: '',
-            website: '', zipCode: '', street: '', number: '', complement: '', neighborhood: '',
-            city: '', state: '', phone: '', email: '', status: 'active', source: '',
-            avatar: '', contacts: []
-        })
+        const cleanValue = value.replace(/\D/g, '')
+        if (form.type === 'PF' && cleanValue.length !== 11) {
+            callback(new Error('CPF inválido'))
+        } else if (form.type === 'PJ' && cleanValue.length !== 14) {
+            callback(new Error('CNPJ inválido'))
+        } else {
+            callback()
+        }
     }
 }
 
-watch(() => props.isOpen, (newVal) => {
-    if (newVal) {
-        // Garante que a lista de origens é sempre carregada ao abrir o modal
-        sourceStore.fetchSources()
-        initFormData()
-        activeTab.value = 'general'
-    }
-}, { immediate: true })
+const rules = reactive<FormRules>({
+    name: [{ required: true, message: 'Nome obrigatório', trigger: 'blur' }],
+    companyName: [{ required: true, message: 'Razão Social obrigatória', trigger: 'blur' }],
+    document: [{ required: true, validator: validateDocument, trigger: 'blur' }]
+})
 
-const handleSave = async () => {
+const submit = async () => {
     if (!formRef.value) return
+
     await formRef.value.validate((valid: boolean) => {
         if (valid) {
             if (!form.avatar) {
                 const initials = form.tradeName || form.companyName || form.name || 'CL'
                 form.avatar = initials.substring(0, 2).toUpperCase()
             }
+
             if (form.type === 'PJ' && form.name && !form.companyName) {
                 form.companyName = form.name;
             }
+
             emit('save', { ...form })
         } else {
             ElMessage.warning('Por favor, preencha todos os campos obrigatórios.')
-            if (!form.name && !form.companyName || !form.document) {
+            if ((!form.name && !form.companyName) || !form.document) {
                 activeTab.value = 'general'
             }
         }

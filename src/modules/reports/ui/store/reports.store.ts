@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { useChatStore } from "@/modules/chats/ui/store/chat.store";
 
-// Utilitários fora da store para evitar erros de TS
 const formatMs = (ms: number) => {
   if (isNaN(ms) || ms < 0) return "00:00";
   const minutes = Math.floor(ms / 60000);
@@ -11,7 +10,6 @@ const formatMs = (ms: number) => {
 
 export const useReportsStore = defineStore('reports', {
   state: () => {
-    // Calcula os últimos 30 dias como padrão
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - 30);
@@ -22,7 +20,6 @@ export const useReportsStore = defineStore('reports', {
     };
   },
   getters: {
-    // 1. Funil Operacional Básico
     generalStats() {
       const chatStore = useChatStore();
       let waiting = 0;
@@ -45,7 +42,6 @@ export const useReportsStore = defineStore('reports', {
       };
     },
 
-    // 2. Indicadores Avançados de Qualidade (TME, TMA, Resolução, CSAT)
     qualityMetrics() {
       const chatStore = useChatStore();
       let totalWaitTime = 0;
@@ -59,7 +55,6 @@ export const useReportsStore = defineStore('reports', {
 
       if (chatStore.contacts && Array.isArray(chatStore.contacts)) {
         chatStore.contacts.forEach(chat => {
-          // Calcula TME (Tempo Médio de Espera)
           if (chat.createdAt) {
             const start = new Date(chat.createdAt).getTime();
             const end = chat.serviceStartedAt ? new Date(chat.serviceStartedAt).getTime() : Date.now();
@@ -69,12 +64,10 @@ export const useReportsStore = defineStore('reports', {
             }
           }
 
-          // Calcula TMA e Resolução
           if (chat.status === 'finished') {
             finishedChats++;
             totalServiceTime += (chat.accumulatedTime || 0);
 
-            // Simula notas para os concluídos para fins de dashboard
             const score = 4 + (Math.random());
             totalScore += score;
             ratedChats++;
@@ -95,12 +88,10 @@ export const useReportsStore = defineStore('reports', {
       };
     },
 
-    // 3. Distribuição de Volume por Horário de Pico (Heatmap)
     hourlyVolume() {
       const chatStore = useChatStore();
       const hoursMap: Record<string, number> = {};
 
-      // Inicializa horários comerciais básicos (08:00 às 18:00)
       for (let i = 8; i <= 18; i++) {
         hoursMap[`${i.toString().padStart(2, '0')}:00`] = 0;
       }
@@ -113,7 +104,6 @@ export const useReportsStore = defineStore('reports', {
             const date = new Date(chat.createdAt);
             const hourStr = `${date.getHours().toString().padStart(2, '0')}:00`;
 
-            // Registra apenas se estiver no mapa, ou cria dinamicamente
             hoursMap[hourStr] = (hoursMap[hourStr] || 0) + 1;
             if (hoursMap[hourStr] > maxVolume) {
               maxVolume = hoursMap[hourStr];
@@ -121,8 +111,6 @@ export const useReportsStore = defineStore('reports', {
           }
         });
       }
-
-      // Converte para array com a porcentagem de altura para a barra do gráfico
       return Object.entries(hoursMap)
         .sort(([hourA], [hourB]) => hourA.localeCompare(hourB))
         .map(([hour, count]) => ({
@@ -132,7 +120,6 @@ export const useReportsStore = defineStore('reports', {
         }));
     },
 
-    // 4. Performance por Atendente
     agentPerformance(): any[] {
       const chatStore = useChatStore();
       const performance: Record<string, any> = {};
@@ -172,7 +159,6 @@ export const useReportsStore = defineStore('reports', {
       }));
     },
 
-    // 5. Volume por Departamento
     volumeByDepartment() {
       const chatStore = useChatStore();
       const depts: Record<string, number> = {};
@@ -196,7 +182,6 @@ export const useReportsStore = defineStore('reports', {
       })).sort((a, b) => b.count - a.count);
     },
 
-    // 6. Saúde do SLA
     slaStats() {
       const chatStore = useChatStore();
       const total = chatStore.contacts ? chatStore.contacts.length : 0;
