@@ -13,13 +13,11 @@ import { permissionDirective } from './core/directives/permission';
 import { safeHtmlDirective } from './core/directives/safeHtml';
 
 const app = createApp(App);
-
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
+
 app.use(pinia);
-
 app.use(router);
-
 app.use(ElementPlus, {
     locale: ptBr,
 });
@@ -29,7 +27,6 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 }
 
 app.use(VueApexCharts);
-
 app.directive('permission', permissionDirective);
 app.use(safeHtmlDirective);
 

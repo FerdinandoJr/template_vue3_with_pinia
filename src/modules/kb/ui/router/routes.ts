@@ -5,6 +5,6 @@ export default [
     path: '/kb',
     name: 'KnowledgeBase',
     component: KbPage,
-    meta: { title: 'Base de Conhecimento' }
+    meta: { title: 'FAQ' }
   }
 ];

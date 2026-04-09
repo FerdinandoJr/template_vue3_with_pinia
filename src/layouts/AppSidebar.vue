@@ -1,6 +1,5 @@
 <template>
-  <aside
-    class="w-64 h-screen bg-[#1e293b] text-white flex flex-col shadow-2xl fixed left-0 top-0 z-50 font-sans border-r border-white/5">
+  <aside class="w-64 h-screen bg-[#1e293b] text-white flex flex-col shadow-2xl fixed left-0 top-0 z-50 font-sans border-r border-white/5">
 
     <div class="h-20 flex items-center px-8 border-b border-white/5 shrink-0">
       <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-blue-500/20">
@@ -18,13 +17,12 @@
       <div class="px-4 mb-4">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] px-4 mb-4">Menu Principal</p>
         <ul class="space-y-1.5">
-          <li v-for="item in menuItems" :key="item.path">
+          <li v-for="item in visibleMenuItems" :key="item.path">
             <router-link :to="item.path"
               class="flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-200 group text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent"
               exact-active-class="!bg-blue-500/10 !text-blue-400 !border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.05)]">
 
-              <component :is="item.icon"
-                class="w-5 h-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" />
+              <component :is="item.icon" class="w-5 h-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" />
 
               <span class="text-sm font-semibold tracking-wide">{{ item.label }}</span>
 
@@ -41,20 +39,17 @@
     <div class="p-4 bg-[#1a2232] border-t border-white/5 shrink-0">
       <div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group">
         <div class="relative">
-          <div
-            class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white font-black shadow-inner border border-white/10">
-            U
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white font-black shadow-inner border border-white/10">
+            {{ userInitials }}
           </div>
-          <div
-            class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#1a2232] rounded-full shadow-sm">
-          </div>
+          <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#1a2232] rounded-full shadow-sm"></div>
         </div>
         <div class="overflow-hidden">
-          <p class="text-sm font-black text-white truncate tracking-tight group-hover:text-blue-400 transition-colors">
-            Usuário</p>
-          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Administrador</p>
+          <p class="text-sm font-black text-white truncate tracking-tight group-hover:text-blue-400 transition-colors">{{ userName }}</p>
+          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{{ userRoleLabel }}</p>
         </div>
-        <button class="ml-auto text-slate-500 hover:text-red-400 transition-colors">
+        
+        <button type="button" @click="handleLogout" class="ml-auto text-slate-500 hover:text-red-400 transition-colors" title="Sair do Sistema">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -68,7 +63,43 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref } from 'vue'
+import { h, ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const userName = computed(() => authStore.user?.name || 'Usuário')
+const userInitials = computed(() => userName.value.charAt(0).toUpperCase())
+const userRoleLabel = computed(() => {
+  if (authStore.user?.role === 'ADMIN') return 'Administrador'
+  if (authStore.user?.role === 'MANAGER') return 'Gestor'
+  return 'Atendente'
+})
+
+const handleLogout = async () => {
+  authStore.logout()
+  await router.push('/login')
+}
+
+// Lógica de Toggling (Ativação) de Módulos
+const activeModules = ref<Record<string, boolean>>({})
+
+const loadModules = () => {
+  const saved = localStorage.getItem('datacrm_active_modules')
+  if (saved) activeModules.value = JSON.parse(saved)
+}
+
+onMounted(() => {
+  loadModules()
+  // Escuta o evento emitido pela página de configurações para se atualizar instantaneamente
+  window.addEventListener('modules-updated', loadModules)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('modules-updated', loadModules)
+})
 
 const IconDashboard = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('rect', { x: '3', y: '3', width: '7', height: '9', rx: '1' }), h('rect', { x: '14', y: '3', width: '7', height: '5', rx: '1' }), h('rect', { x: '14', y: '12', width: '7', height: '9', rx: '1' }), h('rect', { x: '3', y: '16', width: '7', height: '5', rx: '1' })])
 const IconAgenda = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('rect', { x: '3', y: '4', width: '18', height: '18', rx: '2', ry: '2' }), h('line', { x1: '16', y1: '2', x2: '16', y2: '6' }), h('line', { x1: '8', y1: '2', x2: '8', y2: '6' }), h('line', { x1: '3', y1: '10', x2: '21', y2: '10' })])
@@ -79,37 +110,33 @@ const IconMonitor = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width:
 const IconReport = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('line', { x1: '18', y1: '20', x2: '18', y2: '10' }), h('line', { x1: '12', y1: '20', x2: '12', y2: '4' }), h('line', { x1: '6', y1: '20', x2: '6', y2: '14' })])
 const IconKB = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('path', { d: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20' }), h('path', { d: 'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' })])
 const IconKanban = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('rect', { x: '3', y: '3', width: '18', height: '18', rx: '2', ry: '2' }), h('line', { x1: '9', y1: '3', x2: '9', y2: '21' }), h('line', { x1: '15', y1: '3', x2: '15', y2: '21' })])
-const IconSettings = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('circle', { cx: '12', cy: '12', r: '3' }), h('path', { d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' })])
+const IconSettings = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('circle', { cx: '12', cy: '12', r: '3' }), h('path', { d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' })])
 
-const menuItems = ref([
-  { label: 'Dashboard', path: '/', icon: IconDashboard },
-  { label: 'Agenda', path: '/calendar', icon: IconAgenda },
-  { label: 'Clientes', path: '/customer', icon: IconUsers },
-  { label: 'Chats', path: '/chats', icon: IconChat, badge: '12' },
-  { label: 'Atendimento', path: '/atendimentos', icon: IconPhone },
-  { label: 'Monitor', path: '/monitor', icon: IconMonitor },
-  { label: 'KanBan', path: '/kanban', icon: IconKanban },
-  { label: 'Base de conhecimento', path: '/kb', icon: IconKB },
-  { label: 'Relatórios', path: '/relatorios', icon: IconReport },
-  { label: 'Configurações', path: '/configuracoes', icon: IconSettings },
-])
+const menuItems = [
+  { id: 'dashboard', label: 'Dashboard', path: '/', icon: IconDashboard },
+  { id: 'calendar', label: 'Agenda', path: '/calendar', icon: IconAgenda },
+  { id: 'customer', label: 'Clientes', path: '/customer', icon: IconUsers },
+  { id: 'chats', label: 'Chats', path: '/chats', icon: IconChat, badge: '12' },
+  { id: 'atendimentos', label: 'Atendimento', path: '/atendimentos', icon: IconPhone },
+  { id: 'monitor', label: 'Monitor', path: '/monitor', icon: IconMonitor },
+  { id: 'kanban', label: 'KanBan', path: '/kanban', icon: IconKanban },
+  { id: 'kb', label: 'FAQ', path: '/kb', icon: IconKB },
+  { id: 'relatorios', label: 'Relatórios', path: '/relatorios', icon: IconReport },
+  { id: 'configuracoes', label: 'Configurações', path: '/configuracoes', icon: IconSettings },
+]
+
+const visibleMenuItems = computed(() => {
+  return menuItems.filter(item => {
+    if (item.id === 'dashboard' || item.id === 'configuracoes') return true;
+    
+    return activeModules.value[item.id] !== false;
+  })
+})
 </script>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-}
-
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background-color: transparent;
-}
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+.custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.15); }
+.custom-scrollbar::-webkit-scrollbar-track { background-color: transparent; }
 </style>

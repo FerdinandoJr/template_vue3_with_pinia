@@ -1,79 +1,180 @@
 <template>
-    <div class="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
-        <div class="sm:mx-auto sm:w-full sm:max-w-md">
-            <div class="flex justify-center items-center mb-6">
-                <div
-                    class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-blue-500/20">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                        <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
-                        <path d="M3 12A9 3 0 0 0 21 12"></path>
-                    </svg>
-                </div>
-                <h1 class="text-3xl font-black tracking-tight italic text-slate-800">Data <span
-                        class="text-blue-500 font-light">CRM</span></h1>
-            </div>
-            <h2 class="mt-2 text-center text-xl font-bold tracking-tight text-slate-700">Acesse sua conta</h2>
+  <div class="min-h-[100dvh] w-full flex bg-[#f8fafc] overflow-hidden">
+    
+    <div class="hidden lg:flex w-1/2 bg-blue-600 items-center justify-center relative">
+      <div class="absolute inset-0 bg-gradient-to-br from-blue-700 to-blue-900 opacity-95"></div>
+      
+      <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/20 blur-3xl"></div>
+      <div class="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-400/10 blur-3xl"></div>
+      
+      <div class="relative z-10 text-white text-center p-12 flex flex-col items-center">
+        <div class="w-20 h-20 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 border border-white/20 shadow-xl">
+          <el-icon class="text-4xl text-white"><Monitor /></el-icon>
         </div>
-
-        <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-            <div class="bg-white py-8 px-4 shadow-xl border border-slate-200 sm:rounded-[24px] sm:px-10">
-                <form class="space-y-6" @submit.prevent="handleLogin">
-                    <div>
-                        <label for="email"
-                            class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Email
-                            corporativo</label>
-                        <div class="mt-1">
-                            <input id="email" v-model="email" name="email" type="email" autocomplete="email" required
-                                class="block w-full appearance-none rounded-xl border border-slate-300 px-4 py-3 text-slate-700 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm bg-slate-50 transition-colors"
-                                placeholder="admin@datacrm.com" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="password"
-                            class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Senha</label>
-                        <div class="mt-1">
-                            <input id="password" v-model="password" name="password" type="password"
-                                autocomplete="current-password" required
-                                class="block w-full appearance-none rounded-xl border border-slate-300 px-4 py-3 text-slate-700 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm bg-slate-50 transition-colors"
-                                placeholder="admin" />
-                        </div>
-                    </div>
-
-                    <div v-if="store.error"
-                        class="text-red-500 text-sm font-bold text-center bg-red-50 p-3 rounded-lg border border-red-100">
-                        {{ store.error }}
-                    </div>
-
-                    <div>
-                        <button type="submit" :disabled="store.loading"
-                            class="flex w-full justify-center rounded-xl border border-transparent bg-blue-600 py-3 px-4 text-sm font-bold text-white shadow-md shadow-blue-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
-                            <span v-if="store.loading" class="animate-pulse">Autenticando...</span>
-                            <span v-else>Entrar no Sistema</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <h1 class="text-4xl font-black mb-4 tracking-tight leading-tight">Central de<br/>Atendimento</h1>
+        <p class="text-blue-100 text-lg font-medium max-w-sm mx-auto leading-relaxed">
+          Gerencie seus clientes, tickets, kanban e chats em um único lugar com máxima eficiência.
+        </p>
+      </div>
     </div>
+
+    <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative">
+      
+      <div class="w-full max-w-[420px] bg-white p-8 sm:p-10 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 relative z-10">
+        
+        <div class="mb-8 text-center sm:text-left">
+          <div class="lg:hidden w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg shadow-blue-200">
+             <el-icon class="text-3xl text-white"><Monitor /></el-icon>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight mb-2">Bem-vindo de volta</h2>
+          <p class="text-slate-500 font-medium text-sm">Insira suas credenciais para acessar o painel</p>
+        </div>
+
+        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @keyup.enter="handleLogin">
+          
+          <el-form-item label="E-mail" prop="email" class="font-bold text-slate-700">
+            <el-input 
+              v-model="form.email" 
+              type="email" 
+              placeholder="admin@datacrm.com" 
+              class="custom-login-input" 
+            >
+              <template #prefix>
+                <el-icon class="text-slate-400"><Message /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item label="Senha" prop="password" class="font-bold text-slate-700 mt-5">
+            <el-input 
+              v-model="form.password" 
+              type="password" 
+              placeholder="••••••••" 
+              show-password 
+              class="custom-login-input"
+            >
+              <template #prefix>
+                <el-icon class="text-slate-400"><Lock /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <div class="flex items-center justify-between mb-8 mt-2">
+            <el-checkbox v-model="rememberMe" label="Lembrar-me" class="!text-slate-500 !font-medium" />
+            <a href="#" class="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">Esqueceu a senha?</a>
+          </div>
+
+          <el-button 
+            type="primary" 
+            :loading="loading" 
+            @click="handleLogin" 
+            class="w-full !h-14 !text-base !font-black !rounded-xl !bg-blue-600 hover:!bg-blue-700 !border-none shadow-xl shadow-blue-600/20 transition-all hover:scale-[1.02]"
+          >
+            Entrar no Sistema
+          </el-button>
+          
+        </el-form>
+      </div>
+      
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../store/auth.store';
+import { ElMessage } from 'element-plus';
+import { Monitor, Message, Lock } from '@element-plus/icons-vue';
 
-const email = ref('admin@datacrm.com');
-const password = ref('admin');
-const store = useAuthStore();
+// 1. INICIALIZAMOS O ROUTER AQUI PARA PODER VIRAR A PÁGINA
 const router = useRouter();
+const authStore = useAuthStore();
+const formRef = ref<any>(null);
+
+const loading = ref(false);
+const rememberMe = ref(false);
+
+const form = reactive({
+  email: '',
+  password: ''
+});
+
+const rules = {
+  email: [
+    { required: true, message: 'O e-mail é obrigatório', trigger: 'blur' },
+    { type: 'email', message: 'Insira um e-mail válido', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: 'A senha é obrigatória', trigger: 'blur' },
+    { min: 4, message: 'A senha deve ter pelo menos 4 caracteres', trigger: 'blur' }
+  ]
+};
 
 const handleLogin = async () => {
-    const success = await store.login(email.value, password.value);
-    if (success) {
+  if (!formRef.value) return;
+  
+  await formRef.value.validate(async (valid: boolean) => {
+    if (valid) {
+      loading.value = true;
+      try {
+        // Simulando o tempo de resposta de uma API real
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        // Dados simulados para o login (Ajuste para a sua API real no futuro)
+        const mockUser = { 
+          id: '1', 
+          name: 'Administrador', 
+          email: form.email, 
+          role: 'ADMIN' // Isso garante acesso total no Router
+        };
+        
+        const mockToken = 'mock-token-de-desenvolvimento'; 
+
+        // 2. SALVA OS DADOS NA STORE (Agora com ofuscação segura)
+        authStore.login(mockUser, mockToken);
+
+        ElMessage.success('Login realizado com sucesso!');
+        
+        // 3. A PEÇA CHAVE: O REDIRECIONAMENTO IMEDIATO
+        // É esta linha que faz o sistema entrar sem precisar dar F5!
         router.push('/');
+
+      } catch (error) {
+        ElMessage.error('Credenciais inválidas. Verifique seu e-mail e senha.');
+      } finally {
+        loading.value = false;
+      }
     }
+  });
 };
 </script>
+
+<style>
+/* Refinamentos visuais para os inputs do Element Plus ficarem com aspecto Premium */
+.custom-login-input .el-input__wrapper {
+  height: 52px !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  background-color: #f8fafc !important;
+  transition: all 0.2s ease !important;
+  padding: 0 16px !important;
+}
+
+.custom-login-input .el-input__wrapper.is-focus {
+  background-color: #ffffff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+.custom-login-input .el-input__inner {
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.custom-login-input .el-input__inner::placeholder {
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+</style>

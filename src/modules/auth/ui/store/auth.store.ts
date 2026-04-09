@@ -1,67 +1,51 @@
 import { defineStore } from 'pinia';
-import { authServices } from '../../data/auth.services';
+import { ref, computed } from 'vue';
 
-export interface IUser {
-    id?: string;
-    name: string;
-    email: string;
-    role: 'ADMIN' | 'MANAGER' | 'AGENT';
-    permissions: string[];
-}
+export const useAuthStore = defineStore('auth', () => {
+    const user = ref<any | null>(null);
+    const token = ref<string | null>(null);
 
-export const useAuthStore = defineStore('auth', {
-    state: () => ({
-        token: localStorage.getItem('token') || null,
-        user: JSON.parse(localStorage.getItem('user') || 'null') as IUser | null,
-        loading: false,
-        error: null as string | null,
-    }),
+    const isAuthenticated = computed(() => !!token.value);
 
-    getters: {
-        isAuthenticated: (state) => !!state.token,
-    },
+    const login = (userData: any, userToken: string) => {
+        user.value = userData;
+        token.value = userToken;
+    };
 
-    actions: {
-        hasRole(roles: string[]) {
-            if (!this.user || !this.user.role) return false;
-            return roles.includes(this.user.role);
-        },
+    const logout = () => {
+        user.value = null;
+        token.value = null;
 
-        hasPermission(permission: string) {
-            if (!this.user || !this.user.permissions) return false;
-            return this.user.permissions.includes(permission);
-        },
+        // Limpeza profunda de resquícios de sessão
+        localStorage.removeItem('datacrm_auth_session');
+        localStorage.removeItem('token');
+        sessionStorage.clear();
+    };
 
-        async login(email: string, password: string) {
-            this.loading = true;
-            this.error = null;
-            try {
-                const response = await authServices.login(email, password);
-                this.token = response.token;
-                this.user = response.user;
+    const hasRole = (roles: string[]) => {
+        if (!user.value || !user.value.role) return false;
+        return roles.includes(user.value.role);
+    };
 
-                localStorage.setItem('token', response.token);
-                localStorage.setItem('user', JSON.stringify(response.user));
-
-                return true;
-            } catch (err: unknown) {
-                if (err instanceof Error) {
-                    this.error = err.message;
-                } else {
-                    this.error = 'Erro ao efetuar login';
+    return { user, token, isAuthenticated, login, logout, hasRole };
+}, {
+    // Motor de persistência com ofuscação (Base64)
+    persist: {
+        key: 'datacrm_auth_session',
+        storage: {
+            getItem: (key: string) => {
+                try {
+                    const data = localStorage.getItem(key);
+                    // Desofusca e converte de volta para JSON
+                    return data ? JSON.parse(atob(data)) : null;
+                } catch (e) {
+                    return null;
                 }
-                return false;
-            } finally {
-                this.loading = false;
+            },
+            setItem: (key: string, value: any) => {
+                // Converte para JSON e ofusca antes de salvar no navegador
+                localStorage.setItem(key, btoa(JSON.stringify(value)));
             }
-        },
-
-        logout() {
-            this.token = null;
-            this.user = null;
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
         }
-    },
-    persist: true
+    }
 });

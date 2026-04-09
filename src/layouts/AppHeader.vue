@@ -1,9 +1,9 @@
 <template>
-  <div class="flex w-full items-center">
+  <div class="flex w-full items-center justify-between">
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-3 sm:gap-4 overflow-hidden">
       <button @click="$emit('toggle-sidebar')"
-        class="lg:hidden p-2 -ml-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+        class="lg:hidden p-2 -ml-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -12,20 +12,18 @@
         </svg>
       </button>
 
-      <div>
-        <h1 v-if="pageTitle" class="text-xl font-bold text-slate-800 truncate max-w-[150px] sm:max-w-full">{{ pageTitle
-        }}</h1>
-        <p v-if="pageSubtitle" class="text-sm text-slate-500 mt-0.5 hidden sm:block">{{ pageSubtitle }}</p>
+      <div class="min-w-0">
+        <h1 v-if="pageTitle" class="text-lg sm:text-xl md:text-2xl font-black text-slate-800 truncate tracking-tight">{{ pageTitle }}</h1>
+        <p v-if="pageSubtitle" class="text-xs sm:text-[13px] font-medium text-slate-500 mt-0.5 truncate hidden sm:block">{{ pageSubtitle }}</p>
       </div>
     </div>
 
-    <div class="flex-1 flex items-center justify-end gap-2 sm:gap-4">
-
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0">
       <el-popover placement="bottom-end" :width="340" trigger="click"
         popper-class="!p-0 !rounded-2xl shadow-2xl border-slate-100">
         <template #reference>
           <button
-            class="relative p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all cursor-pointer">
+            class="relative p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -39,12 +37,11 @@
           </button>
         </template>
 
-        <div class="flex flex-col max-h-[400px]">
-          <div
-            class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center rounded-t-2xl shrink-0">
-            <h3 class="font-bold text-slate-800 text-sm">Notificações</h3>
+        <div class="flex flex-col max-h-[400px] sm:max-h-[500px]">
+          <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center rounded-t-2xl shrink-0">
+            <h3 class="font-black text-slate-800 text-sm tracking-tight">Notificações</h3>
             <el-button v-if="notificationStore.unreadCount > 0" link type="primary" size="small"
-              @click="notificationStore.markAllAsRead()" class="!font-semibold">
+              @click="notificationStore.markAllAsRead()" class="!font-bold">
               Marcar tudo como lido
             </el-button>
           </div>
@@ -64,16 +61,14 @@
               <div v-for="notif in notificationStore.unreadNotifications" :key="notif.id"
                 class="p-3 bg-blue-50 hover:bg-blue-100/50 rounded-xl transition-colors border border-blue-100 flex gap-3 relative group">
                 <div class="mt-1.5 w-2 h-2 bg-blue-500 rounded-full shadow-sm shadow-blue-300 shrink-0"></div>
-                <div class="flex-1 pr-6">
-                  <p class="text-xs font-extrabold text-slate-800 mb-1 leading-tight">{{ notif.title }}</p>
-                  <p class="text-xs text-slate-600 leading-snug mb-2">{{ notif.message }}</p>
-                  <span class="text-[10px] font-bold text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded-md">Hoje às {{
-                    notif.time
-                  }}</span>
+                <div class="flex-1 min-w-0 pr-6">
+                  <p class="text-xs font-black text-slate-800 mb-1 leading-tight truncate">{{ notif.title }}</p>
+                  <p class="text-xs text-slate-600 leading-snug mb-2 line-clamp-2">{{ notif.message }}</p>
+                  <span class="text-[10px] font-bold text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded-md inline-block">Hoje às {{ notif.time }}</span>
                 </div>
 
                 <button @click="notificationStore.markAsRead(notif.id)"
-                  class="absolute top-3 right-3 text-slate-400 hover:text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1 shadow-sm border border-slate-100"
+                  class="absolute top-3 right-3 text-slate-400 hover:text-emerald-500 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity bg-white rounded-full p-1.5 shadow-sm border border-slate-100 shrink-0"
                   title="Marcar como lido">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -103,6 +98,8 @@ const pageTitle = computed(() => route.meta.title as string || '')
 const pageSubtitle = computed(() => route.meta.subtitle as string || '')
 
 onMounted(() => {
-  notificationStore.checkTodayEvents()
+  if (typeof notificationStore.checkTodayEvents === 'function') {
+    notificationStore.checkTodayEvents()
+  }
 })
 </script>

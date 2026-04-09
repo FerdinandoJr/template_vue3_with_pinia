@@ -64,7 +64,7 @@
                         </el-button>
                         <el-button v-if="['internal', 'resolved', 'done'].includes(String(scope.row.status))" 
                             type="warning" circle plain size="small" @click="$emit('convertToKb', scope.row)"
-                            title="Tornar Base de Conhecimento">
+                            title="Tornar FAQ">
                             <el-icon>
                                 <Notebook />
                             </el-icon>

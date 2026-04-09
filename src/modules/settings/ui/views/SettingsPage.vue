@@ -4,24 +4,33 @@
       
       <div class="w-full md:w-[260px] shrink-0">
         <h1 class="text-[28px] font-black text-slate-800 mb-8 leading-none">Configurações</h1>
-        
         <nav class="flex flex-col gap-2">
+          
           <button 
-            @click="store.setTab(SettingsTab.PROFILE)"
+            @click="store.setTab(SettingsTab.PROFILE)" 
             :class="['text-left px-5 py-3.5 rounded-xl text-[13px] font-bold transition-all', store.activeTab === SettingsTab.PROFILE ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100']"
           >
             👤 Meu Perfil
           </button>
           
           <button 
-            @click="store.setTab(SettingsTab.WHATSAPP)"
+            v-if="authStore.hasRole(['ADMIN', 'MANAGER'])"
+            @click="store.setTab(SettingsTab.MODULES)" 
+            :class="['text-left px-5 py-3.5 rounded-xl text-[13px] font-bold transition-all', store.activeTab === SettingsTab.MODULES ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100']"
+          >
+            🧩 Módulos do Sistema
+          </button>
+
+          <button 
+            v-if="authStore.hasRole(['ADMIN', 'MANAGER'])"
+            @click="store.setTab(SettingsTab.WHATSAPP)" 
             :class="['text-left px-5 py-3.5 rounded-xl text-[13px] font-bold transition-all', store.activeTab === SettingsTab.WHATSAPP ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100']"
           >
             💬 Integração WhatsApp
           </button>
           
           <button 
-            @click="store.setTab(SettingsTab.NOTIFICATIONS)"
+            @click="store.setTab(SettingsTab.NOTIFICATIONS)" 
             :class="['text-left px-5 py-3.5 rounded-xl text-[13px] font-bold transition-all', store.activeTab === SettingsTab.NOTIFICATIONS ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100']"
           >
             🔔 Notificações
@@ -37,12 +46,11 @@
         <template v-else>
           <ProfileSettings v-if="store.activeTab === SettingsTab.PROFILE" :profile="store.profile" />
           
-          <WhatsAppSettings v-if="store.activeTab === SettingsTab.WHATSAPP" :whatsapp="store.whatsapp" />
+          <ModuleSettings v-if="store.activeTab === SettingsTab.MODULES && authStore.hasRole(['ADMIN', 'MANAGER'])" />
+
+          <WhatsAppSettings v-if="store.activeTab === SettingsTab.WHATSAPP && authStore.hasRole(['ADMIN', 'MANAGER'])" :whatsapp="store.whatsapp" />
           
-          <div v-if="store.activeTab === SettingsTab.NOTIFICATIONS" class="bg-white rounded-[24px] border border-slate-200 p-8 shadow-sm max-w-3xl">
-            <h2 class="text-xl font-black text-slate-800 mb-4">Preferências de Notificação</h2>
-            <p class="text-sm font-medium text-slate-400">As opções de som e alertas aparecerão aqui.</p>
-          </div>
+          <NotificationSettings v-if="store.activeTab === SettingsTab.NOTIFICATIONS" />
         </template>
       </div>
 
@@ -54,12 +62,21 @@
 import { onMounted } from 'vue';
 import { useSettingsStore } from '../store/settings.store';
 import { SettingsTab } from '../../domain/valueObjects/settings-enums';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+
 import ProfileSettings from '../components/ProfileSettings.vue';
 import WhatsAppSettings from '../components/WhatsAppSettings.vue';
+import NotificationSettings from '../components/NotificationSettings.vue';
+import ModuleSettings from '../components/ModuleSettings.vue';
 
 const store = useSettingsStore();
+const authStore = useAuthStore();
 
 onMounted(() => {
   store.fetchSettingsData();
+
+  if ((store.activeTab === SettingsTab.WHATSAPP || store.activeTab === SettingsTab.MODULES) && !authStore.hasRole(['ADMIN', 'MANAGER'])) {
+    store.setTab(SettingsTab.PROFILE);
+  }
 });
 </script>

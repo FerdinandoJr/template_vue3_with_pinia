@@ -85,7 +85,7 @@ const menuItems = ref([
   { label: 'Chats', path: '/chats', icon: IconChat, badge: '12' },
   { label: 'Atendimento', path: '/atendimentos', icon: IconPhone },
   { label: 'Relatórios', path: '/relatorios', icon: IconReport },
-  { label: 'Base de conhecimento', path: '/kb', icon: IconKB },
+  { label: 'FAQ', path: '/kb', icon: IconKB },
   { label: 'KanBan', path: '/kanban', icon: IconKanban },
   { label: 'Configurações', path: '/configuracoes', icon: IconSettings },
 ])

@@ -1,6 +1,6 @@
 <template>
     <div class="h-full w-full bg-white relative">
-        <FullCalendar ref="fullCalendarRef" :options="calendarOptions" class="h-full w-full custom-calendar" />
+        <FullCalendar ref="fullCalendarRef" :options="calendarOptions" class="h-full w-full custom-premium-calendar" />
     </div>
 </template>
 
@@ -38,23 +38,27 @@ const calendarOptions = computed(() => ({
     selectMirror: true,
     dayMaxEvents: true,
     allDaySlot: false,
-    slotMinTime: '06:00:00',
-    slotMaxTime: '23:00:00',
+    
+    // Configurações Técnicas Originais
+    slotMinTime: '00:00:00',
+    slotMaxTime: '24:00:00',
+    slotDuration: '00:30:00',
     height: '100%',
-    noEventsText: 'Nenhum agendamento para este período.',
+    nowIndicator: true,
+    handleWindowResize: true,
 
     slotLabelFormat: { hour: '2-digit' as const, minute: '2-digit' as const, omitZeroMinute: false, hour12: false },
     eventTimeFormat: { hour: '2-digit' as const, minute: '2-digit' as const, omitZeroMinute: false, hour12: false },
 
+    // Lógica Complexa de Mapeamento de Eventos e Recorrência Original
     events: store.filteredEvents.flatMap((e: any): any[] => {
         const user = store.availableUsers.find(u => u.id === e.userId);
         const theme = user?.theme || { primary: '#3b82f6', light: '#eff6ff', dark: '#1e40af' };
 
-        const eventBgColor = e.color ? e.color : theme.light;
-        const eventBorderColor = e.color ? e.color : theme.primary;
-        const eventTextColor = e.color ? '#ffffff' : theme.dark;
+        const eventBgColor = e.colorHex ? e.colorHex : theme.light;
+        const eventBorderColor = e.colorHex ? e.colorHex : theme.primary;
+        const eventTextColor = e.colorHex ? '#ffffff' : theme.dark;
 
-        // AQUI IDENTIFICAMOS SE É UM BLOQUEIO DE AGENDA
         const baseEvent = {
             id: e.id,
             title: e.isBlocker ? `🔒 ${e.title}` : e.title,
@@ -66,12 +70,13 @@ const calendarOptions = computed(() => ({
         };
 
         if (e.isRecurring) {
+            // Lógica de Recorrência Mensal Original
             if (e.recurrenceType === 'monthly') {
                 const monthlyEvents: any[] = [];
                 let currentDate = new Date(`${e.date}T12:00:00`);
                 const endLimitDate = e.recurrenceEndDate
                     ? new Date(`${e.recurrenceEndDate}T23:59:59`)
-                    : new Date(currentDate.getFullYear() + 2, currentDate.getMonth(), currentDate.getDate());
+                    : new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate());
 
                 while (currentDate <= endLimitDate) {
                     const dStr = currentDate.toISOString().split('T')[0];
@@ -82,6 +87,7 @@ const calendarOptions = computed(() => ({
                 }
                 return monthlyEvents;
             } else {
+                // Lógica Diária/Semanal Original
                 let daysOfWeek: number[] = [];
                 if (e.recurrenceType === 'daily') daysOfWeek = [0, 1, 2, 3, 4, 5, 6];
                 else if (e.recurrenceType === 'weekly' && e.recurrenceDays?.length) daysOfWeek = e.recurrenceDays;
@@ -108,90 +114,60 @@ const handleEventDropOrResize = (calendarEvent: any) => {
     const e = calendarEvent.extendedProps;
     const start = calendarEvent.start;
     const end = calendarEvent.end || calendarEvent.start;
-    emit('update-event-date', { ...e, date: start.toISOString().split('T')[0], time: start.toTimeString().substring(0, 5), endTime: end.toTimeString().substring(0, 5) });
+    emit('update-event-date', { 
+        ...e, 
+        date: start.toISOString().split('T')[0], 
+        time: start.toTimeString().substring(0, 5), 
+        endTime: end.toTimeString().substring(0, 5) 
+    });
 };
 </script>
 
 <style>
-/* CSS liberado do "scoped" para forçar o estilo no FullCalendar */
-.custom-calendar .fc-event {
+/* Estilização Premium para o FullCalendar */
+.custom-premium-calendar .fc-event {
     cursor: pointer !important;
-    border-radius: 4px !important;
-    border-left-width: 4px !important;
+    border-radius: 8px !important;
+    border-left-width: 5px !important;
     border-top: none !important;
     border-right: none !important;
     border-bottom: none !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-    padding: 2px 4px !important;
-    font-weight: 600 !important;
-}
-
-.custom-calendar .fc-event:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08) !important;
-}
-
-/* 🔒 CSS MÁGICO PARA EVENTOS BLOQUEADOS 🔒 */
-.custom-calendar .is-blocked-slot {
-    background: repeating-linear-gradient(45deg,
-            #f8fafc,
-            #f8fafc 8px,
-            #f1f5f9 8px,
-            #f1f5f9 16px) !important;
-    border-left: 4px solid #94a3b8 !important;
-    border: 1px dashed #94a3b8 !important;
-    color: #475569 !important;
-    opacity: 0.8 !important;
-}
-
-.custom-calendar .is-blocked-slot:hover {
-    opacity: 1 !important;
-    background: repeating-linear-gradient(45deg,
-            #f1f5f9,
-            #f1f5f9 8px,
-            #e2e8f0 8px,
-            #e2e8f0 16px) !important;
-}
-
-.custom-calendar .is-blocked-slot .fc-event-title {
-    font-weight: 800 !important;
-    font-style: italic !important;
-    letter-spacing: 0.03em;
-}
-
-.custom-calendar .fc-daygrid-event-dot {
-    display: none !important;
-}
-
-.custom-calendar .fc-col-header-cell {
-    padding: 12px 0 !important;
-    background-color: #f8fafc !important;
-    color: #475569 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+    padding: 4px 8px !important;
     font-weight: 700 !important;
+    font-size: 12px !important;
+    transition: all 0.2s ease;
+}
+
+.custom-premium-calendar .fc-event:hover {
+    transform: translateY(-1px) scale(1.01) !important;
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+.custom-premium-calendar .is-blocked-slot {
+    background: repeating-linear-gradient(45deg, #f8fafc, #f8fafc 10px, #f1f5f9 10px, #f1f5f9 20px) !important;
+    border-left: 5px solid #94a3b8 !important;
+    border: 1px dashed #cbd5e1 !important;
+    color: #64748b !important;
+}
+
+.custom-premium-calendar .fc-col-header-cell {
+    padding: 15px 0 !important;
+    background-color: #f8fafd !important;
+    color: #475569 !important;
+    font-weight: 800 !important;
     text-transform: uppercase !important;
-    font-size: 0.75rem !important;
-    border-bottom: 1px solid #e2e8f0 !important;
+    font-size: 11px !important;
+    border-bottom: 2px solid #e2e8f0 !important;
 }
 
-.custom-calendar .fc-list-day-cushion {
-    background-color: #f8fafc !important;
-    padding: 12px 16px !important;
-    font-weight: 800 !important;
-    color: #334155 !important;
-    text-transform: capitalize !important;
+.custom-premium-calendar .fc-timegrid-now-indicator-line {
+    border-color: #3b82f6 !important;
+    border-width: 2px !important;
 }
 
-.custom-calendar .fc-list-event:hover td {
-    background-color: #f1f5f9 !important;
-}
-
-.custom-calendar .fc-list-event-time {
-    font-weight: 700 !important;
-    color: #475569 !important;
-}
-
-.custom-calendar .fc-list-event-dot {
-    border-color: currentColor !important;
-    border-width: 4px !important;
+.custom-premium-calendar .fc-timegrid-now-indicator-arrow {
+    border-color: #3b82f6 !important;
+    background-color: #3b82f6 !important;
 }
 </style>

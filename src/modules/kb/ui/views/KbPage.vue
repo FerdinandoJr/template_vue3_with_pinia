@@ -3,7 +3,7 @@
 
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 shrink-0">
       <div>
-        <h2 class="text-2xl font-black text-slate-800 tracking-tight">Base de Conhecimento</h2>
+        <h2 class="text-2xl font-black text-slate-800 tracking-tight">FAQ</h2>
         <p class="text-slate-500 text-sm font-medium mt-1">Consulte documentações, roteiros e políticas</p>
       </div>
 

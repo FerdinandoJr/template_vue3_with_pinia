@@ -224,7 +224,7 @@
         </label>
 
         <div class="custom-quill-wrapper border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-          <QuillEditor v-model:content="anotacaoFinal" contentType="html" theme="snow" toolbar="full"
+          <RichTextEditor v-model="anotacaoFinal" 
             placeholder="Descreva detalhadamente como o atendimento foi concluído..." />
         </div>
       </div>
@@ -252,8 +252,7 @@ import { Search, Timer, Document, Printer, Check, ArrowLeft, Refresh } from '@el
 import { ElMessage } from 'element-plus';
 import { useServiceStore } from '../store/service.store';
 
-import { QuillEditor } from '@vueup/vue-quill';
-import '@vueup/vue-quill/dist/vue-quill.snow.css';
+import RichTextEditor from '@/components/RichTextEditor.vue';
 
 const store = useServiceStore();
 
@@ -399,39 +398,7 @@ onMounted(() => {
   color: #475569 !important;
 }
 
-:deep(.custom-quill-wrapper) {
-  background-color: #ffffff;
-}
 
-:deep(.custom-quill-wrapper .ql-toolbar.ql-snow) {
-  border: none;
-  border-bottom: 1px solid #e2e8f0;
-  background-color: #f8fafc;
-  border-radius: 12px 12px 0 0;
-  font-family: inherit;
-  padding: 12px;
-}
-
-:deep(.custom-quill-wrapper .ql-container.ql-snow) {
-  border: none;
-  font-family: inherit;
-  font-size: 14px;
-  min-height: 250px;
-}
-
-:deep(.custom-quill-wrapper .ql-editor) {
-  min-height: 250px;
-  max-height: 500px;
-  overflow-y: auto;
-  color: #334155;
-  line-height: 1.6;
-  padding: 1rem;
-}
-
-:deep(.custom-quill-wrapper .ql-editor.ql-blank::before) {
-  font-style: normal;
-  color: #94a3b8;
-}
 
 .animate-spin-slow {
   animation: spin 4s linear infinite;

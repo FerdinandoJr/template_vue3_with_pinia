@@ -1,60 +1,43 @@
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
-import { ElMessage } from 'element-plus';
 
-export interface HttpClient {
-    get<T>(url: string, headers?: Record<string, string>): Promise<T>;
-    post<T>(url: string, body: any, headers?: Record<string, string>): Promise<T>;
-    put<T>(url: string, body: any, headers?: Record<string, string>): Promise<T>;
-    delete<T>(url: string, headers?: Record<string, string>): Promise<T>;
-}
+export class HttpClient {
+    private baseUrl: string;
 
-export class FetchHttpClient implements HttpClient {
-    private readonly baseUrl: string;
-
-    constructor() {
-        this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    constructor(baseUrl: string = import.meta.env.VITE_API_BASE_URL || '') {
+        this.baseUrl = baseUrl;
     }
 
     private async handleResponse<T>(response: Response): Promise<T> {
         if (!response.ok) {
+            // Se o token for recusado pelo servidor, desloga automaticamente
             if (response.status === 401) {
                 const authStore = useAuthStore();
                 authStore.logout();
                 window.location.href = '/login';
-                ElMessage.error('Sua sessão expirou. Por favor, faça login novamente.');
-                throw new Error('Unauthorized');
             }
-
-            let errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
-            try {
-                const errorData = await response.json();
-                if (errorData && errorData.message) {
-                    errorMessage = errorData.message;
-                }
-            } catch {
-            }
-
-            ElMessage.error(errorMessage);
-            throw new Error(errorMessage);
+            const errorText = await response.text();
+            throw new Error(errorText || response.statusText);
         }
 
-        if (response.status === 204) {
-            return {} as T;
-        }
-
-        return await response.json();
+        const text = await response.text();
+        return text ? JSON.parse(text) : {} as T;
     }
 
     private async request<T>(endpoint: string, options: RequestInit): Promise<T> {
-        const url = `${this.baseUrl}${endpoint}`;
-        const token = localStorage.getItem('token');
+        const isExternalUrl = endpoint.startsWith('http://') || endpoint.startsWith('https://');
+        const url = isExternalUrl ? endpoint : `${this.baseUrl}${endpoint}`;
 
         const defaultHeaders: Record<string, string> = {
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
         };
 
-        if (token) {
-            defaultHeaders['Authorization'] = `Bearer ${token}`;
+        // TRAVA DE SEGURANÇA: Só anexa o Token JWT se a requisição for interna da API
+        if (!isExternalUrl || url.startsWith(this.baseUrl)) {
+            const authStore = useAuthStore();
+            if (authStore.token) {
+                defaultHeaders['Authorization'] = `Bearer ${authStore.token}`;
+            }
         }
 
         const response = await fetch(url, {
@@ -64,24 +47,33 @@ export class FetchHttpClient implements HttpClient {
                 ...options.headers,
             },
         });
+
         return this.handleResponse<T>(response);
     }
 
-    async get<T>(url: string, headers?: Record<string, string>): Promise<T> {
-        return this.request<T>(url, { method: 'GET', headers });
+    public async get<T>(endpoint: string, headers?: HeadersInit): Promise<T> {
+        return this.request<T>(endpoint, { method: 'GET', headers });
     }
 
-    async post<T>(url: string, body: any, headers?: Record<string, string>): Promise<T> {
-        return this.request<T>(url, { method: 'POST', body: JSON.stringify(body), headers });
+    public async post<T>(endpoint: string, body: any, headers?: HeadersInit): Promise<T> {
+        return this.request<T>(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+        });
     }
 
-    async put<T>(url: string, body: any, headers?: Record<string, string>): Promise<T> {
-        return this.request<T>(url, { method: 'PUT', body: JSON.stringify(body), headers });
+    public async put<T>(endpoint: string, body: any, headers?: HeadersInit): Promise<T> {
+        return this.request<T>(endpoint, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(body),
+        });
     }
 
-    async delete<T>(url: string, headers?: Record<string, string>): Promise<T> {
-        return this.request<T>(url, { method: 'DELETE', headers });
+    public async delete<T>(endpoint: string, headers?: HeadersInit): Promise<T> {
+        return this.request<T>(endpoint, { method: 'DELETE', headers });
     }
 }
 
-export const httpClient = new FetchHttpClient();
+export const httpClient = new HttpClient();

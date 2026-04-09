@@ -1,11 +1,12 @@
 export enum SettingsTab {
-  PROFILE = "profile",
-  WHATSAPP = "whatsapp",
-  NOTIFICATIONS = "notifications"
+  PROFILE = 'PROFILE',
+  WHATSAPP = 'WHATSAPP',
+  NOTIFICATIONS = 'NOTIFICATIONS',
+  MODULES = 'MODULES'
 }
 
 export enum WhatsAppStatus {
-  CONNECTED = "Conectado",
-  DISCONNECTED = "Desconectado",
-  CONNECTING = "Conectando..."
+  CONNECTED = 'Conectado',
+  DISCONNECTED = 'Desconectado',
+  CONNECTING = 'Conectando...'
 }

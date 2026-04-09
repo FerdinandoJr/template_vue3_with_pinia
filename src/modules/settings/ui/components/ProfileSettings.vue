@@ -43,7 +43,7 @@
 
     <div class="mt-10 pt-6 border-t border-slate-100 flex justify-end">
       <el-button type="primary" size="large" class="!rounded-xl !px-10 !font-bold" @click="handleSave">
-        Salvar Alterações
+        Salvar
       </el-button>
     </div>
   </div>
@@ -58,7 +58,6 @@ const props = defineProps<{ profile: IUserProfile | null }>();
 const localProfile = ref<IUserProfile | null>(null);
 const phoneError = ref('');
 
-// SOLUÇÃO: Declarar a função ANTES do watch para evitar o erro de inicialização
 const formatPhoneInitial = (phone: string) => {
   let v = phone.replace(/\D/g, '');
   if (v.length > 10) {
