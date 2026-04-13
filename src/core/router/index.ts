@@ -29,7 +29,6 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Dashboard',
         component: () => import('@/modules/dashboard/ui/views/DashboardPage.vue')
       },
-      // --- ROTAS QUE HAVIAM SIDO REMOVIDAS FORAM RESTAURADAS AQUI ---
       {
         path: 'calendar',
         name: 'Calendar',
@@ -57,7 +56,6 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/modules/reports/ui/views/ReportsPage.vue'),
         meta: { roles: ['ADMIN', 'MANAGER'] }
       },
-      // --------------------------------------------------------------
       {
         path: 'customer',
         name: 'Customer',
@@ -85,7 +83,6 @@ const routes: Array<RouteRecordRaw> = [
       }
     ]
   },
-  // Catch-all: qualquer rota não encontrada vai para a raiz (Dashboard)
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'
@@ -97,7 +94,6 @@ const router = createRouter({
   routes
 });
 
-// Guardião Global das Rotas
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 

@@ -1,7 +1,16 @@
 <template>
-    <el-dialog :model-value="isOpen" :title="form.uuid ? 'Editar Registo' : 'Novo Registo'" width="95%"
-        style="max-width: 800px;" @close="$emit('close')" destroy-on-close align-center
-        class="rounded-xl overflow-hidden">
+    <el-dialog
+        :model-value="isOpen"
+        :title="form.uuid ? 'Editar Registo' : 'Novo Registo'"
+        width="95%"
+        style="max-width: 800px;"
+        @close="$emit('close')"
+        destroy-on-close
+        align-center
+        append-to-body
+        :z-index="9999"
+        class="rounded-xl overflow-hidden"
+    >
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="mt-4" size="large"
             require-asterisk-position="right">
             <el-tabs v-model="activeTab" class="enterprise-tabs px-6">
@@ -9,17 +18,13 @@
                     <div class="py-4 flex flex-col h-full">
                         <div
                             class="flex flex-col sm:flex-row items-center gap-6 mb-6 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm w-full box-border">
-                            <el-avatar :size="70"
-                                class="bg-blue-600 text-white font-black text-2xl shadow-md flex-shrink-0">
-                                {{ form.tradeName?.charAt(0).toUpperCase() || form.companyName?.charAt(0).toUpperCase()
-                                    || form.name?.charAt(0).toUpperCase() || '?' }}
+                            <el-avatar :size="70" class="bg-blue-600 text-white font-black text-2xl shadow-md flex-shrink-0">
+                                {{ form.tradeName?.charAt(0).toUpperCase() || form.companyName?.charAt(0).toUpperCase() || form.name?.charAt(0).toUpperCase() || '?' }}
                             </el-avatar>
                             <div class="flex-1 w-full overflow-hidden p-1 -m-1">
-                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tipo de
-                                    Cliente</p>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tipo de Cliente</p>
                                 <el-radio-group v-model="form.type" size="large"
-                                    class="w-full flex flex-col sm:flex-row gap-2 custom-radio-group"
-                                    @change="resetDocument">
+                                    class="w-full flex flex-col sm:flex-row gap-2 custom-radio-group" @change="resetDocument">
                                     <el-radio-button value="PJ" class="flex-1 w-full">Pessoa Jurídica</el-radio-button>
                                     <el-radio-button value="PF" class="flex-1 w-full">Pessoa Física</el-radio-button>
                                 </el-radio-group>
@@ -38,6 +43,7 @@
                                 <el-input v-model="form.companyName" placeholder="Nome oficial da empresa..."
                                     class="uppercase-input" />
                             </el-form-item>
+
                             <el-form-item v-if="form.type === 'PJ'" label="Nome Fantasia" prop="tradeName">
                                 <el-input v-model="form.tradeName" placeholder="Como a empresa é conhecida..."
                                     class="uppercase-input" />
@@ -55,8 +61,7 @@
                             </el-form-item>
                         </div>
 
-                        <div
-                            class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mt-4 border-t border-slate-100 pt-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mt-4 border-t border-slate-100 pt-6">
                             <el-form-item label="E-mail Principal" prop="email">
                                 <el-input v-model="form.email" placeholder="contato@empresa.com" type="email">
                                     <template #prefix>
@@ -98,6 +103,7 @@
                                         <el-option v-for="origem in sourceStore.items" :key="origem.id"
                                             :label="origem.name" :value="origem.name" />
                                     </el-select>
+
                                     <el-button circle plain type="info" @click="isSourceModalOpen = true"
                                         title="Gerenciar Origens" class="!border-slate-300 flex-shrink-0">
                                         <el-icon>
@@ -172,7 +178,6 @@
                 </div>
             </div>
         </template>
-
         <CustomerSourceSettingsModal :is-open="isSourceModalOpen" @close="isSourceModalOpen = false" />
     </el-dialog>
 </template>
@@ -197,6 +202,7 @@ const emit = defineEmits(['close', 'save'])
 const formRef = ref<FormInstance>()
 const activeTab = ref('general')
 const numberInputRef = ref()
+
 const sourceStore = useCustomerSourceStore()
 const isSourceModalOpen = ref(false)
 
@@ -236,7 +242,6 @@ watch(() => props.isOpen, (val) => {
     if (val) {
         activeTab.value = 'general'
         if (formRef.value) formRef.value.resetFields()
-
         sourceStore.fetchSources()
 
         if (props.customerData) {
@@ -248,74 +253,40 @@ watch(() => props.isOpen, (val) => {
             }
         } else {
             Object.assign(form, {
-                uuid: '',
-                type: 'PJ',
-                name: '',
-                companyName: '',
-                tradeName: '',
-                document: '',
-                email: '',
-                phone: '',
-                website: '',
-                status: 'active',
-                source: '',
-                zipCode: '',
-                street: '',
-                number: '',
-                complement: '',
-                neighborhood: '',
-                city: '',
-                state: '',
-                avatar: ''
+                uuid: '', type: 'PJ', name: '', companyName: '', tradeName: '',
+                document: '', email: '', phone: '', website: '', status: 'active',
+                source: '', zipCode: '', street: '', number: '', complement: '',
+                neighborhood: '', city: '', state: '', avatar: ''
             })
         }
     }
 })
 
-const resetDocument = () => {
-    form.document = ''
-}
+const resetDocument = () => { form.document = '' }
 
 const handleDocumentInput = (val: string | undefined) => {
     let v = (val || '').replace(/\D/g, '')
-
     if (form.type === 'PF') {
         if (v.length > 11) v = v.slice(0, 11)
-        if (v.length > 9) {
-            v = v.replace(/(\d{3})(\d{3})(\d{3})(\d)/, '$1.$2.$3-$4')
-        } else if (v.length > 6) {
-            v = v.replace(/(\d{3})(\d{3})(\d)/, '$1.$2.$3')
-        } else if (v.length > 3) {
-            v = v.replace(/(\d{3})(\d)/, '$1.$2')
-        }
+        if (v.length > 9) { v = v.replace(/(\d{3})(\d{3})(\d{3})(\d)/, '$1.$2.$3-$4') }
+        else if (v.length > 6) { v = v.replace(/(\d{3})(\d{3})(\d)/, '$1.$2.$3') }
+        else if (v.length > 3) { v = v.replace(/(\d{3})(\d)/, '$1.$2') }
     } else {
         if (v.length > 14) v = v.slice(0, 14)
-        if (v.length > 12) {
-            v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d)/, '$1.$2.$3/$4-$5')
-        } else if (v.length > 8) {
-            v = v.replace(/(\d{2})(\d{3})(\d{3})(\d)/, '$1.$2.$3/$4')
-        } else if (v.length > 5) {
-            v = v.replace(/(\d{2})(\d{3})(\d)/, '$1.$2.$3')
-        } else if (v.length > 2) {
-            v = v.replace(/(\d{2})(\d)/, '$1.$2')
-        }
+        if (v.length > 12) { v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d)/, '$1.$2.$3/$4-$5') }
+        else if (v.length > 8) { v = v.replace(/(\d{2})(\d{3})(\d{3})(\d)/, '$1.$2.$3/$4') }
+        else if (v.length > 5) { v = v.replace(/(\d{2})(\d{3})(\d)/, '$1.$2.$3') }
+        else if (v.length > 2) { v = v.replace(/(\d{2})(\d)/, '$1.$2') }
     }
-
     form.document = v
 }
 
 const handlePhoneInput = (val: string | undefined) => {
     let v = (val || '').replace(/\D/g, '')
     if (v.length > 11) v = v.slice(0, 11)
-
-    if (v.length > 10) {
-        v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-    } else if (v.length > 6) {
-        v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3')
-    } else if (v.length > 2) {
-        v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2')
-    }
-
+    if (v.length > 10) { v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3') }
+    else if (v.length > 6) { v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3') }
+    else if (v.length > 2) { v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2') }
     form.phone = v
 }
 
@@ -323,39 +294,29 @@ const handleZipCodeInput = async (val: string | undefined) => {
     form.zipCode = await formatAndSearchCep(val || '', (fullAddress?: string) => {
         if (!fullAddress) return
         const parts = fullAddress.split(',')
-
         if (parts.length > 1) {
             form.street = parts[0]?.trim() ?? ''
             const afterStreet = parts[1]?.split('-') ?? []
-
             if (afterStreet.length > 1) {
                 form.neighborhood = afterStreet[0]?.trim() ?? ''
                 const cityState = afterStreet[1]?.split(' - ') ?? []
-
                 if (cityState.length > 1) {
                     form.city = cityState[0]?.trim() ?? ''
                     form.state = cityState[1]?.trim() ?? ''
                 }
             }
         }
-        setTimeout(() => {
-            numberInputRef.value?.focus()
-        }, 100)
+        setTimeout(() => { numberInputRef.value?.focus() }, 100)
     })
 }
 
 const validateDocument = (rule: any, value: string | undefined, callback: any) => {
-    if (!value) {
-        callback(new Error('O documento é obrigatório'))
-    } else {
+    if (!value) { callback(new Error('O documento é obrigatório')) }
+    else {
         const cleanValue = value.replace(/\D/g, '')
-        if (form.type === 'PF' && cleanValue.length !== 11) {
-            callback(new Error('CPF inválido'))
-        } else if (form.type === 'PJ' && cleanValue.length !== 14) {
-            callback(new Error('CNPJ inválido'))
-        } else {
-            callback()
-        }
+        if (form.type === 'PF' && cleanValue.length !== 11) { callback(new Error('CPF inválido')) }
+        else if (form.type === 'PJ' && cleanValue.length !== 14) { callback(new Error('CNPJ inválido')) }
+        else { callback() }
     }
 }
 
@@ -367,18 +328,15 @@ const rules = reactive<FormRules>({
 
 const submit = async () => {
     if (!formRef.value) return
-
     await formRef.value.validate((valid: boolean) => {
         if (valid) {
             if (!form.avatar) {
                 const initials = form.tradeName || form.companyName || form.name || 'CL'
                 form.avatar = initials.substring(0, 2).toUpperCase()
             }
-
             if (form.type === 'PJ' && form.name && !form.companyName) {
                 form.companyName = form.name;
             }
-
             emit('save', { ...form })
         } else {
             ElMessage.warning('Por favor, preencha todos os campos obrigatórios.')

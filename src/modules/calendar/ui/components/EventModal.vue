@@ -3,10 +3,12 @@
     :model-value="isOpen" 
     width="90%" 
     style="max-width: 800px; border-radius: 16px; padding: 0; overflow: hidden; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15);"
+    top="8vh"
+    append-to-body
+    :z-index="9999"
     @close="handleClose" 
     destroy-on-close 
     :close-on-click-modal="false"
-    align-center
     class="saas-enterprise-modal"
   >
     <div class="px-6 py-5 bg-white border-b border-slate-200 flex items-center justify-between z-10 relative">
@@ -41,7 +43,7 @@
       </div>
     </div>
 
-    <el-form ref="ruleFormRef" :model="form" :rules="rules" label-position="top" class="flex bg-white h-[480px]">
+    <el-form ref="ruleFormRef" :model="form" :rules="rules" label-position="top" class="flex bg-white w-full" style="height: 580px; max-height: calc(100vh - 20vh);">
       
       <div class="w-48 shrink-0 border-r border-slate-200 bg-slate-50/50 p-4 flex flex-col gap-1">
         <button type="button" @click="activeTab = 'general'" class="saas-tab-btn" :class="{ 'active': activeTab === 'general' }">
@@ -278,12 +280,11 @@ const toggleDay = (idx: number) => {
   position: relative !important;
 }
 
-/* 🔥 MÁGICA AQUI: O CSS A SEGUIR DESCOLA E ALINHA O TEXTO VERMELHO */
 .saas-input-group :deep(.el-form-item__error) {
   position: absolute !important;
-  top: calc(100% + 6px) !important; /* Descola exatos 6 pixels da caixa */
+  top: calc(100% + 6px) !important;
   left: 0 !important;
-  padding-top: 0 !important; /* Remove qualquer preenchimento nativo invisível do elemento */
+  padding-top: 0 !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   color: #ef4444 !important;

@@ -95,8 +95,6 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { Search, Plus, Delete, Setting } from '@element-plus/icons-vue'
 import { useCustomerStore } from '../store/customer.store'
-
-// Importação dos componentes da tela
 import CustomerStats from '../components/CustomerStats.vue'
 import CustomerTable from '../components/CustomerTable.vue'
 import CustomerFormModal from '../components/CustomerFormModal.vue'
@@ -109,8 +107,6 @@ const { items, total, filteredTotal, loading } = storeToRefs(store)
 
 const isFormModalOpen = ref(false)
 const isSourceModalOpen = ref(false)
-
-// Correção do TypeScript: Definir o tipo explicitamente como <any> evita o erro de 'uuid não existe no tipo never'
 const customerToEdit = ref<any>(null)
 const isDeleteModalOpen = ref(false)
 const customerUuidToDelete = ref<string | null>(null)
@@ -135,7 +131,6 @@ const openCreateModal = () => {
 }
 
 const openEditModal = (customer: any) => {
-  // Passamos uma cópia do objeto cliente para edição
   customerToEdit.value = { ...customer }
   isFormModalOpen.value = true
 }
