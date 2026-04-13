@@ -1,6 +1,6 @@
 import { KanbanStatus } from '../domain/valueObjects/kanban-status.enum';
 
-const STORAGE_KEY = '@DataCRM:KanbanBoard_v5';
+const STORAGE_KEY = '@DataCRM:KanbanBoards_v1';
 
 const ensureColumnsHaveColor = (columns: any[]) => {
   return columns.map(col => {
@@ -21,9 +21,15 @@ const ensureColumnsHaveColor = (columns: any[]) => {
 const getDefaultColumns = () => {
   const todoList = [
     {
-      id: '1', title: 'Implementação Funcionalidade', description: 'Criar nova tela de cadastro',
-      customerName: 'Cliente A', status: KanbanStatus.TODO, priority: 'high',
-      dateDisplay: '19/06/24', avatars: ['LL'], tags: [
+      id: '1',
+      title: 'Implementação Funcionalidade',
+      description: 'Criar nova tela de cadastro',
+      customerName: 'Cliente A',
+      status: KanbanStatus.TODO,
+      priority: 'high',
+      dateDisplay: '19/06/24',
+      avatars: ['LL'],
+      tags: [
         { label: 'Nova Funcionalidade', colorClass: 'bg-green-100 text-green-700' },
         { label: 'Urgente', colorClass: 'bg-orange-100 text-orange-700' }
       ]
@@ -32,9 +38,15 @@ const getDefaultColumns = () => {
 
   const inProgressList = [
     {
-      id: '2', title: 'Correção de Erro', description: 'Erro na api de clientes',
-      customerName: 'Cliente B', status: KanbanStatus.IN_PROGRESS, priority: 'medium',
-      dateDisplay: 'Hoje', avatars: ['WA'], tags: [
+      id: '2',
+      title: 'Correção de Erro',
+      description: 'Erro na api de clientes',
+      customerName: 'Cliente B',
+      status: KanbanStatus.IN_PROGRESS,
+      priority: 'medium',
+      dateDisplay: 'Hoje',
+      avatars: ['WA'],
+      tags: [
         { label: 'Bug', colorClass: 'bg-red-100 text-red-700' },
         { label: 'Crítico', colorClass: 'bg-pink-100 text-pink-700' }
       ]
@@ -55,38 +67,64 @@ export const kanbanServices = {
         const localData = localStorage.getItem(STORAGE_KEY);
         if (localData) {
           let parsedData = JSON.parse(localData);
-          parsedData = ensureColumnsHaveColor(parsedData);
+
+          if (parsedData.length > 0 && !parsedData[0].columns) {
+            parsedData = [
+              {
+                id: `board-${Date.now()}`,
+                title: 'Quadro Principal',
+                columns: ensureColumnsHaveColor(parsedData)
+              }
+            ];
+          } else {
+            parsedData = parsedData.map((board: any) => {
+              board.columns = ensureColumnsHaveColor(board.columns);
+              return board;
+            });
+          }
           resolve(parsedData);
         } else {
-          const defaultColumns = getDefaultColumns();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultColumns));
-          resolve(defaultColumns);
+          const defaultBoards = [
+            {
+              id: `board-${Date.now()}`,
+              title: 'Quadro Principal',
+              columns: getDefaultColumns()
+            }
+          ];
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultBoards));
+          resolve(defaultBoards);
         }
       }, 300);
     });
   },
 
-  async createCard(card: any): Promise<any> {
+  async createCard(card: any, boardId: string): Promise<any> {
     return new Promise((resolve) => {
       setTimeout(() => {
         const localData = localStorage.getItem(STORAGE_KEY);
-        let columns = localData ? ensureColumnsHaveColor(JSON.parse(localData)) : getDefaultColumns();
+        let boards = localData ? JSON.parse(localData) : [{ id: boardId, title: 'Quadro Principal', columns: getDefaultColumns() }];
 
-        const todoColumn = columns.find((col: any) => col.id === KanbanStatus.TODO || col.id === 'todo');
-        if (todoColumn) todoColumn.cards.push(card);
-        else if (columns.length > 0) columns[0].cards.push(card);
+        const board = boards.find((b: any) => String(b.id) === String(boardId)) || boards[0];
+        if (board) {
+          const todoColumn = board.columns.find((col: any) => col.id === KanbanStatus.TODO || col.id === 'todo');
+          if (todoColumn) todoColumn.cards.push(card);
+          else if (board.columns.length > 0) board.columns[0].cards.push(card);
+        }
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(columns));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
         resolve(card);
       }, 200);
     });
   },
 
-  async updateColumns(columns: any[]): Promise<boolean> {
+  async updateBoards(boards: any[]): Promise<boolean> {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const safeColumns = ensureColumnsHaveColor(columns);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(safeColumns));
+        const safeBoards = boards.map(b => {
+          b.columns = ensureColumnsHaveColor(b.columns);
+          return b;
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(safeBoards));
         resolve(true);
       }, 100);
     });

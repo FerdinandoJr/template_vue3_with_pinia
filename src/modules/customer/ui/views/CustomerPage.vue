@@ -1,9 +1,15 @@
 <template>
-  <div class="flex flex-col gap-6 h-full p-6">
-    <div class="flex justify-between items-center bg-white rounded-2xl p-4 shadow-sm border border-slate-100 shrink-0">
+  <div class="flex flex-col gap-6 h-full p-6 pt-24">
+    
+    <div class="flex justify-between items-center bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 shrink-0">
       <div class="relative flex-1 max-w-md">
-        <el-input v-model="searchQuery" @input="handleSearch" placeholder="Pesquisar clientes ou empresas..."
-          size="large" clearable>
+        <el-input 
+          v-model="searchQuery" 
+          @input="handleSearch" 
+          placeholder="Pesquisar clientes ou empresas..." 
+          size="large" 
+          clearable
+        >
           <template #prefix>
             <el-icon>
               <Search />
@@ -11,15 +17,13 @@
           </template>
         </el-input>
       </div>
-
+      
       <div class="flex gap-2">
-        <el-button type="info" plain size="large" class="!px-3 !rounded-xl" @click="isSourceModalOpen = true"
-          title="Gerir Origens">
+        <el-button type="info" plain size="large" class="!px-3 !rounded-xl" @click="isSourceModalOpen = true" title="Gerir Origens">
           <el-icon>
             <Setting />
           </el-icon>
         </el-button>
-
         <el-button type="primary" size="large" @click="openCreateModal" class="!rounded-xl !font-bold">
           <el-icon class="mr-2">
             <Plus />
@@ -29,39 +33,59 @@
       </div>
     </div>
 
-    <ClientStats :total="total" />
+    <CustomerStats :total="total" />
 
     <div v-if="loading && items.length === 0" class="flex justify-center p-10 flex-1 items-center">
       <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
     </div>
 
-    <ClientTable v-else :clients="items" :total="filteredTotal" :current-page="store.currentPage"
-      :page-size="store.pageSize" @update:current-page="store.setPage" @update:page-size="store.setPageSize"
-      @select="goToDetails" @edit="openEditModal" @delete="promptDeleteCustomer" />
+    <CustomerTable 
+      v-else 
+      :clients="items" 
+      :total="filteredTotal || total" 
+      :current-page="store.currentPage || 1" 
+      :page-size="store.pageSize || 10" 
+      @update:current-page="store.setPage" 
+      @update:page-size="store.setPageSize" 
+      @select="goToDetails" 
+      @edit="openEditModal" 
+      @delete="promptDeleteCustomer" 
+    />
 
-    <CustomerFormModal v-if="isFormModalOpen" :is-open="isFormModalOpen" :customer-data="customerToEdit"
-      @close="isFormModalOpen = false" @save="handleSaveCustomer" />
+    <Teleport to="body">
+      <CustomerFormModal 
+        v-if="isFormModalOpen" 
+        :is-open="isFormModalOpen" 
+        :customer-data="customerToEdit" 
+        @close="isFormModalOpen = false" 
+        @save="handleSaveCustomer" 
+      />
 
-    <CustomerSourceSettingsModal :is-open="isSourceModalOpen" @close="isSourceModalOpen = false" />
+      <CustomerSourceSettingsModal 
+        v-if="isSourceModalOpen"
+        :is-open="isSourceModalOpen" 
+        @close="isSourceModalOpen = false" 
+      />
 
-    <el-dialog v-model="isDeleteModalOpen" title="Excluir Empresa?" width="400px" align-center>
-      <div class="text-center">
-        <div class="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <el-icon :size="32">
-            <Delete />
-          </el-icon>
+      <el-dialog v-model="isDeleteModalOpen" title="Excluir Empresa?" width="400px" align-center>
+        <div class="text-center">
+          <div class="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <el-icon :size="32">
+              <Delete />
+            </el-icon>
+          </div>
+          <p class="text-slate-500 mb-4">
+            Tem certeza que deseja apagar permanentemente este cliente e todos os contatos vinculados a ele?
+          </p>
         </div>
-        <p class="text-slate-500 mb-4">
-          Tem certeza que deseja apagar permanentemente este cliente e todos os contatos vinculados a ele?
-        </p>
-      </div>
-      <template #footer>
-        <div class="flex gap-3 justify-center">
-          <el-button @click="isDeleteModalOpen = false">Cancelar</el-button>
-          <el-button type="danger" @click="confirmDeleteCustomer">Sim, Excluir</el-button>
-        </div>
-      </template>
-    </el-dialog>
+        <template #footer>
+          <div class="flex gap-3 justify-center">
+            <el-button @click="isDeleteModalOpen = false">Cancelar</el-button>
+            <el-button type="danger" @click="confirmDeleteCustomer">Sim, Excluir</el-button>
+          </div>
+        </template>
+      </el-dialog>
+    </Teleport>
   </div>
 </template>
 
@@ -69,14 +93,13 @@
 import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { Search, Plus, Delete, Setting } from '@element-plus/icons-vue' // Adicionado o Setting
+import { Search, Plus, Delete, Setting } from '@element-plus/icons-vue'
 import { useCustomerStore } from '../store/customer.store'
-import type { ICustomer } from '../../domain/entities/customer'
-import ClientStats from '../components/CustomerStats.vue'
-import ClientTable from '../components/CustomerTable.vue'
-import CustomerFormModal from '../components/CustomerFormModal.vue'
 
-// Importado o novo componente
+// Importação dos componentes da tela
+import CustomerStats from '../components/CustomerStats.vue'
+import CustomerTable from '../components/CustomerTable.vue'
+import CustomerFormModal from '../components/CustomerFormModal.vue'
 import CustomerSourceSettingsModal from '../components/CustomerSourceSettingsModal.vue'
 
 const store = useCustomerStore()
@@ -85,11 +108,13 @@ const router = useRouter()
 const { items, total, filteredTotal, loading } = storeToRefs(store)
 
 const isFormModalOpen = ref(false)
-const isSourceModalOpen = ref(false) // Nova variável de controle
+const isSourceModalOpen = ref(false)
 
-const customerToEdit = ref<Partial<ICustomer> | null>(null)
+// Correção do TypeScript: Definir o tipo explicitamente como <any> evita o erro de 'uuid não existe no tipo never'
+const customerToEdit = ref<any>(null)
 const isDeleteModalOpen = ref(false)
 const customerUuidToDelete = ref<string | null>(null)
+
 const searchQuery = ref('')
 let searchTimeout: ReturnType<typeof setTimeout>
 
@@ -109,7 +134,8 @@ const openCreateModal = () => {
   isFormModalOpen.value = true
 }
 
-const openEditModal = (customer: ICustomer) => {
+const openEditModal = (customer: any) => {
+  // Passamos uma cópia do objeto cliente para edição
   customerToEdit.value = { ...customer }
   isFormModalOpen.value = true
 }
