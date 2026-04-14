@@ -1,8 +1,8 @@
 <template>
-  <div class="flex h-full w-full bg-[#f8fafc] overflow-hidden animate-fade-in">
+  <div class="absolute inset-0 flex flex-1 h-full min-h-0 w-full bg-[#f8fafc] overflow-hidden animate-fade-in border-t border-slate-200">
     <CalendarSidebar class="hidden lg:flex shrink-0" @date-change="handleDateChange" />
 
-    <div class="flex-1 flex flex-col min-w-0 bg-white shadow-xl shadow-slate-200/50 m-3 sm:m-6 rounded-[24px] border border-slate-200 overflow-hidden relative">
+    <div class="flex-1 flex flex-col min-w-0 bg-white overflow-hidden relative">
       
       <div class="px-6 py-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center bg-white shrink-0 z-20 gap-4">
         <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-start">
