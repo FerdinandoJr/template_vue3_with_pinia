@@ -32,7 +32,7 @@
                             class="bg-white text-blue-600 font-black text-4xl shadow-md border-4 border-white">
                             {{ customer.tradeName?.charAt(0).toUpperCase() ||
                                 customer.companyName?.charAt(0).toUpperCase() || customer.name?.charAt(0).toUpperCase() ||
-                            '?' }}
+                                '?' }}
                         </el-avatar>
                     </div>
 
@@ -170,7 +170,7 @@
                                         </div>
                                         <div v-if="customer.zipCode" class="flex-1">
                                             <p class="text-slate-800 font-bold text-lg leading-tight">{{ customer.street
-                                                }}, {{ customer.number }}</p>
+                                            }}, {{ customer.number }}</p>
                                             <p class="text-slate-600 mt-1" v-if="customer.complement">{{
                                                 customer.complement }}</p>
                                             <p class="text-slate-500 mt-1">{{ customer.neighborhood }} • {{
@@ -204,7 +204,7 @@
                                                 </el-avatar>
                                                 <div class="truncate">
                                                     <p class="font-bold text-slate-800 text-sm truncate">{{ contact.name
-                                                        }}</p>
+                                                    }}</p>
                                                     <p
                                                         class="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">
                                                         {{ contact.role || 'Colaborador' }}</p>
