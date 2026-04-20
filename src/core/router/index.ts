@@ -1,16 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { isTokenValid } from '@/util/jwt';
 import AppLayout from '@/layouts/AppLayout.vue';
-
-const isTokenValid = (token: string | null): boolean => {
-  if (!token) return false;
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return true;
-    const payload = JSON.parse(atob(parts[1]));
-    return payload.exp ? (payload.exp * 1000 > Date.now()) : true;
-  } catch { return true; }
-};
 
 const routes: Array<RouteRecordRaw> = [
   {

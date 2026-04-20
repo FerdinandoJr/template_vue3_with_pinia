@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ElNotification } from 'element-plus';
 import { h } from 'vue';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { notificationService } from '@/core/services/notification.service';
 
 export interface INotification {
     id: number;
@@ -10,15 +11,6 @@ export interface INotification {
     message: string;
     read: boolean;
     time: string;
-}
-
-export interface IMockEvent {
-    id: number;
-    title: string;
-    client: string;
-    time: string;
-    date: string;
-    userId: string;
 }
 
 export const useNotificationStore = defineStore('notifications', {
@@ -33,24 +25,17 @@ export const useNotificationStore = defineStore('notifications', {
         async checkTodayEvents() {
             try {
                 const today = new Date().toISOString().substring(0, 10);
-
-                const events: IMockEvent[] = [
-                    { id: 101, title: 'Reunião de Alinhamento', client: 'Empresa XYZ', time: '10:00', date: today, userId: '1' },
-                    { id: 102, title: 'Apresentação de Projeto', client: 'João Silva', time: '14:30', date: today, userId: '2' },
-                    { id: 103, title: 'Consulta de Rotina', client: 'Maria Santos', time: '09:00', date: '2022-01-01', userId: '1' }
-                ];
-
                 const authStore = useAuthStore();
                 const currentUser = authStore.user;
 
-                const todayEvents = events.filter(e => {
-                    const isToday = e.date === today;
-                    if (currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER') {
-                        return isToday;
-                    }
-                    const matchesUser = e.userId === currentUser?.id || e.userId === currentUser?.email;
-                    return isToday && matchesUser;
-                });
+                const events = notificationService.getTodayEvents();
+                const filteredEvents = notificationService.filterEventsByUser(
+                    events,
+                    currentUser?.id,
+                    currentUser?.role
+                );
+
+                const todayEvents = filteredEvents.filter(e => e.date === today);
 
                 if (todayEvents.length > 0) {
                     todayEvents.forEach(evt => {
@@ -67,10 +52,7 @@ export const useNotificationStore = defineStore('notifications', {
                         }
                     });
 
-                    const storageKey = `lastNotificationDate_${currentUser?.email || 'default'}`;
-                    const lastAlertDate = localStorage.getItem(storageKey);
-
-                    if (lastAlertDate !== today) {
+                    if (!notificationService.hasAlertForToday(currentUser?.email)) {
                         ElNotification({
                             title: 'Você tem compromissos hoje!',
                             message: h('div', { class: 'mt-2 text-slate-500 text-sm' }, [
@@ -84,7 +66,7 @@ export const useNotificationStore = defineStore('notifications', {
                             offset: 20
                         });
 
-                        localStorage.setItem(storageKey, today);
+                        notificationService.markAlertAsSent(currentUser?.email);
                     }
                 }
             } catch (error) {
