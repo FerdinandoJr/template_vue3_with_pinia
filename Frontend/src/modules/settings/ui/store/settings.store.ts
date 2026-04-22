@@ -17,12 +17,9 @@ export const useSettingsStore = defineStore('settings', {
     async fetchSettingsData() {
       this.loading = true;
       try {
-        const [profileData, waData] = await Promise.all([
-          settingsServices.getUserProfile(),
-          settingsServices.getWhatsAppConfig()
-        ]);
+        const profileData = await settingsServices.getUserProfile();
         this.profile = profileData;
-        this.whatsapp = waData;
+        this.whatsapp = null;
       } finally {
         this.loading = false;
       }

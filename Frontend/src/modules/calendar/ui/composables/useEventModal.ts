@@ -1,4 +1,4 @@
-import { ref, reactive, watch, computed } from 'vue';
+import { ref, reactive, watch, computed, nextTick } from 'vue';
 import { useCalendarStore } from '../store/calendar.store';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import { ElMessage, type FormInstance } from 'element-plus';
@@ -15,7 +15,34 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
     const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
     const loadingClients = ref(false);
-    const clientOptions = ref<{ id: string; name: string }[]>([]);
+    const clientOptions = ref<{ label: string; value: string }[]>([]);
+
+    const loadClients = async () => {
+        console.log('[loadClients] Starting...');
+        loadingClients.value = true;
+        
+        try {
+            await customerStore.fetch();
+            console.log('[loadClients] items after fetch:', customerStore.items.length);
+            
+            await nextTick();
+            
+            const options = customerStore.items.map((c: ICustomer) => ({
+                label: c.name || c.companyName || c.tradeName || 'Sem nome',
+                value: c.id
+            }));
+            
+            setTimeout(() => {
+                clientOptions.value = options;
+                console.log('[loadClients] options set:', options.length);
+            }, 50);
+            
+        } catch (e) {
+            console.error('[loadClients] Error:', e);
+        }
+        
+        setTimeout(() => { loadingClients.value = false; }, 100);
+    };
 
     const isEditing = computed(() => !!props.eventData?.id);
 
@@ -81,7 +108,23 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
         description: [{ required: false, message: 'A descrição é obrigatória', trigger: 'blur' }]
     }));
 
-    watch(() => props.isOpen, (isOpen) => {
+    const getSelectedClientName = (clientId: string) => {
+        const client = clientOptions.value.find(c => c.value === clientId);
+        return client?.label || clientId;
+    };
+
+    watch(() => form.isBlocker, () => {
+        activeTab.value = 'general';
+    });
+
+    const blockerInaccessibleTabs = ['details', 'recurrence', 'postMeeting'];
+    watch([() => form.isBlocker, () => activeTab.value], ([isBlocker, tab]) => {
+        if (isBlocker && blockerInaccessibleTabs.includes(tab as string)) {
+            activeTab.value = 'general';
+        }
+    });
+
+    watch(() => props.isOpen, async (isOpen) => {
         if (isOpen) {
             activeTab.value = 'general';
 
@@ -112,35 +155,22 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
             clientOptions.value = [];
 
             if (props.eventData) {
+                console.log('[useEventModal] props.eventData on edit:', JSON.parse(JSON.stringify(props.eventData)));
                 Object.assign(form, props.eventData);
+                console.log('[useEventModal] form AFTER Object.assign:', JSON.parse(JSON.stringify(form)));
 
                 if (form.client) {
-                    clientOptions.value = [{ id: form.client, name: form.client }];
+                    clientOptions.value = [{ label: form.client, value: (props.eventData as any).clientId || form.client }];
                 }
             }
+            
+            await nextTick();
+            await loadClients();
         }
-    });
-
-    const searchClients = async (query: string) => {
-        loadingClients.value = true;
-        if (customerStore.items.length === 0) await customerStore.fetch();
-
-        if (query) {
-            const lowerQuery = query.toLowerCase();
-            clientOptions.value = customerStore.items
-                .filter((c: ICustomer) => {
-                    const name = c.tradeName || c.companyName || c.name || '';
-                    return name.toLowerCase().includes(lowerQuery);
-                })
-                .map((c: ICustomer) => ({ id: c.uuid, name: c.tradeName || c.companyName || c.name }));
-        } else {
-            clientOptions.value = customerStore.items.slice(0, 50).map((c: ICustomer) => ({
-                id: c.uuid, name: c.tradeName || c.companyName || c.name
-            }));
-        }
-        loadingClients.value = false;
-    };
-
+    }, { immediate: true });
+    
+    const refreshClientOptions = loadClients;
+    
     const handleStartTimeChange = (val: string) => {
         if (!val) return;
         const [hours = 0, minutes = 0] = val.split(':').map(Number);
@@ -171,7 +201,47 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
         if (!ruleFormRef.value) return;
         await ruleFormRef.value.validate((valid: boolean) => {
             if (valid) {
-                emit('save', { ...form });
+                const payload = { ...form } as any;
+                
+                console.log('[submitForm] form.userId:', form.userId, 'form.date:', form.date, 'form.time:', form.time);
+
+                // Montar startDate e endDate no formato ISO 8601
+                try {
+                    let dateStr = form.date as any;
+                    if (dateStr instanceof Date) {
+                        dateStr = dateStr.toISOString().split('T')[0];
+                    } else if (!dateStr || typeof dateStr !== 'string') {
+                        dateStr = new Date().toISOString().split('T')[0];
+                    }
+
+                    // Força a criação do startDate mesmo se form.time estiver vazio
+                    const tStart = form.time || '00:00';
+                    const [hStart = '0', mStart = '0'] = tStart.split(':');
+                    const d1 = new Date(`${dateStr}T00:00:00`);
+                    d1.setHours(parseInt(hStart, 10), parseInt(mStart, 10), 0, 0);
+                    payload.startDate = d1.toISOString();
+
+                    // Força a criação do endDate mesmo se form.endTime estiver vazio
+                    const tEnd = form.endTime || '23:59';
+                    const [hEnd = '23', mEnd = '59'] = tEnd.split(':');
+                    const d2 = new Date(`${dateStr}T00:00:00`);
+                    d2.setHours(parseInt(hEnd, 10), parseInt(mEnd, 10), 0, 0);
+                    payload.endDate = d2.toISOString();
+                    
+                } catch (e) {
+                    console.error('Erro ao formatar data/hora:', e);
+                    ElMessage.error('Erro ao formatar data/hora. Verifique os campos.');
+                    return;
+                }
+
+                console.log('[submitForm] FINAL PAYLOAD:', JSON.stringify(payload));
+
+                // Remove temp fields to not pollute DB
+                delete payload.date;
+                delete payload.time;
+                delete payload.endTime;
+
+                emit('save', payload);
             } else {
                 ElMessage.warning('Preencha todos os campos obrigatórios.');
             }
@@ -180,7 +250,7 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
 
     return {
         store, ruleFormRef, activeTab, weekDays, isEditing, clientOptions, loadingClients,
-        form, rules, preDefinedColors, formatAndSearchCep, handleStartTimeChange, searchClients,
-        selectType, handleClose, submitForm
+        form, rules, preDefinedColors, formatAndSearchCep, handleStartTimeChange, loadClients, refreshClientOptions,
+        selectType, handleClose, submitForm, getSelectedClientName
     };
 }

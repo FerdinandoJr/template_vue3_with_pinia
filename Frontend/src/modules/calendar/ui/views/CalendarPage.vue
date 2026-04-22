@@ -50,7 +50,7 @@
       </div>
     </div>
 
-    <EventModal 
+    <EventModal v-if="isModalOpen" 
       :is-open="isModalOpen" 
       :event-data="currentEvent" 
       @close="isModalOpen = false" 
@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useCalendarStore } from '../store/calendar.store';
 import { Plus, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -74,7 +74,7 @@ const viewMode = ref('dayGridMonth');
 const currentTitle = ref('');
 const calendarComponentRef = ref<any>(null);
 const isModalOpen = ref(false);
-const currentEvent = ref<any>(null);
+const currentEvent = ref<any>({});
 
 const getApi = () => calendarComponentRef.value?.getApi();
 
@@ -92,10 +92,12 @@ const handleDateChange = (date: Date) => { if (getApi()) getApi().gotoDate(date)
 const openCreateModal = (dateStr?: string) => {
   const rawDate = typeof dateStr === 'string' ? dateStr : new Date().toISOString();
   currentEvent.value = { date: rawDate.split('T')[0], time: '09:00', endTime: '10:00' };
-  isModalOpen.value = true;
+  isModalOpen.value = false;
+  nextTick(() => { isModalOpen.value = true; });
 };
 
 const openEditModal = (event: any) => { 
+  console.log('[CalendarPage] openEditModal received event:', JSON.parse(JSON.stringify(event)));
   currentEvent.value = { ...event }; 
   isModalOpen.value = true; 
 };

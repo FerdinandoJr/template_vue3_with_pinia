@@ -95,6 +95,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Check, Calendar, User, ChatDotRound, Phone, Monitor, DataBoard, Collection, DataLine, Key, Lock } from '@element-plus/icons-vue';
+import { settingsServices } from '../../data/settings.services';
 
 const loading = ref(false);
 
@@ -203,27 +204,41 @@ availableModules.forEach(mod => {
   }
 });
 
-onMounted(() => {
-  const savedModules = localStorage.getItem('datacrm_permissions');
-  if (savedModules) {
-    const parsed = JSON.parse(savedModules);
-    Object.keys(parsed).forEach(key => {
-      if (form[key]) {
-        form[key].active = parsed[key].active;
-        if (parsed[key].features && form[key].features) {
-          Object.assign(form[key].features, parsed[key].features);
+onMounted(async () => {
+  try {
+    const savedSetting = await settingsServices.get('permissions');
+    if (savedSetting?.value) {
+      const parsed = JSON.parse(savedSetting.value);
+      Object.keys(parsed).forEach(key => {
+        if (form[key]) {
+          form[key].active = parsed[key].active;
+          if (parsed[key].features && form[key].features) {
+            Object.assign(form[key].features, parsed[key].features);
+          }
         }
-      }
-    });
+      });
+    }
+  } catch (error) {
+    const savedModules = localStorage.getItem('datacrm_permissions');
+    if (savedModules) {
+      const parsed = JSON.parse(savedModules);
+      Object.keys(parsed).forEach(key => {
+        if (form[key]) {
+          form[key].active = parsed[key].active;
+          if (parsed[key].features && form[key].features) {
+            Object.assign(form[key].features, parsed[key].features);
+          }
+        }
+      });
+    }
   }
 });
 
 const saveModules = async () => {
   loading.value = true;
   try {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    localStorage.setItem('datacrm_permissions', JSON.stringify(form));
+    const permissionsJson = JSON.stringify(form);
+    await settingsServices.set('permissions', permissionsJson);
     
     const activeModulesSimple = Object.keys(form).reduce((acc, key) => {
       acc[key] = form[key].active;

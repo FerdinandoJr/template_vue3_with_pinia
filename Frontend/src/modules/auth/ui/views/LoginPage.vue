@@ -84,6 +84,7 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../store/auth.store';
+import { authServices } from '@/modules/auth/data/auth.services';
 import { ElMessage } from 'element-plus';
 import { Monitor, Message, Lock } from '@element-plus/icons-vue';
 
@@ -118,30 +119,29 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true;
       try {
-        // Simulando o tempo de resposta de uma API real
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        // Dados simulados para o login (Ajuste para a sua API real no futuro)
-        const mockUser = { 
-          id: '1', 
-          name: 'Administrador', 
-          email: form.email, 
-          role: 'ADMIN' // Isso garante acesso total no Router
-        };
+        // Debug
+        console.log('Tentando login com:', form.email, form.password);
         
-        const mockToken = 'mock-token-de-desenvolvimento'; 
-
-        // 2. SALVA OS DADOS NA STORE (Agora com ofuscação segura)
-        authStore.login(mockUser, mockToken);
+        // Chamada ao backend real
+        const response = await authServices.login(form.email, form.password);
+        
+        console.log('Response login:', response);
+        
+        // Salva os dados na store
+        authStore.login(response.user, response.token);
+        
+        console.log('Store login - token:', response.token ? 'sim' : 'nao');
+        console.log('Store login - user:', response.user?.name);
 
         ElMessage.success('Login realizado com sucesso!');
         
-        // 3. A PEÇA CHAVE: O REDIRECIONAMENTO IMEDIATO
-        // É esta linha que faz o sistema entrar sem precisar dar F5!
+        // Redireciona para o dashboard
+        console.log('Navegando para /');
         router.push('/');
 
-      } catch (error) {
-        ElMessage.error('Credenciais inválidas. Verifique seu e-mail e senha.');
+      } catch (error: any) {
+        console.error('Erro no login:', error);
+        ElMessage.error(error.message || 'Credenciais inválidas. Verifique seu e-mail e senha.');
       } finally {
         loading.value = false;
       }

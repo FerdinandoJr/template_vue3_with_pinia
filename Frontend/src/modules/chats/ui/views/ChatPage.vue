@@ -106,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { ArrowLeft, Close, ChatLineSquare } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
@@ -120,6 +120,10 @@ import type { IContact } from '../../domain/entities/chat';
 import type { SendMessageDTO } from '../../domain/dto/chat.dto';
 
 const store = useChatStore();
+
+onMounted(() => {
+  store.fetchChats();
+});
 const { messages } = storeToRefs(store);
 
 const selectedContact = ref<IContact | null>(null);

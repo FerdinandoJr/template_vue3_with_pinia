@@ -1,9 +1,5 @@
 import { defineStore } from 'pinia';
-
-export interface CustomerSource {
-    id: string;
-    name: string;
-}
+import { customerSourceServices, type CustomerSource } from '../../data/customer-source.services';
 
 export const useCustomerSourceStore = defineStore('customerSource', {
     state: () => ({
@@ -18,16 +14,7 @@ export const useCustomerSourceStore = defineStore('customerSource', {
 
             this.isLoading = true;
             try {
-                await new Promise(resolve => setTimeout(resolve, 600));
-
-                this.items = [
-                    { id: '1', name: 'WhatsApp' },
-                    { id: '2', name: 'Site / Landing Page' },
-                    { id: '3', name: 'Indicação' },
-                    { id: '4', name: 'Instagram' },
-                    { id: '5', name: 'Outro' }
-                ];
-
+                this.items = await customerSourceServices.list();
                 this.hasLoaded = true;
             } catch (error) {
                 console.error('Erro ao buscar as origens de clientes:', error);
@@ -40,11 +27,7 @@ export const useCustomerSourceStore = defineStore('customerSource', {
             if (!name.trim()) return;
 
             try {
-                const newSource: CustomerSource = {
-                    id: Date.now().toString(),
-                    name: name.trim()
-                };
-
+                const newSource = await customerSourceServices.create(name.trim());
                 this.items.push(newSource);
                 return true;
             } catch (error) {
@@ -57,9 +40,10 @@ export const useCustomerSourceStore = defineStore('customerSource', {
             if (!newName.trim()) return;
 
             try {
-                const source = this.items.find(s => s.id === id);
-                if (source) {
-                    source.name = newName.trim();
+                const updated = await customerSourceServices.update(id, newName.trim());
+                const index = this.items.findIndex(s => s.id === id);
+                if (index !== -1) {
+                    this.items[index] = updated;
                 }
                 return true;
             } catch (error) {
@@ -70,6 +54,7 @@ export const useCustomerSourceStore = defineStore('customerSource', {
 
         async deleteSource(id: string) {
             try {
+                await customerSourceServices.delete(id);
                 this.items = this.items.filter(s => s.id !== id);
                 return true;
             } catch (error) {

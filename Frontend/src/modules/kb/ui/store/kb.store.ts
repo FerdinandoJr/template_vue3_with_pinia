@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import type { IKbArticle, IKbCategory } from "../../domain/entities/kb";
 import { kbServices } from "../../data/kb.services";
-import { useAuthStore } from "@/modules/auth/ui/store/auth.store";
 import { ElMessage } from "element-plus";
 
 export const useKbStore = defineStore('kb', {
@@ -22,18 +21,18 @@ export const useKbStore = defineStore('kb', {
     async fetchArticles() {
       this.loading = true;
       try {
-        const authStore = useAuthStore();
         const response = await kbServices.getArticles({
           page: this.currentPage,
           limit: this.limit,
           search: this.searchQuery,
-          category: this.selectedCategory,
-          role: authStore.user?.role
+          category: this.selectedCategory
         });
-        this.articles = response.data;
-        this.total = response.total;
+        this.articles = response || [];
+        this.total = (response || []).length;
       } catch (error) {
         ElMessage.error('Erro ao carregar os artigos.');
+        this.articles = [];
+        this.total = 0;
       } finally {
         this.loading = false;
       }

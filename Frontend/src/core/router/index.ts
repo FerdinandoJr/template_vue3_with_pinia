@@ -28,8 +28,7 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'monitor',
         name: 'Monitor',
-        component: () => import('@/modules/monitor/ui/views/MonitorPage.vue'),
-        meta: { roles: ['ADMIN', 'MANAGER'] }
+        component: () => import('@/modules/monitor/ui/views/MonitorPage.vue')
       },
       {
         path: 'kanban',
@@ -44,8 +43,7 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'relatorios',
         name: 'Relatorios',
-        component: () => import('@/modules/reports/ui/views/ReportsPage.vue'),
-        meta: { roles: ['ADMIN', 'MANAGER'] }
+        component: () => import('@/modules/reports/ui/views/ReportsPage.vue')
       },
       {
         path: 'customer',
@@ -88,9 +86,17 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 
-  if (to.meta.requiresAuth && !isTokenValid(authStore.token)) {
-    authStore.logout();
+  // Debug
+  console.log('Router - to:', to.path, 'auth:', !!authStore.token, 'user:', authStore.user?.name);
+
+  if (to.meta.requiresAuth && !authStore.token) {
+    console.log('Redirect to login - no token');
     return next('/login');
+  }
+
+  if (to.path === '/login' && authStore.token) {
+    console.log('Redirect to dashboard - already logged in');
+    return next('/');
   }
 
   if (to.meta.roles && Array.isArray(to.meta.roles)) {

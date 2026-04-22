@@ -1,39 +1,91 @@
 import type { ICalendarEvent, IClosedDay } from "../domain/entities/calendar";
+import { httpClient } from "@/core/infra/HttpClient";
 
-const mockEvents: ICalendarEvent[] = [
-  {
-    id: '1', date: '2026-03-05', time: '09:00', endTime: '10:00', title: 'Reunião de Alinhamento',
-    client: 'Tech Solutions', assigneeInitials: 'AS', assigneeName: 'ANA SILVA',
-    colorClass: 'text-emerald-700', dotClass: 'bg-emerald-400'
-  },
-  {
-    id: '2', date: '2026-03-10', time: '10:00', endTime: '11:00', title: 'Treinamento Equipe',
-    client: 'Advocacia Silva', assigneeInitials: 'AS', assigneeName: 'ANA SILVA',
-    colorClass: 'text-emerald-700', dotClass: 'bg-emerald-400'
-  },
-  {
-    id: '3', date: '2026-03-12', time: '11:00', endTime: '12:00', title: 'Suporte Remoto',
-    client: 'Consultório Dr. João', assigneeInitials: 'AS', assigneeName: 'ANA SILVA',
-    colorClass: 'text-emerald-700', dotClass: 'bg-emerald-400'
-  },
-  {
-    id: '4', date: '2026-03-14', time: '14:30', endTime: '15:30', title: 'Instalação de Certificado',
-    client: 'Padaria Central', assigneeInitials: 'CM', assigneeName: 'CARLOS MENDES',
-    colorClass: 'text-amber-600', dotClass: 'bg-amber-400'
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  timestamp: string;
+}
+
+const mapBackendToFrontend = (apiEvent: any): ICalendarEvent => {
+  if (!apiEvent) return apiEvent;
+  
+  // Se já estiver mapeado, não faz de novo
+  if (apiEvent.date && apiEvent.time) return apiEvent;
+
+  let startDateStr = '';
+  let timeStr = '';
+  let endTimeStr = '';
+
+  if (apiEvent.startDate) {
+      const d = new Date(apiEvent.startDate);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      startDateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
-];
 
-const mockClosedDays: IClosedDay[] = [
-  { id: 'c1', date: '2026-03-01' },
-  { id: 'c2', date: '2026-03-08' },
-  { id: 'c3', date: '2026-03-15' }
-];
+  if (apiEvent.endDate) {
+      const d = new Date(apiEvent.endDate);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      endTimeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  let recurrenceEndDateStr = apiEvent.recurrenceEndDate;
+  if (apiEvent.recurrenceEndDate) {
+      recurrenceEndDateStr = apiEvent.recurrenceEndDate.split('T')[0];
+  }
+
+  const mapped = {
+      ...apiEvent,
+      date: startDateStr,
+      time: timeStr,
+      endTime: endTimeStr,
+      recurrenceEndDate: recurrenceEndDateStr,
+      client: apiEvent.customerId || apiEvent.client,
+      clientId: apiEvent.customerId,
+      userId: apiEvent.assignedTo || apiEvent.userId,
+      colorHex: apiEvent.color || apiEvent.colorHex
+  };
+  
+  console.log('[mapBackendToFrontend] input:', JSON.stringify({ assignedTo: apiEvent.assignedTo, userId: apiEvent.userId }), 'output userId:', mapped.userId);
+  return mapped;
+};
 
 export const agendaServices = {
   async getEvents(): Promise<ICalendarEvent[]> {
-    return new Promise(res => setTimeout(() => res(mockEvents), 200));
+    const response = await httpClient.get<ApiResponse<any[]>>('/agenda');
+    return (response.data || []).map(mapBackendToFrontend);
   },
+
   async getClosedDays(): Promise<IClosedDay[]> {
-    return new Promise(res => setTimeout(() => res(mockClosedDays), 200));
-  }
+    const response = await httpClient.get<ApiResponse<IClosedDay[]>>('/agenda/closed-days');
+    return response.data;
+  },
+
+  async createEvent(data: Partial<ICalendarEvent>): Promise<ICalendarEvent> {
+    const payload = {
+        ...data,
+        color: (data as any).colorHex || (data as any).color,
+        customerId: (data as any).client || (data as any).clientId,
+        assignedTo: (data as any).userId || (data as any).assignedTo,
+    };
+    console.log('[API POST /agenda] Data sent:', JSON.stringify(payload));
+    const response = await httpClient.post<ApiResponse<any>>('/agenda', payload);
+    return mapBackendToFrontend(response.data);
+  },
+
+  async updateEvent(id: string, data: Partial<ICalendarEvent>): Promise<ICalendarEvent> {
+    const payload = {
+        ...data,
+        color: (data as any).colorHex || (data as any).color,
+        customerId: (data as any).client || (data as any).clientId,
+        assignedTo: (data as any).userId || (data as any).assignedTo,
+    };
+    const response = await httpClient.put<ApiResponse<any>>(`/agenda/${id}`, payload);
+    return mapBackendToFrontend(response.data);
+  },
+
+  async deleteEvent(id: string): Promise<void> {
+    await httpClient.delete(`/agenda/${id}`);
+  },
 };

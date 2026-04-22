@@ -5,7 +5,6 @@
     style="max-width: 800px; border-radius: 16px; padding: 0; overflow: hidden; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15);"
     top="8vh"
     append-to-body
-    :z-index="9999"
     @close="handleClose" 
     destroy-on-close 
     :close-on-click-modal="false"
@@ -32,7 +31,8 @@
       <div class="bg-slate-100 p-1 rounded-lg flex items-center shadow-inner">
         <button type="button" @click="form.isBlocker = false" 
           class="px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2"
-          :class="!form.isBlocker ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+          :class="!form.isBlocker ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-300 cursor-not-allowed'"
+          :disabled="form.isBlocker">
           <el-icon><Checked /></el-icon> Evento
         </button>
         <button type="button" @click="form.isBlocker = true" 
@@ -46,13 +46,13 @@
     <el-form ref="ruleFormRef" :model="form" :rules="rules" label-position="top" class="flex bg-white w-full" style="height: 580px; max-height: calc(100vh - 20vh);">
       
       <div class="w-48 shrink-0 border-r border-slate-200 bg-slate-50/50 p-4 flex flex-col gap-1">
-        <button type="button" @click="activeTab = 'general'" class="saas-tab-btn" :class="{ 'active': activeTab === 'general' }">
+        <button type="button" @click="activeTab = 'general'" class="saas-tab-btn" :class="{ 'active': activeTab === 'general', 'disabled': form.isBlocker }" :disabled="form.isBlocker">
           <el-icon><InfoFilled /></el-icon> Informações
         </button>
-        <button type="button" @click="activeTab = 'details'" class="saas-tab-btn" :class="{ 'active': activeTab === 'details' }">
+        <button type="button" @click="activeTab = 'details'" class="saas-tab-btn" :class="{ 'active': activeTab === 'details', 'disabled': form.isBlocker }" :disabled="form.isBlocker">
           <el-icon><Location /></el-icon> Local e Pauta
         </button>
-        <button type="button" @click="activeTab = 'recurrence'" class="saas-tab-btn" :class="{ 'active': activeTab === 'recurrence' }">
+        <button type="button" @click="activeTab = 'recurrence'" class="saas-tab-btn" :class="{ 'active': activeTab === 'recurrence', 'disabled': form.isBlocker }" :disabled="form.isBlocker">
           <el-icon><Refresh /></el-icon> Recorrência
         </button>
         <button v-if="!form.isBlocker" type="button" @click="activeTab = 'postMeeting'" class="saas-tab-btn" :class="{ 'active': activeTab === 'postMeeting' }">
@@ -90,14 +90,14 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0">
             <el-form-item label="Responsável *" prop="userId" class="saas-input-group">
-              <el-select v-model="form.userId" class="w-full" placeholder="Selecione">
+              <el-select v-model="form.userId" filterable class="w-full" placeholder="Selecione">
                 <el-option v-for="user in store.availableUsers" :key="user.id" :label="user.name" :value="user.id" />
               </el-select>
             </el-form-item>
 
             <el-form-item v-if="!form.isBlocker" label="Cliente Vinculado" prop="client" class="saas-input-group">
-              <el-select v-model="form.client" filterable remote :remote-method="searchClients" :loading="loadingClients" class="w-full" placeholder="Buscar cliente...">
-                <el-option v-for="c in clientOptions" :key="c.id" :label="c.name" :value="c.name" />
+              <el-select v-model="form.client" filterable placeholder="Selecionar cliente..." :loading="loadingClients" @focus="loadClients" no-data-text="Nenhum cliente encontrado" class="w-full">
+                <el-option v-for="c in clientOptions" :key="c.value" :label="c.label" :value="c.value" />
               </el-select>
             </el-form-item>
           </div>
@@ -227,8 +227,8 @@ const emit = defineEmits(['close', 'save', 'delete']);
 
 const {
   store, ruleFormRef, activeTab, weekDays, isEditing, clientOptions, loadingClients,
-  form, rules, preDefinedColors, formatAndSearchCep, handleStartTimeChange, searchClients,
-  selectType, handleClose, submitForm
+  form, rules, preDefinedColors, formatAndSearchCep, handleStartTimeChange, loadClients, refreshClientOptions,
+  selectType, handleClose, submitForm, getSelectedClientName
 } = useEventModal(props, emit);
 
 const toggleDay = (idx: number) => {
@@ -261,6 +261,7 @@ const toggleDay = (idx: number) => {
 }
 .saas-tab-btn:hover { background-color: #f1f5f9; color: #334155; }
 .saas-tab-btn.active { background-color: #e0e7ff; color: #4f46e5; font-weight: 700; }
+.saas-tab-btn.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 .saas-scroll::-webkit-scrollbar { width: 6px; }
 .saas-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
 

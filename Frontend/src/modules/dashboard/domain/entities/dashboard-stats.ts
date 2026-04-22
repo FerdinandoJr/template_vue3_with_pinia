@@ -6,6 +6,14 @@ export interface IDashboardStats {
   resolvedToday: number;
   averageResponseTime: string;
   revenueData: number[];
-  ticketDistribution: number[]; 
+  ticketDistribution: number[];
   period: DashboardPeriod;
+  stats?: {
+    totalChats?: number;
+    openChats?: number;
+    openTickets?: number;
+    inProgressTickets?: number;
+    resolvedTickets?: number;
+  };
+  recentTickets?: any[];
 }

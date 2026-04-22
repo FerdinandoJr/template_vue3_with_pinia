@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { IContact, IMessage } from '../../domain/entities/chat';
-import { ChatFilter, ChatSortOption, MessageType, ChatChannel } from '../../domain/valueObjects/chat-enums';
+import type { IContact, IMessage } from '../../data/chat.services';
+import { ChatFilter, ChatSortOption, MessageType } from '../../domain/valueObjects/chat-enums';
 import type { SendMessageDTO } from '../../domain/dto/chat.dto';
-import { generateUUIDv7, getTimeWeight } from '../../../../util/helpers';
+import { getTimeWeight } from '../../../../util/helpers';
+import { chatServices } from '../../data/chat.services';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import { ElNotification } from 'element-plus';
 import { h } from 'vue';
@@ -13,24 +14,13 @@ export const useChatStore = defineStore('chat', () => {
   const currentFilter = ref<ChatFilter>(ChatFilter.CHATS);
   const currentSort = ref<ChatSortOption>(ChatSortOption.NEWEST);
   const searchTerm = ref('');
+  const loading = ref(false);
   const currentUser = ref({ id: 'agent_1', name: 'Você' });
 
   const replyingTo = ref<IMessage | null>(null);
 
-  const contacts = ref<IContact[]>([
-    { id: '1', name: 'Fernanda Lima', company: 'Tech Solutions', avatar: 'https://i.pravatar.cc/150?u=fernanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Pode confirmar o recebimento?', lastMessageTime: '10:42', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_55', unreadCount: 1, email: 'fernanda@tech.com', phone: '(11) 99999-8888', tags: ['Financeiro', 'VIP'], serviceStartedAt: Date.now() - 5 * 60 * 1000 },
-    { id: '2', name: 'Roberto Carlos', company: 'Logística S.A', avatar: 'https://i.pravatar.cc/150?u=roberto', channel: ChatChannel.WHATSAPP, lastMessage: 'Obrigado pelo suporte!', lastMessageTime: '09:15', status: 'in_progress', serviceId: generateUUIDv7(), agentId: 'agent_1', customerId: 'cust_102', unreadCount: 0, email: 'roberto@log.com', phone: '(11) 97777-6666', tags: ['Suporte'], serviceStartedAt: Date.now() - 31 * 60 * 1000 },
-    { id: '3', name: 'Amanda Silva', company: 'E-commerce Brasil', avatar: 'https://i.pravatar.cc/150?u=amanda', channel: ChatChannel.WHATSAPP, lastMessage: 'Qual o prazo de entrega?', lastMessageTime: 'Ontem', status: 'queued', serviceId: null, agentId: null, customerId: null, unreadCount: 0, email: 'amanda@eco.com', phone: '(11) 98888-7777', tags: ['Dúvida'], createdAt: Date.now() - 16 * 60 * 1000 },
-    { id: 'novo-numero-123', name: '+55 (47) 99123-4567', company: '', phone: '+55 (47) 99123-4567', avatar: '', status: 'queued', channel: ChatChannel.WHATSAPP, lastMessage: 'Olá, gostaria de um orçamento', lastMessageTime: '09:00', serviceId: null, agentId: null, customerId: null, unreadCount: 1, email: '', tags: [], createdAt: Date.now() - 2 * 60 * 1000 }
-  ]);
-
-  const messagesDb = ref<Record<string, IMessage[]>>({
-    '1': [
-      { id: generateUUIDv7(), text: 'Bom dia.', timestamp: '09:55', isMine: false, type: MessageType.TEXT },
-      { id: generateUUIDv7(), text: 'Olá Fernanda!', timestamp: '10:00', isMine: true, type: MessageType.TEXT, status: 'delivered' },
-      { id: generateUUIDv7(), text: 'Pode confirmar o recebimento?', timestamp: '10:42', isMine: false, type: MessageType.TEXT }
-    ]
-  });
+  const contacts = ref<IContact[]>([]);
+  const messagesDb = ref<Record<string, IMessage[]>>({});
 
   const filteredContacts = computed(() => {
     let list = contacts.value.filter(c => {
@@ -61,6 +51,37 @@ export const useChatStore = defineStore('chat', () => {
   function setReplyingTo(msg: IMessage) { replyingTo.value = msg; }
   function clearReplyingTo() { replyingTo.value = null; }
 
+  async function fetchChats() {
+    loading.value = true;
+    try {
+      const data = await chatServices.getChats();
+      contacts.value = data || [];
+    } catch (error) {
+      console.error('Erro ao carregar chats:', error);
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function fetchQueueCount() {
+    try {
+      const count = await chatServices.getQueueCount();
+      return count || 0;
+    } catch (error) {
+      console.error('Erro ao carregar contagem da fila:', error);
+      return 0;
+    }
+  }
+
+  async function fetchMessages(contactId: string) {
+    try {
+      const data = await chatServices.getMessages(contactId);
+      messagesDb.value[contactId] = data || [];
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error);
+    }
+  }
+
   function selectContact(contact: IContact) {
     const now = Date.now();
     if (activeContactId.value && activeContactId.value !== contact.id) {
@@ -79,19 +100,18 @@ export const useChatStore = defineStore('chat', () => {
       current.lastActiveAt = now;
       if (current.accumulatedTime === undefined) current.accumulatedTime = 0;
     }
+
+    fetchMessages(contact.id);
   }
 
-  function sendMessage(dto: SendMessageDTO) {
+  async function sendMessage(dto: SendMessageDTO) {
     const { contactId, text, type, file } = dto;
     if (!contactId) return;
 
     const localFileUrl = file ? URL.createObjectURL(file) : undefined;
-    const newMsgId = generateUUIDv7();
-
-    const isSimulatingError = text.toLowerCase().includes('falha');
 
     const newMessage: IMessage = {
-      id: newMsgId,
+      id: crypto.randomUUID(),
       text: file ? file.name : text,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMine: true,
@@ -99,7 +119,7 @@ export const useChatStore = defineStore('chat', () => {
       fileUrl: localFileUrl,
       fileName: file?.name,
       replyTo: replyingTo.value ? { ...replyingTo.value } : undefined,
-      status: isSimulatingError ? 'error' : 'sent'
+      status: 'sending'
     };
 
     let msgs = messagesDb.value[contactId];
@@ -120,11 +140,12 @@ export const useChatStore = defineStore('chat', () => {
 
     clearReplyingTo();
 
-    if (!isSimulatingError && type !== MessageType.NOTE) {
-      setTimeout(() => {
-        const msg = messagesDb.value[contactId]?.find(m => m.id === newMsgId);
-        if (msg && msg.status === 'sent') msg.status = 'delivered';
-      }, 1200);
+    try {
+      await chatServices.sendMessage(contactId, currentUser.value.id, 'agent', text);
+      newMessage.status = 'sent';
+    } catch (error) {
+      newMessage.status = 'error';
+      console.error('Erro ao enviar mensagem:', error);
     }
   }
 
@@ -136,18 +157,22 @@ export const useChatStore = defineStore('chat', () => {
 
     const msg = msgList.find(m => m.id === messageId);
     if (msg) {
-      msg.status = 'sent';
+      msg.status = 'sending';
 
-      setTimeout(() => {
-        msg.status = 'delivered';
-      }, 1500);
+      chatServices.sendMessage(contactId, currentUser.value.id, 'agent', msg.text)
+        .then(() => {
+          msg.status = 'sent';
+        })
+        .catch(() => {
+          msg.status = 'error';
+        });
     }
   }
 
-  function assumirChat(contactId: string) {
+  async function assumirChat(contactId: string) {
     const contact = contacts.value.find(c => c.id === contactId);
     if (contact) {
-      const newServiceId = generateUUIDv7();
+      const newServiceId = crypto.randomUUID();
       contact.status = 'in_progress';
       contact.serviceId = newServiceId;
       contact.agentId = currentUser.value.id;
@@ -160,7 +185,7 @@ export const useChatStore = defineStore('chat', () => {
         msgs = [];
         messagesDb.value[contactId] = msgs;
       }
-      msgs.push({ id: generateUUIDv7(), text: `Atendimento iniciado. Protocolo: #${newServiceId}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
+      msgs.push({ id: crypto.randomUUID(), text: `Atendimento iniciado. Protocolo: #${newServiceId}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
 
       currentFilter.value = ChatFilter.CHATS;
       selectContact(contact);
@@ -169,7 +194,7 @@ export const useChatStore = defineStore('chat', () => {
     return null;
   }
 
-  function finalizarChat(contactOrServiceId: string, reason?: string, description?: string) {
+  async function finalizarChat(contactOrServiceId: string, reason?: string, description?: string) {
     const idx = contacts.value.findIndex(c => c.id === contactOrServiceId || c.serviceId === contactOrServiceId);
 
     if (idx !== -1) {
@@ -182,10 +207,16 @@ export const useChatStore = defineStore('chat', () => {
         contact.lastActiveAt = null;
       }
 
-      (contact as any).status = 'finished';
+      contact.status = 'finished';
       (contact as any).finishReason = reason;
       (contact as any).finishDescription = description;
       (contact as any).finishedAt = new Date();
+
+      try {
+        await chatServices.closeChat(contact.id);
+      } catch (error) {
+        console.error('Erro ao fechar chat:', error);
+      }
 
       let msgs = messagesDb.value[contact.id];
       if (!msgs) {
@@ -194,7 +225,7 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       msgs.push({
-        id: generateUUIDv7(),
+        id: crypto.randomUUID(),
         text: `🔒 Atendimento encerrado${reason ? '. Resolução: ' + reason : ' via painel de Atendimentos.'}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isMine: false,
@@ -210,12 +241,12 @@ export const useChatStore = defineStore('chat', () => {
 
   const finishChat = finalizarChat;
 
-  function transferirChat(contactId: string, destination?: string) {
+  async function transferirChat(contactId: string, destination?: string) {
     const idx = contacts.value.findIndex(c => c.id === contactId);
     if (idx !== -1) {
       const msgs = messagesDb.value[contactId];
       if (msgs) {
-        msgs.push({ id: generateUUIDv7(), text: `Transferido para: ${destination || 'Outro departamento'}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
+        msgs.push({ id: crypto.randomUUID(), text: `Transferido para: ${destination || 'Outro departamento'}`, timestamp: 'Agora', isMine: true, type: MessageType.ALERT });
       }
 
       contacts.value.splice(idx, 1);
@@ -294,6 +325,8 @@ export const useChatStore = defineStore('chat', () => {
     setFilter, selectContact, setSearchQuery, sendMessage, assumirChat, finalizarChat, transferirChat, updateContact, linkCustomerToChat, setReplyingTo, clearReplyingTo,
     retryMessage,
     finishChat,
-    initSlaMonitor
+    initSlaMonitor,
+    fetchChats,
+    fetchQueueCount
   };
 });

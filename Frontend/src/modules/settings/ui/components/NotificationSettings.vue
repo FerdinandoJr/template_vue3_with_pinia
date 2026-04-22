@@ -68,6 +68,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Service, Timer, Message, Check } from '@element-plus/icons-vue';
+import { settingsServices } from '../../data/settings.services';
 
 const loading = ref(false);
 
@@ -77,10 +78,17 @@ const form = reactive({
   autoEmails: true
 });
 
-onMounted(() => {
-  const savedPrefs = localStorage.getItem('datacrm_notification_prefs');
-  if (savedPrefs) {
-    Object.assign(form, JSON.parse(savedPrefs));
+onMounted(async () => {
+  try {
+    const savedSetting = await settingsServices.get('notifications');
+    if (savedSetting?.value) {
+      Object.assign(form, JSON.parse(savedSetting.value));
+    }
+  } catch (error) {
+    const savedPrefs = localStorage.getItem('datacrm_notification_prefs');
+    if (savedPrefs) {
+      Object.assign(form, JSON.parse(savedPrefs));
+    }
   }
 });
 
@@ -88,9 +96,7 @@ const savePreferences = async () => {
   loading.value = true;
   
   try {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    localStorage.setItem('datacrm_notification_prefs', JSON.stringify(form));
+    await settingsServices.set('notifications', JSON.stringify(form));
     
     ElMessage({
       message: 'Preferências de notificação salvas com sucesso!',

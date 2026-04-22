@@ -9,14 +9,31 @@ export class HttpClient {
 
     private async handleResponse<T>(response: Response): Promise<T> {
         if (!response.ok) {
-            // Se o token for recusado pelo servidor, desloga automaticamente
             if (response.status === 401) {
                 const authStore = useAuthStore();
                 authStore.logout();
-                window.location.href = '/login';
+                if (window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
             }
             const errorText = await response.text();
-            throw new Error(errorText || response.statusText);
+            console.log('[HTTP ERROR]', response.status, errorText);
+            let errorMessage = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.message) {
+                    errorMessage = errorJson.message;
+                } else if (errorJson.response?.message) {
+                    errorMessage = errorJson.response.message;
+                } else if (errorJson.error) {
+                    errorMessage = JSON.stringify(errorJson.error);
+                } else if (Array.isArray(errorJson.message)) {
+                    errorMessage = errorJson.message.join(', ');
+                } else {
+                    errorMessage = JSON.stringify(errorJson);
+                }
+            } catch (e) {}
+            throw new Error(errorMessage || response.statusText);
         }
 
         const text = await response.text();
@@ -32,7 +49,6 @@ export class HttpClient {
             'Accept': 'application/json'
         };
 
-        // TRAVA DE SEGURANÇA: Só anexa o Token JWT se a requisição for interna da API
         if (!isExternalUrl || url.startsWith(this.baseUrl)) {
             const authStore = useAuthStore();
             if (authStore.token) {
@@ -40,13 +56,21 @@ export class HttpClient {
             }
         }
 
-        const response = await fetch(url, {
-            ...options,
-            headers: {
-                ...defaultHeaders,
-                ...options.headers,
-            },
-        });
+        let response: Response;
+        try {
+            response = await fetch(url, {
+                ...options,
+                headers: {
+                    ...defaultHeaders,
+                    ...options.headers,
+                },
+            });
+        } catch (error: any) {
+            if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+                throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet.');
+            }
+            throw new Error('Erro de conexão. Tente novamente mais tarde.');
+        }
 
         return this.handleResponse<T>(response);
     }

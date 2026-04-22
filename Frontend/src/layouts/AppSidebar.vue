@@ -66,9 +66,18 @@
 import { h, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store'
+import { useChatStore } from '@/modules/chats/ui/store/chat.store'
+import { settingsServices } from '@/modules/settings/data/settings.services'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const chatStore = useChatStore()
+
+const chatsQueueCount = ref(0)
+
+onMounted(async () => {
+  chatsQueueCount.value = await chatStore.fetchQueueCount()
+})
 
 const userName = computed(() => authStore.user?.name || 'Usuário')
 const userInitials = computed(() => userName.value.charAt(0).toUpperCase())
@@ -86,15 +95,32 @@ const handleLogout = async () => {
 // Lógica de Toggling (Ativação) de Módulos
 const activeModules = ref<Record<string, boolean>>({})
 
-const loadModules = () => {
-  const saved = localStorage.getItem('datacrm_active_modules')
-  if (saved) activeModules.value = JSON.parse(saved)
+const loadModules = async () => {
+  try {
+    const savedSetting = await settingsServices.get('permissions');
+    if (savedSetting?.value) {
+      const parsed = JSON.parse(savedSetting.value);
+      const activeModulesSimple: Record<string, boolean> = {};
+      Object.keys(parsed).forEach(key => {
+        if (parsed[key]?.active !== undefined) {
+          activeModulesSimple[key] = parsed[key].active;
+        }
+      });
+      activeModules.value = activeModulesSimple;
+      localStorage.setItem('datacrm_active_modules', JSON.stringify(activeModulesSimple));
+    } else {
+      const saved = localStorage.getItem('datacrm_active_modules')
+      if (saved) activeModules.value = JSON.parse(saved)
+    }
+  } catch (error) {
+    const saved = localStorage.getItem('datacrm_active_modules')
+    if (saved) activeModules.value = JSON.parse(saved)
+  }
 }
 
 onMounted(() => {
   loadModules()
-  // Escuta o evento emitido pela página de configurações para se atualizar instantaneamente
-  window.addEventListener('modules-updated', loadModules)
+  window.addEventListener('modules-updated', () => loadModules())
 })
 
 onUnmounted(() => {
@@ -112,21 +138,21 @@ const IconKB = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24'
 const IconKanban = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('rect', { x: '3', y: '3', width: '18', height: '18', rx: '2', ry: '2' }), h('line', { x1: '9', y1: '3', x2: '9', y2: '21' }), h('line', { x1: '15', y1: '3', x2: '15', y2: '21' })])
 const IconSettings = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('circle', { cx: '12', cy: '12', r: '3' }), h('path', { d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' })])
 
-const menuItems = [
+const menuItems = computed(() => [
   { id: 'dashboard', label: 'Dashboard', path: '/', icon: IconDashboard },
   { id: 'calendar', label: 'Agenda', path: '/calendar', icon: IconAgenda },
   { id: 'customer', label: 'Clientes', path: '/customer', icon: IconUsers },
-  { id: 'chats', label: 'Chats', path: '/chats', icon: IconChat, badge: '12' },
+  { id: 'chats', label: 'Chats', path: '/chats', icon: IconChat, badge: chatsQueueCount.value > 0 ? String(chatsQueueCount.value) : undefined },
   { id: 'atendimentos', label: 'Atendimento', path: '/atendimentos', icon: IconPhone },
   { id: 'monitor', label: 'Monitor', path: '/monitor', icon: IconMonitor },
   { id: 'kanban', label: 'KanBan', path: '/kanban', icon: IconKanban },
   { id: 'kb', label: 'FAQ', path: '/kb', icon: IconKB },
   { id: 'relatorios', label: 'Relatórios', path: '/relatorios', icon: IconReport },
   { id: 'configuracoes', label: 'Configurações', path: '/configuracoes', icon: IconSettings },
-]
+])
 
 const visibleMenuItems = computed(() => {
-  return menuItems.filter(item => {
+  return menuItems.value.filter((item: any) => {
     if (item.id === 'dashboard' || item.id === 'configuracoes') return true;
     
     return activeModules.value[item.id] !== false;

@@ -43,6 +43,10 @@
                                 <el-input v-model="form.tradeName" placeholder="Como a empresa é conhecida..."
                                     class="uppercase-input" />
                             </el-form-item>
+                            <el-form-item v-if="form.type === 'PJ'" label="Nome do Responsável" prop="responsibleName">
+                                <el-input v-model="form.responsibleName" placeholder="Nome completo do responsável..."
+                                    class="uppercase-input" />
+                            </el-form-item>
                             <el-form-item v-if="form.type === 'PF'" label="Nome Completo" prop="name">
                                 <el-input v-model="form.name" placeholder="Nome completo do cliente..."
                                     class="uppercase-input" />
@@ -176,6 +180,7 @@ import { useCepLocator } from '@/core/composables/useCepLocator'
 import type { ICustomer } from '../../domain/entities/customer'
 import { useCustomerSourceStore } from '../store/customer-source.store'
 import CustomerSourceSettingsModal from './CustomerSourceSettingsModal.vue'
+import { cepService } from '@/core/services/cep.service'
 
 const props = defineProps<{
     isOpen: boolean
@@ -195,6 +200,7 @@ const form = reactive({
     name: '',
     companyName: '',
     tradeName: '',
+    responsibleName: '',
     document: '',
     email: '',
     phone: '',
@@ -221,44 +227,67 @@ onMounted(() => {
     }
 })
 
-watch(() => props.isOpen, (val) => {
-    if (val) {
+watch([() => props.isOpen, () => props.customerData], ([val, data]) => {
+    console.log('[MODAL WATCH] isOpen:', val, 'customerData:', data)
+    if (val && data) {
         activeTab.value = 'general'
-        if (formRef.value) formRef.value.resetFields()
+        if (formRef.value) formRef.value.clearValidate()
         sourceStore.fetchSources()
 
-        if (props.customerData) {
-            Object.assign(form, props.customerData)
+        if (props.customerData && props.customerData.id) {
+            console.log('[MODAL WATCH] customerData:', JSON.stringify(props.customerData, null, 2))
+            form.uuid = props.customerData.id || ''
+            form.name = props.customerData.name || ''
+            form.companyName = props.customerData.companyName || ''
+            form.tradeName = props.customerData.tradeName || ''
+            form.responsibleName = props.customerData.responsibleName || ''
+            form.document = props.customerData.document || ''
+            form.email = props.customerData.email || ''
+            form.phone = props.customerData.phone || ''
+            form.website = props.customerData.website || ''
+            form.status = props.customerData.status || 'active'
+            form.source = props.customerData.source || ''
+            form.zipCode = props.customerData.zipCode || ''
+            form.street = props.customerData.street || ''
+            form.number = props.customerData.number || ''
+            form.complement = props.customerData.complement || ''
+            form.neighborhood = props.customerData.neighborhood || ''
+            form.city = props.customerData.city || ''
+            form.state = props.customerData.state || ''
+            form.avatar = props.customerData.avatar || ''
+
             if (form.companyName && !form.name) {
                 form.type = 'PJ'
             } else if (form.name && !form.companyName) {
                 form.type = 'PF'
+            } else {
+                form.type = 'PJ'
             }
-        } else {
-            Object.assign(form, {
-                uuid: '',
-                type: 'PJ',
-                name: '',
-                companyName: '',
-                tradeName: '',
-                document: '',
-                email: '',
-                phone: '',
-                website: '',
-                status: 'active',
-                source: '',
-                zipCode: '',
-                street: '',
-                number: '',
-                complement: '',
-                neighborhood: '',
-                city: '',
-                state: '',
-                avatar: ''
-            })
+        } else if (data && !data.id) {
+            console.log('[MODAL WATCH] Novo cliente')
+            form.uuid = ''
+            form.type = 'PJ'
+            form.name = ''
+            form.companyName = ''
+            form.tradeName = ''
+            form.responsibleName = ''
+            form.document = ''
+            form.email = ''
+            form.phone = ''
+            form.website = ''
+            form.status = 'active'
+            form.source = ''
+            form.zipCode = ''
+            form.street = ''
+            form.number = ''
+            form.complement = ''
+            form.neighborhood = ''
+            form.city = ''
+            form.state = ''
+            form.avatar = ''
         }
     }
-})
+}, { immediate: true })
 
 const resetDocument = () => {
     form.document = ''
@@ -304,26 +333,30 @@ const handlePhoneInput = (val: string | undefined) => {
 }
 
 const handleZipCodeInput = async (val: string | undefined) => {
-    form.zipCode = await formatAndSearchCep(val || '', (fullAddress?: string) => {
-        if (!fullAddress) return
-
-        const parts = fullAddress.split(',')
-        if (parts.length > 1) {
-            form.street = parts[0]?.trim() ?? ''
-            const afterStreet = parts[1]?.split('-') ?? []
-            if (afterStreet.length > 1) {
-                form.neighborhood = afterStreet[0]?.trim() ?? ''
-                const cityState = afterStreet[1]?.split(' - ') ?? []
-                if (cityState.length > 1) {
-                    form.city = cityState[0]?.trim() ?? ''
-                    form.state = cityState[1]?.trim() ?? ''
-                }
-            }
+    const v = val || '';
+    const cleaned = v.replace(/\D/g, '');
+    
+    if (cleaned.length === 8) {
+        try {
+            const address = await cepService.getAddressByCep(cleaned);
+            form.street = address.logradouro || '';
+            form.neighborhood = address.bairro || '';
+            form.city = address.cidade || '';
+            form.state = address.uf || '';
+            ElMessage.success('Endereço preenchido!');
+            setTimeout(() => {
+                numberInputRef.value?.focus()
+            }, 100)
+        } catch (error) {
+            ElMessage.warning('CEP não encontrado');
         }
-        setTimeout(() => {
-            numberInputRef.value?.focus()
-        }, 100)
-    })
+    }
+    
+    let formatted = cleaned;
+    if (formatted.length > 5) {
+        formatted = formatted.replace(/^(\d{5})(\d)/, '$1-$2');
+    }
+    form.zipCode = formatted;
 }
 
 const validateDocument = (rule: any, value: string | undefined, callback: any) => {
@@ -342,9 +375,9 @@ const validateDocument = (rule: any, value: string | undefined, callback: any) =
 }
 
 const rules = reactive<FormRules>({
-    name: [{ required: true, message: 'Nome obrigatório', trigger: 'blur' }],
     companyName: [{ required: true, message: 'Razão Social obrigatória', trigger: 'blur' }],
-    document: [{ required: true, validator: validateDocument, trigger: 'blur' }]
+    document: [{ validator: validateDocument, trigger: 'blur' }],
+    email: [{ type: 'email', message: 'E-mail inválido', trigger: 'blur' }]
 })
 
 const submit = async () => {
@@ -360,7 +393,13 @@ const submit = async () => {
                 form.companyName = form.name;
             }
 
-            emit('save', { ...form })
+            const payload = {
+                id: form.uuid,
+                ...form
+            }
+            delete payload.uuid;
+            console.log('[SUBMIT] payload:', JSON.stringify(payload, null, 2))
+            emit('save', payload)
         } else {
             ElMessage.warning('Por favor, preencha todos os campos obrigatórios.')
             if ((!form.name && !form.companyName) || !form.document) {

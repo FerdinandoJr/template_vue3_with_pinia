@@ -58,10 +58,17 @@ const calendarOptions = computed(() => ({
         const eventBgColor = e.colorHex ? e.colorHex : theme.light;
         const eventBorderColor = e.colorHex ? e.colorHex : theme.primary;
         const eventTextColor = e.colorHex ? '#ffffff' : theme.dark;
+        
+        const eventStart = e.startDate || (e.date && e.time ? `${e.date}T${e.time}:00` : undefined);
+        const eventEnd = e.endDate || (e.date && e.endTime ? `${e.date}T${e.endTime}:00` : undefined);
+        
+        console.log('[events mapping] e.userId:', e.userId, 'selectedUserIds:', store.selectedUserIds, 'match:', store.selectedUserIds.includes(e.userId));
 
         const baseEvent = {
             id: e.id,
             title: e.isBlocker ? `🔒 ${e.title}` : e.title,
+            start: eventStart,
+            end: eventEnd,
             backgroundColor: e.isBlocker ? '#f8fafc' : eventBgColor,
             borderColor: e.isBlocker ? '#94a3b8' : eventBorderColor,
             textColor: e.isBlocker ? '#475569' : eventTextColor,

@@ -3,9 +3,10 @@
     <h2 class="text-xl font-black text-slate-800 mb-6">Meu Perfil</h2>
 
     <div class="flex items-center gap-6 mb-8 pb-8 border-b border-slate-100">
-      <img :src="localProfile.avatar" class="w-24 h-24 rounded-full object-cover ring-4 ring-slate-50" />
+      <img :src="getAvatarUrl(localProfile)" class="w-24 h-24 rounded-full object-cover ring-4 ring-slate-50" />
       <div>
-        <button
+        <input type="file" ref="fileInput" accept="image/*" class="hidden" @change="handleAvatarChange" />
+        <button @click="triggerFileInput"
           class="bg-white border border-slate-200 text-slate-600 text-[12px] font-bold px-4 py-2 rounded-lg shadow-sm hover:bg-slate-50 mb-2">
           Alterar Foto
         </button>
@@ -52,11 +53,53 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import { settingsServices } from '../../data/settings.services';
 import type { IUserProfile } from '../../domain/entities/settings';
 
 const props = defineProps<{ profile: IUserProfile | null }>();
 const localProfile = ref<IUserProfile | null>(null);
 const phoneError = ref('');
+const fileInput = ref<HTMLInputElement | null>(null);
+
+const triggerFileInput = () => {
+  fileInput.value?.click();
+};
+
+const handleAvatarChange = async (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file || !localProfile.value) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    ElMessage.warning('A imagem deve ter no máximo 2MB.');
+    return;
+  }
+
+  try {
+    const profile = localProfile.value;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      profile.avatar = base64;
+      await settingsServices.updateUserProfile({ avatar: base64 });
+      ElMessage.success('Foto atualizada com sucesso!');
+    };
+    reader.readAsDataURL(file);
+  } catch (error) {
+    console.error('Erro ao atualizar foto:', error);
+    ElMessage.error('Erro ao atualizar foto.');
+  }
+};
+
+const getAvatarUrl = (profile: IUserProfile | null): string => {
+  if (!profile) return '';
+  const avatar = profile.avatar;
+  if (avatar && typeof avatar === 'string' && avatar.trim()) {
+    return avatar;
+  }
+  const name = profile?.name || 'User';
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=96`;
+};
 
 const formatPhoneInitial = (phone: string) => {
   let v = phone.replace(/\D/g, '');
@@ -100,7 +143,7 @@ const handlePhoneInput = (e: Event) => {
   phoneError.value = '';
 };
 
-const handleSave = () => {
+const handleSave = async () => {
   if (!localProfile.value) return;
   if (!localProfile.value.name.trim()) {
     ElMessage.warning('O nome completo é obrigatório.');
@@ -112,6 +155,16 @@ const handleSave = () => {
     ElMessage.warning('Preencha um número de telefone válido (DDD + Número).');
     return;
   }
-  ElMessage.success('Dados pessoais atualizados com sucesso!');
+  try {
+    await settingsServices.updateUserProfile({
+      name: localProfile.value.name,
+      phone: localProfile.value.phone,
+      avatar: localProfile.value.avatar,
+    });
+    ElMessage.success('Dados pessoais atualizados com sucesso!');
+  } catch (error) {
+    console.error('Erro ao salvar perfil:', error);
+    ElMessage.error('Erro ao salvar. Tente novamente.');
+  }
 };
 </script>

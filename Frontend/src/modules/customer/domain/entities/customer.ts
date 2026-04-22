@@ -8,7 +8,7 @@ export interface IContactPerson {
 }
 
 export interface ICustomer {
-  uuid: string;
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -19,6 +19,7 @@ export interface ICustomer {
   source: string;
   companyName: string;
   tradeName?: string;
+  responsibleName?: string;
   document?: string;
   website?: string;
   zipCode?: string;
@@ -33,4 +34,6 @@ export interface ICustomer {
   lastInteraction: Date;
   openTickets: number;
   csat: number;
+  type?: string;
+  address?: string;
 }

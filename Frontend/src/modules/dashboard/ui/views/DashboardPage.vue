@@ -214,8 +214,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { useDashboardStore } from '../store/dashboard.store';
 import VueApexCharts from 'vue3-apexcharts';
 import { 
   ChatDotRound, Ticket, CircleCheck, Timer, TopRight, BottomRight, 
@@ -224,6 +225,7 @@ import {
 
 // Setup e Permissões
 const authStore = useAuthStore();
+const dashboardStore = useDashboardStore();
 
 const userName = computed(() => {
   if (authStore.user && authStore.user.name) {
@@ -236,27 +238,45 @@ const isAdminOrManager = computed(() => {
   return authStore.hasRole(['ADMIN', 'MANAGER']);
 });
 
+onMounted(() => {
+  dashboardStore.fetchDashboardData();
+});
+
 // KPIs
 const kpiData = computed(() => {
+  const stats = dashboardStore.stats;
+  if (!stats) {
+    return { chatsAtivos: 0, ticketsPendentes: 0, taxaResolucao: 0, tma: 0 };
+  }
   if (isAdminOrManager.value) {
-    return { chatsAtivos: 342, ticketsPendentes: 89, taxaResolucao: 94, tma: 12 };
+    return { 
+      chatsAtivos: stats.stats?.totalChats || 0, 
+      ticketsPendentes: stats.stats?.openTickets || 0, 
+      taxaResolucao: stats.stats?.resolvedTickets || 0, 
+      tma: 0 
+    };
   } else {
-    return { chatsAtivos: 5, ticketsPendentes: 12, taxaResolucao: 98, tma: 8 };
+    return { chatsAtivos: 0, ticketsPendentes: 0, taxaResolucao: 0, tma: 0 };
   }
 });
 
 // Tickets Recentes
-const allRecentTickets = ref([
-  { title: 'Erro de integração Mercado Pago', customer: 'João Silva', priority: 'urgent', priorityLabel: 'URG', status: 'A Fazer', date: '07/04/2026', assignee: 'Administrador' },
-  { title: 'Dúvida sobre mensalidade', customer: 'Maria Vendas', priority: 'medium', priorityLabel: 'MED', status: 'Em Andamento', date: '06/04/2026', assignee: 'Lucas Atendimento' },
-  { title: 'Reset de senha servidor DayZ', customer: 'Carlos Admin', priority: 'high', priorityLabel: 'ALT', status: 'A Fazer', date: '06/04/2026', assignee: 'Administrador' },
-  { title: 'App crashando no iOS', customer: 'Pedro Costa', priority: 'urgent', priorityLabel: 'URG', status: 'A Fazer', date: '05/04/2026', assignee: 'Lucas Atendimento' },
-  { title: 'Atualização de Cadastro', customer: 'Ana Paula', priority: 'low', priorityLabel: 'BAI', status: 'Em Andamento', date: '05/04/2026', assignee: 'Fernanda Suporte' },
-]);
+const allRecentTickets = computed(() => {
+  const tickets = dashboardStore.stats?.recentTickets || [];
+  return tickets.map((t: any) => ({
+    title: t.title,
+    customer: t.customer?.name || 'N/A',
+    priority: t.priority?.toLowerCase() || 'medium',
+    priorityLabel: t.priority?.substring(0, 3).toUpperCase() || 'MED',
+    status: t.status,
+    date: t.createdAt ? new Date(t.createdAt).toLocaleDateString('pt-BR') : '',
+    assignee: t.assignee?.name || 'N/A',
+  }));
+});
 
 const filteredTickets = computed(() => {
   if (isAdminOrManager.value) return allRecentTickets.value;
-  return allRecentTickets.value.filter(t => t.assignee === authStore.user?.name);
+  return allRecentTickets.value.filter((t: any) => t.assignee === authStore.user?.name);
 });
 
 const getPriorityColors = (priority: string) => {
@@ -268,31 +288,34 @@ const getPriorityColors = (priority: string) => {
   }
 };
 
-// NOVO: Dados de Alertas de SLA
-const allSlaAlerts = ref([
-  { id: 1, title: 'Servidor Offline', customer: 'Carlos Admin', time: 'Atrasado há 2h', isOverdue: true, assignee: 'Administrador' },
-  { id: 2, title: 'Dúvida faturamento', customer: 'João Silva', time: 'Vence em 45m', isOverdue: false, assignee: 'Lucas Atendimento' },
-  { id: 3, title: 'Erro de integração API', customer: 'Pedro Costa', time: 'Atrasado há 15m', isOverdue: true, assignee: 'Administrador' },
-]);
+// NOVO: Dados de Alertas de SLA (vem do backend)
+const allSlaAlerts = ref<any[]>([]);
 
 const filteredAlerts = computed(() => {
   if (isAdminOrManager.value) return allSlaAlerts.value;
   return allSlaAlerts.value.filter(a => a.assignee === authStore.user?.name);
 });
 
-// Gráficos
+// Gráficos (dados do banco ou vazio se não houver histórico)
 const chartPeriod = ref('7d');
 
 const areaChartSeries = computed(() => {
+  const stats = dashboardStore.stats;
+  if (!stats) {
+    return [
+      { name: 'Chats', data: [0, 0, 0, 0, 0, 0, 0] },
+      { name: 'Tickets', data: [0, 0, 0, 0, 0, 0, 0] }
+    ];
+  }
   if (isAdminOrManager.value) {
     return [
-      { name: 'Chats', data: [31, 40, 28, 51, 42, 109, 100] },
-      { name: 'Tickets', data: [11, 32, 45, 32, 34, 52, 41] }
+      { name: 'Chats', data: [0, 0, 0, 0, 0, 0, stats.stats?.openChats || 0] },
+      { name: 'Tickets', data: [0, 0, 0, 0, 0, 0, stats.stats?.openTickets || 0] }
     ];
   }
   return [
-    { name: 'Meus Chats', data: [5, 8, 4, 12, 10, 15, 14] },
-    { name: 'Meus Tickets', data: [2, 4, 6, 3, 5, 8, 7] }
+    { name: 'Meus Chats', data: [0, 0, 0, 0, 0, 0, 0] },
+    { name: 'Meus Tickets', data: [0, 0, 0, 0, 0, 0, 0] }
   ];
 });
 
@@ -315,7 +338,13 @@ const areaChartOptions = ref({
 });
 
 const donutChartSeries = computed(() => {
-  return isAdminOrManager.value ? [44, 55, 13, 33] : [5, 8, 0, 4];
+  const stats = dashboardStore.stats;
+  if (!stats) return [0, 0, 0, 0];
+  const { openTickets = 0, inProgressTickets = 0, resolvedTickets = 0, totalChats = 0 } = stats.stats || {};
+  if (isAdminOrManager.value) {
+    return [openTickets, inProgressTickets || 0, resolvedTickets || 0, totalChats || 0];
+  }
+  return [0, 0, 0, 0];
 });
 
 const donutChartOptions = ref({

@@ -28,7 +28,7 @@ export const useNotificationStore = defineStore('notifications', {
                 const authStore = useAuthStore();
                 const currentUser = authStore.user;
 
-                const events = notificationService.getTodayEvents();
+                const events = await notificationService.getTodayEvents();
                 const filteredEvents = notificationService.filterEventsByUser(
                     events,
                     currentUser?.id,

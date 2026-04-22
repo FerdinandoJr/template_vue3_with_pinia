@@ -1,6 +1,6 @@
 import { ChatChannel } from '../valueObjects/chat-enums';
 
-export interface IMessage {
+type IMessage = {
   id: string;
   text: string;
   timestamp: string;
@@ -10,9 +10,9 @@ export interface IMessage {
   fileName?: string;
   status?: 'sent' | 'delivered' | 'read' | 'error';
   replyTo?: IMessage;
-}
+};
 
-export interface IContact {
+type IContact = {
   id: string;
   name: string;
   phone: string;
@@ -35,4 +35,6 @@ export interface IContact {
   serviceStartedAt?: number;
   slaNotifiedQueued?: boolean;
   slaNotifiedService?: boolean;
-}
+};
+
+export type { IMessage, IContact };

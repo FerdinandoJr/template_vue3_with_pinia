@@ -20,13 +20,11 @@ export const useDashboardStore = defineStore('dashboard', {
     async fetchDashboardData() {
       this.loading = true;
       try {
-        const authStore = useAuthStore();
-        const userId = authStore.user?.id;
-        const userRole = authStore.user?.role;
-        const data = await dashboardServices.getSummary(this.currentPeriod, userId, userRole);
+        const data = await dashboardServices.getStats();
         this.stats = data;
       } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
+        this.stats = null;
       } finally {
         this.loading = false;
       }

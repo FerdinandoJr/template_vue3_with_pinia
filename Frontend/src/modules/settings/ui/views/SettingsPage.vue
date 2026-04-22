@@ -15,6 +15,14 @@
           
           <button 
             v-if="authStore.hasRole(['ADMIN', 'MANAGER'])"
+            @click="store.setTab(SettingsTab.USER_ACCESS)" 
+            :class="['text-left px-5 py-3.5 rounded-xl text-[13px] font-bold transition-all', store.activeTab === SettingsTab.USER_ACCESS ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'text-slate-500 hover:bg-slate-100']"
+          >
+            👥 Acesso por Usuário
+          </button>
+
+          <button 
+            v-if="authStore.hasRole(['ADMIN', 'MANAGER'])"
             @click="store.setTab(SettingsTab.MODULES)" 
             :class="['text-left px-5 py-3.5 rounded-xl text-[13px] font-bold transition-all', store.activeTab === SettingsTab.MODULES ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100']"
           >
@@ -46,6 +54,8 @@
         <template v-else>
           <ProfileSettings v-if="store.activeTab === SettingsTab.PROFILE" :profile="store.profile" />
           
+          <UserAccessSettings v-if="store.activeTab === SettingsTab.USER_ACCESS && authStore.hasRole(['ADMIN', 'MANAGER'])" />
+
           <ModuleSettings v-if="store.activeTab === SettingsTab.MODULES && authStore.hasRole(['ADMIN', 'MANAGER'])" />
 
           <WhatsAppSettings v-if="store.activeTab === SettingsTab.WHATSAPP && authStore.hasRole(['ADMIN', 'MANAGER'])" :whatsapp="store.whatsapp" />
@@ -68,6 +78,7 @@ import ProfileSettings from '../components/ProfileSettings.vue';
 import WhatsAppSettings from '../components/WhatsAppSettings.vue';
 import NotificationSettings from '../components/NotificationSettings.vue';
 import ModuleSettings from '../components/ModuleSettings.vue';
+import UserAccessSettings from '../components/UserAccessSettings.vue';
 
 const store = useSettingsStore();
 const authStore = useAuthStore();

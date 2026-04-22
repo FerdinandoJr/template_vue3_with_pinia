@@ -240,22 +240,28 @@
 
                         <el-tab-pane label="Histórico de Atendimentos" name="history">
                             <div class="py-6">
-                                <div class="space-y-4">
-                                    <div v-for="i in 3" :key="i"
+                                <div v-if="loadingServices" class="flex justify-center p-8">
+                                    <el-icon class="is-loading"><Loading /></el-icon>
+                                </div>
+                                <div v-else-if="services.length === 0" class="text-center text-slate-400 py-8">
+                                    <el-icon :size="40" class="mb-2"><ChatDotRound /></el-icon>
+                                    <p>Nenhum atendimento registrado para este cliente.</p>
+                                </div>
+                                <div v-else class="space-y-4">
+                                    <div v-for="service in services" :key="service.id"
                                         class="p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all">
                                         <div class="flex items-center gap-4">
                                             <div
                                                 class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
-                                                #{{ 240 + i }}
+                                                #{{ service.protocol?.slice(-4) || service.id?.slice(-4) }}
                                             </div>
                                             <div>
-                                                <p class="text-sm font-bold text-slate-800">Suporte Técnico</p>
-                                                <p class="text-[11px] text-slate-400 font-medium uppercase">12 Março
-                                                    2026 • 14:30</p>
+                                                <p class="text-sm font-bold text-slate-800">{{ service.subject || 'Atendimento' }}</p>
+                                                <p class="text-[11px] text-slate-400 font-medium uppercase">{{ formatDate(service.createdAt) }}</p>
                                             </div>
                                         </div>
-                                        <el-tag type="success" size="small" effect="light"
-                                            class="!rounded-md !font-bold">Finalizado</el-tag>
+                                        <el-tag :type="getStatusType(service.status)" size="small" effect="light"
+                                            class="!rounded-md !font-bold">{{ getStatusLabel(service.status) }}</el-tag>
                                     </div>
                                 </div>
                             </div>
@@ -277,11 +283,12 @@ import { useRoute, useRouter } from 'vue-router';
 import { useCustomerStore } from '../store/customer.store';
 import CustomerFormModal from '../components/CustomerFormModal.vue';
 import { ElMessage } from 'element-plus';
+import { serviceServices, type IServiceItem } from '@/modules/service/data/service.services';
 
 // Importando todos os ícones necessários para esse layout top
 import {
     ArrowLeft, Edit, Message, Location, Document,
-    MapLocation, ChatDotRound, Link, Connection, UserFilled, User
+    MapLocation, ChatDotRound, Link, Connection, UserFilled, User, Loading
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -291,6 +298,8 @@ const store = useCustomerStore();
 const customer = ref<any>(null);
 const activeTab = ref('overview'); // Começa na aba de Visão Geral
 const isModalOpen = ref(false);
+const services = ref<IServiceItem[]>([]);
+const loadingServices = ref(false);
 
 const formatPhone = (phone?: string) => {
     if (!phone) return '';
@@ -304,8 +313,9 @@ const formatPhone = (phone?: string) => {
 };
 
 const loadCustomer = () => {
-    const uuid = route.params.id as string;
-    const found = store.items.find(c => c.uuid === uuid);
+    const id = route.params.id as string;
+    console.log('[loadCustomer] id:', id, 'items:', store.items.map(c => ({ id: c.id, name: c.name })));
+    const found = store.items.find(c => c.id === id);
     if (found) {
         customer.value = JSON.parse(JSON.stringify(found));
     } else {
@@ -315,17 +325,59 @@ const loadCustomer = () => {
 };
 
 const handleUpdate = async (updatedData: any) => {
-    await store.updateCustomer(updatedData.uuid, updatedData);
+    console.log('[handleUpdate] updatedData:', updatedData);
+    await store.updateCustomer(updatedData.id, updatedData);
     ElMessage.success('Cadastro atualizado com sucesso!');
     isModalOpen.value = false;
     loadCustomer();
 };
 
+const loadServices = async () => {
+    if (!customer.value?.id) return;
+    loadingServices.value = true;
+    try {
+        const allServices = await serviceServices.list({ customerId: customer.value.id });
+        services.value = allServices;
+    } catch (error) {
+        console.error('[loadServices] error:', error);
+        services.value = [];
+    } finally {
+        loadingServices.value = false;
+    }
+};
+
+const formatDate = (date?: string) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('pt-BR');
+};
+
+const getStatusType = (status?: string) => {
+    switch (status) {
+        case 'in_progress': return 'warning';
+        case 'finished': return 'success';
+        case 'canceled': return 'danger';
+        default: return 'info';
+    }
+};
+
+const getStatusLabel = (status?: string) => {
+    switch (status) {
+        case 'in_progress': return 'Em Andamento';
+        case 'finished': return 'Finalizado';
+        case 'canceled': return 'Cancelado';
+        default: return status || 'Aberto';
+    }
+};
+
 onMounted(() => {
     if (store.items.length === 0) {
-        store.fetch().then(() => loadCustomer());
+        store.fetch().then(() => {
+            loadCustomer();
+            loadServices();
+        });
     } else {
         loadCustomer();
+        loadServices();
     }
 });
 </script>

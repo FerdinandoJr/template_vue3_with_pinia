@@ -53,12 +53,9 @@ export const useTicketsStore = defineStore('tickets', {
       
       this.loading = true;
       try {
-        const authStore = useAuthStore();
         const currentFilter = {
-          ...this.filter,
-          ownerId: authStore.user?.id || '1',
-          page: this.currentPage,
-          limit: this.pageSize
+          status: this.filter.status,
+          query: this.filter.query,
         };
         const { total, filteredTotal, items } = await ticketServices.list(currentFilter);
         this.total = total;
@@ -92,14 +89,14 @@ export const useTicketsStore = defineStore('tickets', {
       await this._executeFetch();
     },
     async updateTicket(id: number, data: Partial<ITicket>) {
-      const updatedTicket = await ticketServices.update(id, data);
+      const updatedTicket = await ticketServices.update(String(id), data);
       const index = this.items.findIndex(t => t.id === id);
       if (index !== -1) {
         this.items[index] = { ...this.items[index], ...data, ...updatedTicket };
       }
     },
     async deleteTicket(id: number) {
-      await ticketServices.delete(id);
+      await ticketServices.delete(String(id));
       await this._executeFetch();
     }
   }

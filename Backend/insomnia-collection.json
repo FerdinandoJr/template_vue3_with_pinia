@@ -1,0 +1,335 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-04-20T18:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2024.3.0",
+  "resources": [
+    {
+      "_id": "wrk_central_atendimento",
+      "name": "Central de Atendimento",
+      "description": "API Central de Atendimento - Abordagem Profissional",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_production",
+      "name": "Production",
+      "parentId": "wrk_central_atendimento",
+      "values": [
+        {
+          "key": "base_url",
+          "value": "http://localhost:3000",
+          "type": "url",
+          "disabled": false
+        },
+        {
+          "key": "auth_token",
+          "value": "",
+          "type": "secret",
+          "disabled": false
+        }
+      ],
+      "_type": "environment"
+    },
+    {
+      "_id": "fd_auth_register",
+      "parentId": "wrk_central_atendimento",
+      "name": "1. Register (cria tenant automático)",
+      "method": "POST",
+      "url": "{{base_url}}/auth/register",
+      "body": {
+        "mime": "application/json",
+        "text": "{\n  \"name\": \"Administrador\",\n  \"email\": \"admin@datacompany.inf.br\",\n  \"password\": \"senha123\",\n  \"role\": \"admin\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_auth_login",
+      "parentId": "wrk_central_atendimento",
+      "name": "2. Login",
+      "method": "POST",
+      "url": "{{base_url}}/auth/login",
+      "body": {
+        "mime": "application/json",
+        "text": "{\n  \"email\": \"admin@datacompany.inf.br\",\n  \"password\": \"senha123\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_customers_list",
+      "parentId": "wrk_central_atendimento",
+      "name": "3. Listar Clientes",
+      "method": "GET",
+      "url": "{{base_url}}/customers",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_customers_create",
+      "parentId": "wrk_central_atendimento",
+      "name": "4. Criar Cliente",
+      "method": "POST",
+      "url": "{{base_url}}/customers",
+      "body": {
+        "mime": "application/json",
+        "text": "{\n  \"name\": \"Empresa XYZ\",\n  \"email\": \"contato@empresa.com\",\n  \"phone\": \"11999999999\",\n  \"companyName\": \"Empresa XYZ LTDA\",\n  \"document\": \"12345678900\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_tickets_list",
+      "parentId": "wrk_central_atendimento",
+      "name": "5. Listar Tickets",
+      "method": "GET",
+      "url": "{{base_url}}/tickets",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_tickets_create",
+      "parentId": "wrk_central_atendimento",
+      "name": "6. Criar Ticket",
+      "method": "POST",
+      "url": "{{base_url}}/tickets",
+      "body": {
+        "mime": "application/json",
+        "text": "{\n  \"title\": \"Problema com login\",\n  \"description\": \"Não consigo acessar o sistema\",\n  \"priority\": \"high\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_agenda_list",
+      "parentId": "wrk_central_atendimento",
+      "name": "7. Listar Agenda",
+      "method": "GET",
+      "url": "{{base_url}}/agenda",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_agenda_create",
+      "parentId": "wrk_central_atendimento",
+      "name": "8. Criar Evento",
+      "method": "POST",
+      "url": "{{base_url}}/agenda",
+      "body": {
+        "mime": "application/json",
+        "text": "{\n  \"title\": \"Reunião com cliente\",\n  \"description\": \"Discussão do projeto\",\n  \"type\": \"meeting\",\n  \"startDate\": \"2026-04-20T10:00:00Z\",\n  \"endDate\": \"2026-04-20T11:00:00Z\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_kanban_columns",
+      "parentId": "wrk_central_atendimento",
+      "name": "9. Listar Colunas Kanban",
+      "method": "GET",
+      "url": "{{base_url}}/kanban/columns",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_kanban_cards",
+      "parentId": "wrk_central_atendimento",
+      "name": "10. Listar Cards Kanban",
+      "method": "GET",
+      "url": "{{base_url}}/kanban/cards",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_chats_list",
+      "parentId": "wrk_central_atendimento",
+      "name": "11. Listar Chats",
+      "method": "GET",
+      "url": "{{base_url}}/chats",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_kb_list",
+      "parentId": "wrk_central_atendimento",
+      "name": "12. Listar KB",
+      "method": "GET",
+      "url": "{{base_url}}/kb",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_reports",
+      "parentId": "wrk_central_atendimento",
+      "name": "13. Relatórios",
+      "method": "GET",
+      "url": "{{base_url}}/reports/tickets",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_monitor_health",
+      "parentId": "wrk_central_atendimento",
+      "name": "14. Health Check",
+      "method": "GET",
+      "url": "{{base_url}}/monitor/health",
+      "_type": "request"
+    },
+    {
+      "_id": "fd_services_list",
+      "parentId": "wrk_central_atendimento",
+      "name": "15. Listar Serviços",
+      "method": "GET",
+      "url": "{{base_url}}/services",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_services_create",
+      "parentId": "wrk_central_atendimento",
+      "name": "16. Criar Serviço",
+      "method": "POST",
+      "url": "{{base_url}}/services",
+      "body": {
+        "mime": "application/json",
+        "text": "{\n  \"subject\": \"Solicitação de serviço\",\n  \"description\": \"Descrição detalhada do serviço\",\n  \"priority\": \"medium\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_settings",
+      "parentId": "wrk_central_atendimento",
+      "name": "17. Configurações",
+      "method": "GET",
+      "url": "{{base_url}}/settings",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_users_list",
+      "parentId": "wrk_central_atendimento",
+      "name": "18. Listar Usuários",
+      "method": "GET",
+      "url": "{{base_url}}/users",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    },
+    {
+      "_id": "fd_tenants",
+      "parentId": "wrk_central_atendimento",
+      "name": "19. Listar Tenants",
+      "method": "GET",
+      "url": "{{base_url}}/tenants",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{auth_token}}"
+        }
+      ],
+      "_type": "request"
+    }
+  ]
+}

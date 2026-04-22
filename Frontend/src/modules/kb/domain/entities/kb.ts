@@ -16,5 +16,5 @@ export interface IKbArticle {
   views: number;
   icon: string;
   status: 'Rascunho' | 'Publicado' | string;
-  visibility: 'Publico' | 'Privado';
+  visibility: 'Publico' | 'Privado' | string;
 }

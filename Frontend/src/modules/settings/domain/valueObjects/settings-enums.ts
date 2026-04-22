@@ -2,7 +2,8 @@ export enum SettingsTab {
   PROFILE = 'PROFILE',
   WHATSAPP = 'WHATSAPP',
   NOTIFICATIONS = 'NOTIFICATIONS',
-  MODULES = 'MODULES'
+  MODULES = 'MODULES',
+  USER_ACCESS = 'USER_ACCESS'
 }
 
 export enum WhatsAppStatus {

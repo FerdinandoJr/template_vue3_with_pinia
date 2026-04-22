@@ -11,7 +11,7 @@
             </el-avatar>
             <div>
               <p class="font-bold text-slate-800 leading-tight">
-                {{ scope.row.tradeName || scope.row.companyName }}
+                {{ scope.row.companyName || scope.row.tradeName || scope.row.name || '-' }}
               </p>
               <p class="text-[11px] text-slate-500 font-bold mt-0.5">
                 {{ scope.row.document || 'Sem NIF/CNPJ' }}
@@ -21,15 +21,15 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="Contacto Responsável" min-width="200">
+      <el-table-column label="Contato Responsável" min-width="200">
         <template #default="scope">
-          <p class="font-bold text-slate-700">{{ scope.row.name }}</p>
+          <p class="font-bold text-slate-700">{{ scope.row.responsibleName || scope.row.name || '-' }}</p>
           <div class="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
             <el-icon>
               <Phone />
             </el-icon>
             <span>
-              {{ formatPhone(scope.row.phone) || scope.row.email || 'Sem contacto' }}
+              {{ formatPhone(scope.row.phone) || scope.row.email || 'Sem contato' }}
             </span>
           </div>
         </template>
@@ -54,13 +54,12 @@
       <el-table-column label="Ações" width="140" align="right">
         <template #default="scope">
           <div @click.stop class="flex justify-end gap-2">
-            <el-button type="primary" circle plain size="small" @click="$emit('edit', scope.row)">
+            <el-button type="primary" circle plain size="small" @click="handleEditClick(scope.row)">
               <el-icon>
                 <Edit />
               </el-icon>
             </el-button>
-            <el-button v-permission="['ADMIN']" type="danger" circle plain size="small"
-              @click="$emit('delete', scope.row.uuid)">
+            <el-button type="danger" circle plain size="small" @click="handleDeleteClick(scope.row)">
               <el-icon>
                 <Delete />
               </el-icon>
@@ -104,8 +103,22 @@ defineProps<{
 
 const emit = defineEmits(['select', 'edit', 'delete', 'update:currentPage', 'update:pageSize'])
 
+interface DeletePayload {
+  id: string
+  name: string
+}
+
 const handleRowClick = (row: ICustomer) => {
-  emit('select', row.uuid)
+  emit('select', row.id)
+}
+
+const handleEditClick = (row: ICustomer) => {
+  console.log('[TABLE EDIT] row:', JSON.stringify(row, null, 2))
+  emit('edit', row)
+}
+
+const handleDeleteClick = (row: ICustomer) => {
+  emit('delete', row)
 }
 
 const formatPhone = (phone?: string) => {

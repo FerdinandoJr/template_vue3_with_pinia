@@ -47,24 +47,34 @@
     </div>
 
     <Teleport to="body">
-      <CustomerFormModal v-if="isFormModalOpen" :is-open="isFormModalOpen" :customer-data="customerToEdit" @close="isFormModalOpen = false" @save="handleSaveCustomer" />
+      <CustomerFormModal v-if="isFormModalOpen" :key="modalKey" :is-open="isFormModalOpen" :customer-data="customerToEdit" @close="isFormModalOpen = false" @save="handleSaveCustomer" />
       <CustomerSourceSettingsModal v-if="isSourceModalOpen" :is-open="isSourceModalOpen" @close="isSourceModalOpen = false" />
       
-      <el-dialog v-model="isDeleteModalOpen" title="Excluir Empresa?" width="400px" align-center>
-        <div class="text-center">
-          <div class="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <el-icon :size="32">
+      <el-dialog v-model="isDeleteModalOpen" :title="`Excluir ${customerToDeleteName}?`" width="450px" align-center class="delete-dialog">
+        <div class="text-center py-4">
+          <div class="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-100">
+            <el-icon :size="40">
               <Delete />
             </el-icon>
           </div>
-          <p class="text-slate-500 mb-4">
-            Tem certeza que deseja apagar permanentemente este cliente e todos os contatos vinculados a ele?
+          <h3 class="text-xl font-bold text-slate-800 mb-2">Excluir Cliente?</h3>
+          <p class="text-slate-500 mb-2">
+            Você está prestes a excluir permanentemente:
+          </p>
+          <p class="text-lg font-bold text-slate-700 mb-4">{{ customerToDeleteName }}</p>
+          <p class="text-sm text-red-400">
+            Esta ação não pode ser desfeita.
           </p>
         </div>
         <template #footer>
           <div class="flex gap-3 justify-center">
-            <el-button @click="isDeleteModalOpen = false">Cancelar</el-button>
-            <el-button type="danger" @click="confirmDeleteCustomer">Sim, Excluir</el-button>
+            <el-button size="large" @click="isDeleteModalOpen = false" class="!px-8">
+              Cancelar
+            </el-button>
+            <el-button type="danger" size="large" @click="confirmDeleteCustomer" class="!px-8 !font-bold">
+              <el-icon class="mr-1"><Delete /></el-icon>
+              Sim, Excluir
+            </el-button>
           </div>
         </template>
       </el-dialog>
@@ -90,9 +100,11 @@ const { items, total, filteredTotal, loading } = storeToRefs(store)
 const isFormModalOpen = ref(false)
 const isSourceModalOpen = ref(false)
 const customerToEdit = ref<any>(null)
+const modalKey = ref(0)
 
 const isDeleteModalOpen = ref(false)
 const customerUuidToDelete = ref<string | null>(null)
+const customerToDeleteName = ref<string>('')
 
 const searchQuery = ref('')
 let searchTimeout: ReturnType<typeof setTimeout>
@@ -101,39 +113,47 @@ const handleSearch = (value: string) => {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     store.setQuery(value)
-  }, 300)
+  }, 150)
 }
 
-const goToDetails = (uuid: string) => {
-  router.push(`/customer/${uuid}`)
+const goToDetails = (id: string) => {
+  router.push(`/customer/${id}`)
 }
 
 const openCreateModal = () => {
   customerToEdit.value = null
+  modalKey.value++
   isFormModalOpen.value = true
 }
 
 const openEditModal = (customer: any) => {
+  console.log('[EDIT MODAL] customer:', JSON.stringify(customer, null, 2))
   customerToEdit.value = { ...customer }
+  modalKey.value++
   isFormModalOpen.value = true
 }
 
 const handleSaveCustomer = async (data: any) => {
-  if (customerToEdit.value && customerToEdit.value.uuid) {
-    await store.updateCustomer(customerToEdit.value.uuid, data)
+  console.log('[handleSaveCustomer] data:', JSON.stringify(data, null, 2));
+  console.log('[handleSaveCustomer] customerToEdit:', JSON.stringify(customerToEdit.value, null, 2));
+  if (customerToEdit.value && customerToEdit.value.id) {
+    await store.updateCustomer(customerToEdit.value.id, data)
   } else {
     await store.createCustomer(data)
   }
   isFormModalOpen.value = false
 }
 
-const promptDeleteCustomer = (uuid: string) => {
-  customerUuidToDelete.value = uuid
+const promptDeleteCustomer = (customer: any) => {
+  console.log('[DELETE] customer:', customer)
+  customerUuidToDelete.value = customer.id
+  customerToDeleteName.value = customer.companyName || customer.name || 'este cliente'
   isDeleteModalOpen.value = true
 }
 
 const confirmDeleteCustomer = async () => {
   if (customerUuidToDelete.value) {
+    console.log('[CONFIRM DELETE] id:', customerUuidToDelete.value)
     await store.deleteCustomer(customerUuidToDelete.value)
   }
   isDeleteModalOpen.value = false

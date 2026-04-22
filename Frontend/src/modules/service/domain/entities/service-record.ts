@@ -15,4 +15,8 @@ export interface IServiceRecord {
   agentId?: string | number;
   lastAction?: string;
   timeElapsed?: string;
+  companyName?: string;
+  cnpj?: string;
+  dateTime?: string;
+  agentName?: string;
 }

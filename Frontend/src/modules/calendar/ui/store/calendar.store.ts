@@ -1,52 +1,95 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { agendaServices } from '../../data/calendar.services';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { httpClient } from '@/core/infra/HttpClient';
 
 export const useCalendarStore = defineStore('calendar', () => {
-  const allEvents = ref<any[]>([
-    {
-      id: '1', title: 'Consulta Inicial - Maria Silva', date: '2025-02-18', time: '09:00', endTime: '10:00',
-      userId: '1', isRecurring: false, patientName: 'Maria Silva', status: 'confirmed'
-    },
-    {
-      id: '2', title: 'Revisão Contratual - João Santos', date: '2025-02-19', time: '14:00', endTime: '15:30',
-      userId: '2', isRecurring: false, patientName: 'João Santos', status: 'pending'
-    },
-    {
-      id: '3', title: 'Reunião de Equipe', date: '2025-02-20', time: '16:00', endTime: '17:00',
-      userId: '3', isRecurring: true, recurrenceType: 'weekly', recurrenceDays: [4], recurrenceEndDate: '2025-12-31', status: 'confirmed'
-    }
-  ]);
-
-  const availableUsers = ref([
-    { id: '1', name: 'Você', theme: { primary: '#3b82f6', light: '#eff6ff', dark: '#1e40af' }, avatar: 'https://ui-avatars.com/api/?name=Você' },
-    { id: '2', name: 'Atendente Alpha', theme: { primary: '#10b981', light: '#ecfdf5', dark: '#065f46' }, avatar: 'https://ui-avatars.com/api/?name=Alpha' },
-    { id: '3', name: 'Gestor', theme: { primary: '#8b5cf6', light: '#f5f3ff', dark: '#5b21b6' }, avatar: 'https://ui-avatars.com/api/?name=Gestor' }
-  ]);
-
-  const selectedUserIds = ref<string[]>(['1']);
+  const allEvents = ref<any[]>([]);
+  const availableUsers = ref<any[]>([]);
+  const selectedUserIds = ref<string[]>([]);
   const selectedDate = ref(new Date());
-
   const closedDays = ref<any[]>([]);
+  const loading = ref(false);
 
   const filteredEvents = computed(() => {
-    if (!selectedUserIds.value || selectedUserIds.value.length === 0) return [];
-    return allEvents.value.filter(event => selectedUserIds.value.includes(event.userId));
+    if (!selectedUserIds.value || selectedUserIds.value.length === 0) return allEvents.value;
+    return allEvents.value.filter(event => !event.userId || selectedUserIds.value.includes(event.userId));
   });
 
-  const fetchAgendaData = async () => { };
+  const fetchAgendaData = async () => {
+    loading.value = true;
+    try {
+      const authStore = useAuthStore();
+      console.log('[fetchAgendaData] authStore.user:', authStore.user);
+      const events = await agendaServices.getEvents();
+      console.log('[fetchAgendaData] events loaded:', events.length);
+      allEvents.value = events || [];
 
-  const addEvent = (event: any) => {
-    if (!event.id) event.id = 'evt-' + Date.now().toString();
-    allEvents.value.push(event);
+      try {
+        const response = await httpClient.get<any>('/users');
+        if (response && response.data && response.data.length > 0) {
+          availableUsers.value = response.data;
+        } else {
+          availableUsers.value = [{ id: authStore.user?.id, name: authStore.user?.name }];
+        }
+      } catch (err) {
+        console.error('Erro ao buscar usuários da empresa:', err);
+        availableUsers.value = [{ id: authStore.user?.id, name: authStore.user?.name }];
+      }
+
+      const userId = authStore.user?.id || availableUsers.value[0]?.id;
+      selectedUserIds.value = userId ? [userId] : [];
+    } catch (error) {
+      console.error('Erro ao carregar agenda:', error);
+    } finally {
+      loading.value = false;
+    }
   };
 
-  const updateEvent = (event: any) => {
-    const index = allEvents.value.findIndex(e => e.id === event.id);
-    if (index !== -1) allEvents.value[index] = event;
+  const addEvent = async (event: any) => {
+    loading.value = true;
+    try {
+      const created = await agendaServices.createEvent(event);
+      allEvents.value.push(created);
+
+      if (created.userId && !selectedUserIds.value.includes(created.userId)) {
+        selectedUserIds.value.push(created.userId);
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar evento:', error);
+    } finally {
+      loading.value = false;
+    }
   };
 
-  const deleteEvent = (id: string) => {
-    allEvents.value = allEvents.value.filter(e => e.id !== id);
+  const updateEvent = async (event: any) => {
+    loading.value = true;
+    try {
+      const updated = await agendaServices.updateEvent(event.id, event);
+      const index = allEvents.value.findIndex(e => e.id === event.id);
+      if (index !== -1) allEvents.value[index] = updated;
+
+      if (updated.userId && !selectedUserIds.value.includes(updated.userId)) {
+        selectedUserIds.value.push(updated.userId);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar evento:', error);
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const deleteEvent = async (id: string) => {
+    loading.value = true;
+    try {
+      await agendaServices.deleteEvent(id);
+      allEvents.value = allEvents.value.filter(e => e.id !== id);
+    } catch (error) {
+      console.error('Erro ao excluir evento:', error);
+    } finally {
+      loading.value = false;
+    }
   };
 
   const setSelectedDate = (date: Date) => {
@@ -54,7 +97,7 @@ export const useCalendarStore = defineStore('calendar', () => {
   };
 
   return {
-    allEvents, availableUsers, selectedUserIds, selectedDate, filteredEvents, closedDays,
+    allEvents, availableUsers, selectedUserIds, selectedDate, filteredEvents, closedDays, loading,
     fetchAgendaData, addEvent, updateEvent, deleteEvent, setSelectedDate
   };
 });

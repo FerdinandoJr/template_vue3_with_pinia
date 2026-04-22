@@ -1,31 +1,48 @@
+import { httpClient } from '@/core/infra/HttpClient';
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  timestamp: string;
+}
+
+interface LoginResponse {
+  access_token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    tenantId: string;
+  };
+}
+
 export const authServices = {
     async login(email: string, password: string): Promise<{ token: string; user: any }> {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if (email === 'admin@datacrm.com' && password === 'admin') {
-                    resolve({
-                        token: 'mock-jwt-token-123456',
-                        user: {
-                            name: 'Usuário Administrador',
-                            email,
-                            role: 'ADMIN',
-                            permissions: ['view_reports', 'manage_users', 'delete_tickets']
-                        }
-                    });
-                } else if (email === 'atendente@datacrm.com' && password === '123') {
-                    resolve({
-                        token: 'mock-jwt-token-789012',
-                        user: {
-                            name: 'Atendente João',
-                            email,
-                            role: 'AGENT',
-                            permissions: ['view_tickets', 'reply_chats']
-                        }
-                    });
-                } else {
-                    reject(new Error('Credenciais inválidas. Tente admin@datacrm.com ou atendente@datacrm.com'));
-                }
-            }, 800);
+        const response = await httpClient.post<ApiResponse<LoginResponse>>('/auth/login', {
+            email,
+            password,
         });
-    }
+        
+        console.log('API Response:', response);
+        
+        return {
+            token: response.data.access_token,
+            user: response.data.user,
+        };
+    },
+
+    async register(data: {
+        name: string;
+        email: string;
+        password: string;
+        role?: string;
+    }): Promise<any> {
+        const response = await httpClient.post<ApiResponse<any>>('/auth/register', data);
+        return response.data;
+    },
+
+    async logout(): Promise<void> {
+        // O logout é feito localmente no store
+    },
 };

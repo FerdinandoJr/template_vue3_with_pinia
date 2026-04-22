@@ -32,6 +32,7 @@ export const useCustomerStore = defineStore('customer', {
                 this.filter.limit = this.pageSize;
 
                 const { total, filteredTotal, items } = await customerServices.list(this.filter)
+                console.log('[FETCH CUSTOMERS] items[0]:', items[0])
                 this.total = total
                 this.filteredTotal = filteredTotal
                 this.items = items
@@ -59,10 +60,10 @@ export const useCustomerStore = defineStore('customer', {
             await this.fetch();
         },
 
-        async fetchById(uuid: string): Promise<ICustomer | undefined> {
+        async fetchById(id: string): Promise<ICustomer | undefined> {
             this.loading = true;
             try {
-                return await customerServices.getById(uuid);
+                return await customerServices.getById(id);
             } catch (error) {
                 console.error("Erro ao buscar cliente:", error);
                 return undefined;
@@ -71,7 +72,7 @@ export const useCustomerStore = defineStore('customer', {
             }
         },
 
-        async createCustomer(data: Omit<ICustomer, 'uuid' | 'lastInteraction' | 'openTickets' | 'csat'>): Promise<ICustomer | undefined> {
+        async createCustomer(data: Omit<ICustomer, 'id' | 'lastInteraction' | 'openTickets' | 'csat'>): Promise<ICustomer | undefined> {
             const { showToast } = useToast();
             this.loading = true;
             try {
@@ -87,11 +88,11 @@ export const useCustomerStore = defineStore('customer', {
             }
         },
 
-        async updateCustomer(uuid: string, data: Partial<ICustomer>) {
+        async updateCustomer(id: string, data: Partial<ICustomer>) {
             const { showToast } = useToast();
             this.loading = true;
             try {
-                await customerServices.update(uuid, data);
+                await customerServices.update(id, data);
                 showToast("Cliente atualizado com sucesso!", "success");
                 await this.fetch();
             } catch (error) {
@@ -101,14 +102,16 @@ export const useCustomerStore = defineStore('customer', {
             }
         },
 
-        async deleteCustomer(uuid: string) {
+        async deleteCustomer(id: string) {
             const { showToast } = useToast();
             this.loading = true;
             try {
-                await customerServices.delete(uuid);
+                console.log('[DELETE CUSTOMER] id:', id);
+                await customerServices.delete(id);
                 showToast("Cliente excluído com sucesso!", "success");
                 await this.fetch();
             } catch (error) {
+                console.error('[DELETE CUSTOMER] error:', error);
                 showToast("Erro ao excluir cliente.", "error");
             } finally {
                 this.loading = false;

@@ -44,7 +44,7 @@ import type { IServiceRecord } from '../../domain/entities/service-record';
 
 defineProps<{ records: IServiceRecord[] }>();
 
-const formatDateTime = (value: string | Date): string => {
+const formatDateTime = (value?: string | Date): string => {
   if (!value) return "--/--/----";
   
   const date = new Date(value);
