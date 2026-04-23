@@ -15,6 +15,7 @@ export class AgendaService {
 
   async findAll(tenantId: string, query?: AgendaQueryDto): Promise<Agenda[]> {
     const qb = this.agendaRepository.createQueryBuilder('agenda')
+      .leftJoinAndSelect('agenda.creator', 'creator')
       .where('agenda.tenantId = :tenantId', { tenantId });
 
     if (query?.type) qb.andWhere('agenda.type = :type', { type: query.type });
@@ -27,15 +28,16 @@ export class AgendaService {
   }
 
   async findById(id: string): Promise<Agenda | null> {
-    return this.agendaRepository.findOne({ where: { id } });
+    return this.agendaRepository.findOne({ where: { id }, relations: ['creator'] });
   }
 
-  async create(tenantId: string, data: CreateAgendaDto): Promise<Agenda> {
+  async create(tenantId: string, data: CreateAgendaDto, userId?: string): Promise<Agenda> {
     const agenda = this.agendaRepository.create({
       ...data,
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
       tenantId,
+      createdBy: userId,
     });
     return this.agendaRepository.save(agenda);
   }

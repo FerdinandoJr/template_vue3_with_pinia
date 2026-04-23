@@ -84,6 +84,13 @@ export class Agenda {
   @Column({ type: 'boolean', default: false })
   isBlocker: boolean;
 
+  @Column({ type: 'uuid', nullable: true })
+  createdBy: string;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'createdBy' })
+  creator: User;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

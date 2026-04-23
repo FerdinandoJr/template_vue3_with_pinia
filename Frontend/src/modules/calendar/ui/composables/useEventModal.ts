@@ -1,4 +1,4 @@
-import { ref, reactive, watch, computed, nextTick } from 'vue';
+import { ref, reactive, watch, nextTick, computed } from 'vue';
 import { useCalendarStore } from '../store/calendar.store';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import { ElMessage, type FormInstance } from 'element-plus';
@@ -28,7 +28,7 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
             await nextTick();
             
             const options = customerStore.items.map((c: ICustomer) => ({
-                label: c.name || c.companyName || c.tradeName || 'Sem nome',
+                label: c.tradeName || c.companyName || c.name || 'Sem nome',
                 value: c.id
             }));
             
@@ -86,7 +86,7 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
         postMeetingNotes: '',
         address: '',
         cep: '',
-        createdBy: 'Você',
+        createdBy: '',
         colorHex: '#3b82f6',
         colorClass: 'text-blue-700',
         dotClass: 'bg-blue-400',
@@ -99,14 +99,14 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
         isBlocker: false
     });
 
-    const rules = computed(() => ({
-        title: [{ required: true, message: form.isBlocker ? 'O motivo é obrigatório' : 'O título é obrigatório', trigger: 'blur' }],
+    const rules = {
+        title: [{ required: true, message: 'O título é obrigatório', trigger: 'blur' }],
         userId: [{ required: true, message: 'Selecione o profissional', trigger: 'change' }],
         date: [{ required: true, message: 'A data é obrigatória', trigger: 'blur' }],
         time: [{ required: true, message: 'O horário é obrigatório', trigger: 'blur' }],
-        client: [{ required: !form.isBlocker, message: 'O cliente é obrigatório', trigger: 'change' }],
+        client: [{ required: true, message: 'O cliente é obrigatório', trigger: 'change' }],
         description: [{ required: false, message: 'A descrição é obrigatória', trigger: 'blur' }]
-    }));
+    };
 
     const getSelectedClientName = (clientId: string) => {
         const client = clientOptions.value.find(c => c.value === clientId);
@@ -161,6 +161,10 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
 
                 if (form.client) {
                     clientOptions.value = [{ label: form.client, value: (props.eventData as any).clientId || form.client }];
+                }
+                
+                if ((props.eventData as any).creator) {
+                    form.createdBy = (props.eventData as any).creator?.name || (props.eventData as any).creator?.email || 'Usuário desconhecido';
                 }
             }
             
@@ -236,10 +240,18 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
 
                 console.log('[submitForm] FINAL PAYLOAD:', JSON.stringify(payload));
 
-                // Remove temp fields to not pollute DB
+                // Remove temp fields and empty optional fields to not pollute DB
                 delete payload.date;
                 delete payload.time;
                 delete payload.endTime;
+                delete payload.createdBy;
+                
+                if (!payload.recurrenceEndDate) delete payload.recurrenceEndDate;
+                if (!payload.isRecurring) {
+                    delete payload.recurrenceType;
+                    delete payload.recurrenceDays;
+                    delete payload.recurrenceEndDate;
+                }
 
                 emit('save', payload);
             } else {

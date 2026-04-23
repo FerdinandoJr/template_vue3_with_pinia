@@ -100,6 +100,10 @@
                 <el-option v-for="c in clientOptions" :key="c.value" :label="c.label" :value="c.value" />
               </el-select>
             </el-form-item>
+
+            <el-form-item label="Criado por" class="saas-input-group">
+              <el-input :model-value="form.createdBy || currentUserName" disabled class="!bg-slate-50" />
+            </el-form-item>
           </div>
 
           <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 mt-2">
@@ -215,15 +219,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { 
   Calendar, EditPen, Checked, Lock, InfoFilled, Location, Refresh, ArrowDown,
   DocumentChecked, Check, Timer, WarningFilled, Delete 
 } from '@element-plus/icons-vue';
 import { useEventModal } from '../composables/useEventModal';
 import RichTextEditor from '@/components/RichTextEditor.vue';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 
 const props = defineProps<{ isOpen: boolean; eventData?: any; }>();
 const emit = defineEmits(['close', 'save', 'delete']);
+
+const authStore = useAuthStore();
+const currentUserName = computed(() => authStore.user?.name || 'Você');
 
 const {
   store, ruleFormRef, activeTab, weekDays, isEditing, clientOptions, loadingClients,

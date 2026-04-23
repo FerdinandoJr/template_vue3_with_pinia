@@ -30,7 +30,7 @@ export class AgendaController {
   @Post()
   @ApiOperation({ summary: 'Criar novo evento' })
   async create(@Req() req: any, @Body() data: CreateAgendaDto) {
-    return this.agendaService.create(req.tenantId, data);
+    return this.agendaService.create(req.tenantId, data, req.userId);
   }
 
   @Put(':id')
