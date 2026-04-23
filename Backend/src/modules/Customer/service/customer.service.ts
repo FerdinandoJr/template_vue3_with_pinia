@@ -42,6 +42,7 @@ export class CustomersService {
     customer.email = data.email;
     customer.phone = data.phone;
     customer.document = data.document;
+    customer.type = data.type;
     customer.companyName = data.companyName;
     customer.tradeName = data.tradeName;
     customer.responsibleName = data.responsibleName;
@@ -71,6 +72,7 @@ export class CustomersService {
     if (data.email !== undefined) customer.email = data.email;
     if (data.phone !== undefined) customer.phone = data.phone;
     if (data.document !== undefined) customer.document = data.document;
+    if (data.type !== undefined) customer.type = data.type;
     if (data.companyName !== undefined) customer.companyName = data.companyName;
     if (data.tradeName !== undefined) customer.tradeName = data.tradeName;
     if (data.responsibleName !== undefined) customer.responsibleName = data.responsibleName;

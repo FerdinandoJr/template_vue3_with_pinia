@@ -14,6 +14,7 @@ export interface IDashboardStats {
     openTickets?: number;
     inProgressTickets?: number;
     resolvedTickets?: number;
+    chatsVariation?: number;
   };
   recentTickets?: any[];
 }

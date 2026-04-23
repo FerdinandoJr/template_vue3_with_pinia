@@ -39,6 +39,9 @@ export class Customer {
   @Column({ type: 'varchar', length: 100, nullable: true })
   source: string;
 
+  @Column({ type: 'varchar', length: 2, nullable: true })
+  type: string;
+
   @Column({ type: 'varchar', length: 255, nullable: true })
   companyName: string;
 

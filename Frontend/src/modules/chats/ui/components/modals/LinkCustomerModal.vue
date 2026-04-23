@@ -202,6 +202,7 @@ import { ElMessage } from 'element-plus';
 import { cepService } from '@/core/services/cep.service';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import { useCustomerSourceStore } from '@/modules/customer/ui/store/customer-source.store';
+import { formatCustomerNameFromList } from '@/utils/customer';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -312,7 +313,7 @@ const remoteSearchCustomer = async (query: string) => {
         const numberQuery = query.replace(/\D/g, '');
 
         const results = customerStore.items.filter((c: any) => {
-            const name = normalize(c.tradeName || c.companyName || c.name);
+            const name = normalize(formatCustomerNameFromList(c));
             const doc = String(c.document || '').replace(/\D/g, '');
             const phone = String(c.phone || '').replace(/\D/g, '');
 
@@ -323,7 +324,7 @@ const remoteSearchCustomer = async (query: string) => {
 
         searchResults.value = results.map((c: any) => ({
             uuid: c.uuid || c.id,
-            name: `${c.tradeName || c.companyName || c.name} ${c.document ? `(${c.document})` : ''}`
+            name: `${formatCustomerNameFromList(c)} ${c.document ? `(${c.document})` : ''}`
         }));
 
     } catch (error) {

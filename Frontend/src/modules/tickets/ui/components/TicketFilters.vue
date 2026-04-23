@@ -108,6 +108,7 @@ import { Search, Briefcase, User, Close, Filter } from '@element-plus/icons-vue'
 import type { TicketFilter } from '../../data/ticket.services';
 import { ticketServices } from '../../data/ticket.services';
 import { httpClient } from '@/core/infra/HttpClient';
+import { formatCustomerNameFromList } from '@/utils/customer';
 
 const props = defineProps<{ filters: TicketFilter }>();
 const emit = defineEmits<{ (e: 'update:filters', filters: TicketFilter): void }>();
@@ -140,9 +141,9 @@ const loadCustomersOnly = async () => {
     const res = await httpClient.get<any>('/customers');
     const data = res.data?.data || res.data || [];
 const list = Array.isArray(data) ? data : (data.items || []);
-    customersOptions.value = list.map((c: any) => ({
+customersOptions.value = list.map((c: any) => ({
       id: String(c.id),
-      name: c.tradeName || c.companyName || c.name || 'Sem nome'
+      name: formatCustomerNameFromList(c)
     }));
   } catch (e) {
     console.error('[TicketFilters] Erro ao buscar clientes:', e);
@@ -159,7 +160,7 @@ const remoteSearchCustomers = async (query: string) => {
 
       customersOptions.value = list.map((c: any) => ({
         id: String(c.id),
-        name: c.tradeName || c.companyName || c.name || 'Sem nome'
+        name: formatCustomerNameFromList(c)
       }));
     } catch (e) {
       console.error('[TicketFilters] Erro ao buscar clientes:', e);
@@ -196,7 +197,7 @@ const localFilters = ref<TicketFilter>({
   status: props.filters.status || 'all',
   customers: props.filters.customers || [],
   assignees: props.filters.assignees || [],
-  ownerOnly: props.filters.ownerOnly ?? false,
+  ownerOnly: props.filters.ownerOnly ?? true,
   dateRange: props.filters.dateRange && props.filters.dateRange.length === 2
     ? props.filters.dateRange
     : getDefaultDateRange()
@@ -283,7 +284,7 @@ const clearFilters = () => {
     status: 'all',
     customers: [],
     assignees: [],
-    ownerOnly: false,
+    ownerOnly: true,
     dateRange: getDefaultDateRange()
   };
   emit('update:filters', { ...localFilters.value });

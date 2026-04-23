@@ -63,7 +63,7 @@ const currentFilters = ref<any>({
   customers: [],
   dateRange: null,
   assignees: [],
-  ownerOnly: false
+  ownerOnly: true
 });
 
 const openTickets = computed(() => store.items.filter((t: any) => t.status === 'open' || t.status === 'pending_approval').length);

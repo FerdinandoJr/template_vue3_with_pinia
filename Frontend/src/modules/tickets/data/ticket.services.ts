@@ -1,5 +1,6 @@
 import type { ITicket } from "../domain/entities/Ticket";
 import { httpClient } from "@/core/infra/HttpClient";
+import { formatCustomerNameFromList } from '@/utils/customer';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -59,7 +60,7 @@ export const ticketServices = {
       
       return {
         users: users.map((u: any) => ({ id: String(u.id), name: u.name || u.email })),
-        customers: customers.map((c: any) => ({ id: String(c.id), name: c.name || c.companyName || c.tradeName || 'Sem nome' })),
+        customers: customers.map((c: any) => ({ id: String(c.id), name: formatCustomerNameFromList(c) })),
       };
     } catch (e) {
       return { users: [], customers: [] };

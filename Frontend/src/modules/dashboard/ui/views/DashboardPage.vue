@@ -35,9 +35,11 @@
           <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100/50">
             <el-icon class="text-xl"><ChatDotRound /></el-icon>
           </div>
-          <span v-if="isAdminOrManager" class="flex items-center gap-1 text-[11px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-            <el-icon><TopRight /></el-icon> +14%
+          <!-- Variação de chats - desabilitado até backend implementar
+          <span v-if="isAdminOrManager && kpiData.chatsVariation !== null" class="flex items-center gap-1 text-[11px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
+            <el-icon><TopRight /></el-icon> {{ kpiData.chatsVariation }}%
           </span>
+          -->
         </div>
         <div>
           <h3 class="text-3xl font-black text-slate-800 tracking-tight">{{ kpiData.chatsAtivos }}</h3>
@@ -246,17 +248,18 @@ onMounted(() => {
 const kpiData = computed(() => {
   const stats = dashboardStore.stats;
   if (!stats) {
-    return { chatsAtivos: 0, ticketsPendentes: 0, taxaResolucao: 0, tma: 0 };
+    return { chatsAtivos: 0, ticketsPendentes: 0, taxaResolucao: 0, tma: 0, chatsVariation: null };
   }
   if (isAdminOrManager.value) {
     return { 
       chatsAtivos: stats.stats?.totalChats || 0, 
       ticketsPendentes: stats.stats?.openTickets || 0, 
       taxaResolucao: stats.stats?.resolvedTickets || 0, 
-      tma: 0 
+      tma: 0,
+      chatsVariation: stats.stats?.chatsVariation ?? null
     };
   } else {
-    return { chatsAtivos: 0, ticketsPendentes: 0, taxaResolucao: 0, tma: 0 };
+    return { chatsAtivos: 0, ticketsPendentes: 0, taxaResolucao: 0, tma: 0, chatsVariation: null };
   }
 });
 
