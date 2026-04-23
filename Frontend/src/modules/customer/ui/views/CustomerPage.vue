@@ -147,7 +147,7 @@ const handleSaveCustomer = async (data: any) => {
 const promptDeleteCustomer = (customer: any) => {
   console.log('[DELETE] customer:', customer)
   customerUuidToDelete.value = customer.id
-  customerToDeleteName.value = customer.companyName || customer.name || 'este cliente'
+  customerToDeleteName.value = customer.tradeName || customer.companyName || customer.name || 'este cliente'
   isDeleteModalOpen.value = true
 }
 

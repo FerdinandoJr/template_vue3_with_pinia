@@ -1,49 +1,77 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Tenant } from '../../../database/postgres/tenant.entity';
+import { User } from '../../../database/postgres/user.entity';
+import { Customer } from '../../Customer/data/customer.entity';
+
+export enum ChatStatus {
+  OPEN = 'open',
+  CLOSED = 'closed',
+}
 
 @Entity('chats')
+@Index('idx_chats_tenant', ['tenantId'])
+@Index('idx_chats_customer', ['customerId'])
+@Index('idx_chats_agent', ['agentId'])
 export class Chat {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   customerId: string;
 
-  @Column({ nullable: true })
+  @ManyToOne(() => Customer, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'customerId' })
+  customer: Customer;
+
+  @Column({ type: 'uuid', nullable: true })
   agentId: string;
 
-  @Column({ default: 'open' })
-  status: string;
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'agentId' })
+  agent: User;
 
-  @Column({ nullable: true })
+  @Column({ type: 'enum', enum: ChatStatus, default: ChatStatus.OPEN })
+  status: ChatStatus;
+
+  @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
-  @CreateDateColumn()
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant: Tenant;
+
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }
 
 @Entity('chat_messages')
+@Index('idx_chat_messages_chat', ['chatId'])
 export class ChatMessage {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'uuid' })
   chatId: string;
 
-  @Column()
+  @ManyToOne(() => Chat, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'chatId' })
+  chat: Chat;
+
+  @Column({ type: 'uuid' })
   senderId: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 20 })
   senderType: string;
 
   @Column({ type: 'text' })
   message: string;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   isRead: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 }

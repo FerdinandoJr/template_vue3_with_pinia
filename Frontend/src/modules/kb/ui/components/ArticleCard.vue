@@ -2,8 +2,8 @@
   <div
     class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col h-full relative group">
 
-    <div class="absolute top-4 right-4 z-10">
-      <el-dropdown trigger="click" @command="handleCommand">
+    <div class="absolute top-4 right-4 z-10" v-if="authStore.hasModulePermission('kb', 'feature', 'edit_article') || authStore.hasModulePermission('kb', 'feature', 'delete_article')">
+      <el-dropdown trigger="click" @command="handleCommand" v-if="authStore.hasModulePermission('kb', 'feature', 'edit_article') && authStore.hasModulePermission('kb', 'feature', 'delete_article')">
         <el-button circle
           class="!border-none !bg-transparent hover:!bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors">
           <el-icon class="text-lg">
@@ -18,6 +18,16 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
+      <div class="flex gap-1" v-else>
+        <el-button circle v-if="authStore.hasModulePermission('kb', 'feature', 'edit_article')"
+          class="!border-none !bg-transparent hover:!bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors" @click.stop="$emit('edit', article)">
+          <el-icon class="text-lg"><Edit /></el-icon>
+        </el-button>
+        <el-button circle v-if="authStore.hasModulePermission('kb', 'feature', 'delete_article')"
+          class="!border-none !bg-transparent hover:!bg-slate-100 text-slate-400 hover:text-red-500 transition-colors" @click.stop="$emit('delete', article)">
+          <el-icon class="text-lg"><Delete /></el-icon>
+        </el-button>
+      </div>
     </div>
 
     <div class="cursor-pointer flex-1 flex flex-col pt-1" @click="$emit('read', article)">
@@ -81,9 +91,11 @@
 
 <script setup lang="ts">
 import { MoreFilled, Edit, Delete, Timer, View } from '@element-plus/icons-vue';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import type { IKbArticle } from '../../domain/entities/kb';
 
 const props = defineProps<{ article: IKbArticle }>();
+const authStore = useAuthStore();
 
 const emit = defineEmits<{
   (e: 'read', article: IKbArticle): void;

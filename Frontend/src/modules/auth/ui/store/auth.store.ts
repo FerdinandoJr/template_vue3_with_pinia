@@ -24,10 +24,35 @@ export const useAuthStore = defineStore('auth', () => {
 
     const hasRole = (roles: string[]) => {
         if (!user.value || !user.value.role) return false;
-        return roles.includes(user.value.role);
+        const userRole = user.value.role.toLowerCase();
+        return roles.some(role => userRole === role.toLowerCase());
     };
 
-    return { user, token, isAuthenticated, login, logout, hasRole };
+    const hasModulePermission = (moduleId: string, action?: 'active' | 'feature', featureId?: string) => {
+        const perms = user.value?.permissions;
+        
+        // Se tem permissões customizadas salvas no banco, usa elas
+        if (perms && Object.keys(perms).length > 0) {
+            const modulePerm = perms[moduleId];
+            if (!modulePerm) return true; // Não existe no banco = acesso total por padrão
+            
+            if (action === 'active') {
+                return modulePerm.active === true;
+            }
+            
+            if (action === 'feature' && featureId) {
+                if (!modulePerm.active) return false;
+                return modulePerm.features?.[featureId] === true;
+            }
+            
+            return true;
+        }
+        
+        // Sem permissões no banco = acesso TOTAL (padrão)
+        return true;
+    };
+
+    return { user, token, isAuthenticated, login, logout, hasRole, hasModulePermission };
 }, {
     // Motor de persistência com ofuscação (Base64)
     persist: {

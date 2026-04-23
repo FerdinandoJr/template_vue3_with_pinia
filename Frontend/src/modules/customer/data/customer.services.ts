@@ -27,28 +27,29 @@ export const customerServices = {
     if (filter.query) params.append('q', filter.query);
     
     const endpoint = `/customers${params.toString() ? '?' + params.toString() : ''}`;
-    const response = await httpClient.get<ApiResponse<ICustomer[]>>(endpoint);
+    const response = await httpClient.get<any>(endpoint);
     
+    const data = response?.data?.data || response?.data || response || [];
     return {
-      total: response.data.length,
-      filteredTotal: response.data.length,
-      items: response.data,
+      total: data.length,
+      filteredTotal: data.length,
+      items: data,
     };
   },
 
   async getById(id: string): Promise<ICustomer | undefined> {
-    const response = await httpClient.get<ApiResponse<ICustomer>>(`/customers/${id}`);
-    return response.data;
+    const response = await httpClient.get<any>(`/customers/${id}`);
+    return response?.data || response;
   },
 
   async create(data: Omit<ICustomer, 'id' | 'lastInteraction' | 'openTickets' | 'csat'>): Promise<ICustomer> {
-    const response = await httpClient.post<ApiResponse<ICustomer>>('/customers', data);
-    return response.data;
+    const response = await httpClient.post<any>('/customers', data);
+    return response?.data || response;
   },
 
   async update(id: string, data: Partial<ICustomer>): Promise<ICustomer> {
-    const response = await httpClient.put<ApiResponse<ICustomer>>(`/customers/${id}`, data);
-    return response.data;
+    const response = await httpClient.put<any>(`/customers/${id}`, data);
+    return response?.data || response;
   },
 
   async delete(id: string): Promise<void> {

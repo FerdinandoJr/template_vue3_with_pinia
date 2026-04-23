@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Chat, ChatMessage } from '../data/chat.entity';
+import { Chat, ChatMessage, ChatStatus } from '../data/chat.entity';
 
 @Injectable()
 export class ChatsService {
@@ -17,12 +17,12 @@ export class ChatsService {
   }
 
   async getQueueCount(tenantId: string): Promise<number> {
-    const chats = await this.chatsRepository.find({ where: { tenantId, status: 'open' } });
+    const chats = await this.chatsRepository.find({ where: { tenantId, status: ChatStatus.OPEN } });
     return chats.filter(c => !c.agentId).length;
   }
 
   async getQueue(tenantId: string): Promise<Chat[]> {
-    return this.chatsRepository.find({ where: { tenantId, status: 'open' }, order: { createdAt: 'DESC' } });
+    return this.chatsRepository.find({ where: { tenantId, status: ChatStatus.OPEN }, order: { createdAt: 'DESC' } });
   }
 
   async findChatMessages(chatId: string): Promise<ChatMessage[]> {
@@ -30,7 +30,7 @@ export class ChatsService {
   }
 
   async createChat(tenantId: string, customerId?: string): Promise<Chat> {
-    const chat = this.chatsRepository.create({ customerId, tenantId, status: 'open' });
+    const chat = this.chatsRepository.create({ customerId, tenantId, status: ChatStatus.OPEN });
     return this.chatsRepository.save(chat);
   }
 
@@ -42,7 +42,7 @@ export class ChatsService {
   async closeChat(id: string): Promise<Chat> {
     const chat = await this.chatsRepository.findOne({ where: { id } });
     if (!chat) throw new NotFoundException('Chat não encontrado');
-    chat.status = 'closed';
+    chat.status = ChatStatus.CLOSED;
     return this.chatsRepository.save(chat);
   }
 }

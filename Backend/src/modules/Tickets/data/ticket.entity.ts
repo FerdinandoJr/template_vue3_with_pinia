@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, RelationId } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Tenant } from '../../../database/postgres/tenant.entity';
 import { Customer } from '../../Customer/data/customer.entity';
 import { User } from '../../../database/postgres/user.entity';
@@ -26,11 +26,14 @@ export enum TicketType {
 }
 
 @Entity('tickets')
+@Index('idx_tickets_tenant', ['tenantId'])
+@Index('idx_tickets_customer', ['customerId'])
+@Index('idx_tickets_assignee', ['assignedTo'])
 export class Ticket {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   title: string;
 
   @Column({ type: 'text', nullable: true })
@@ -54,30 +57,30 @@ export class Ticket {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   estimatedHours: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   customerId: string;
 
-  @ManyToOne(() => Customer)
+  @ManyToOne(() => Customer, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   assignedTo: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'assignedTo' })
   assignee: User;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
-  @ManyToOne(() => Tenant)
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tenantId' })
   tenant: Tenant;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

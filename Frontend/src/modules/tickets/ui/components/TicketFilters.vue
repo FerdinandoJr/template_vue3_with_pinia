@@ -1,11 +1,9 @@
 <template>
-  <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col gap-4">
-
-    <div class="flex flex-wrap items-center gap-4">
-
+  <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-3 flex flex-col gap-3">
+    <div class="flex flex-wrap items-center gap-3">
       <div class="relative flex-1 min-w-[280px]">
         <el-input v-model="localFilters.query" placeholder="Buscar por ID, Título, Descrição..."
-          class="w-full enterprise-search" size="large" clearable @input="onInputQuery">
+          class="w-full enterprise-search" size="default" clearable @input="onInputQuery">
           <template #prefix>
             <el-icon class="text-slate-400">
               <Search />
@@ -17,11 +15,10 @@
       <div class="w-full sm:w-auto">
         <el-date-picker v-model="localFilters.dateRange" type="daterange" unlink-panels range-separator="até"
           start-placeholder="Data Inicial" end-placeholder="Data Final" format="DD/MM/YYYY" :shortcuts="dateShortcuts"
-          class="w-full" size="large" @change="onChangeFilter" />
+          class="w-full" size="default" @change="onChangeFilter" />
       </div>
 
-      <el-button size="large" :type="mostrarFiltrosAvancados ? 'primary' : 'default'"
-        @click="mostrarFiltrosAvancados = !mostrarFiltrosAvancados"
+      <el-button size="default" :type="mostrarFiltrosAvancados ? 'primary' : 'default'" @click="onToggleAdvanced"
         class="flex-shrink-0 transition-all duration-300 !font-bold">
         <el-icon class="mr-2">
           <Filter />
@@ -33,7 +30,7 @@
         </span>
       </el-button>
 
-      <el-button size="large" @click="clearFilters" :disabled="!hasActiveFilters"
+      <el-button size="default" @click="clearFilters" :disabled="!hasActiveFilters"
         :class="['transition-colors !font-bold ml-auto', hasActiveFilters ? '!bg-red-50 !text-red-600 !border-red-100 hover:!bg-red-100' : '']">
         <el-icon class="mr-1">
           <Close />
@@ -43,13 +40,13 @@
     </div>
 
     <el-collapse-transition>
-      <div v-show="mostrarFiltrosAvancados" class="p-5 bg-slate-50 border border-slate-200 rounded-xl shadow-sm mt-2">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div v-show="mostrarFiltrosAvancados" class="p-3 bg-slate-50 border border-slate-200 rounded-xl shadow-sm mt-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
           <div class="flex flex-col justify-center">
-            <label class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Exibição</label>
+            <label class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Exibição</label>
             <div
-              class="flex items-center justify-between bg-white px-4 py-2.5 rounded-lg border border-slate-200 shadow-sm h-[40px]">
+              class="flex items-center justify-between bg-white px-4 py-1.5 rounded-lg border border-slate-200 shadow-sm h-[32px]">
               <span class="text-[13px] font-bold"
                 :class="localFilters.ownerOnly ? 'text-blue-600' : 'text-slate-600'">Apenas Meus Tickets</span>
               <el-switch v-model="localFilters.ownerOnly" @change="onChangeFilter" />
@@ -57,46 +54,45 @@
           </div>
 
           <div>
-            <label class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Status</label>
+            <label class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Status</label>
             <el-select v-model="localFilters.status" placeholder="Todos os Status" class="w-full enterprise-select"
-              size="large" @change="onChangeFilter">
+              size="default" @change="onChangeFilter" :teleported="false" placement="bottom-start">
               <el-option label="Todos" value="all" />
               <el-option label="Abertos" value="open" />
-              <el-option label="Triagem" value="pending_approval" />
-              <el-option label="Aguardando" value="in-progress" />
+              <el-option label="Aguardando" value="in_progress" />
               <el-option label="Resolvidos" value="resolved" />
-              <el-option label="Internos" value="internal" />
+              <el-option label="Fechados" value="closed" />
             </el-select>
           </div>
 
           <div>
             <label
-              class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Responsável</label>
+              class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Responsável</label>
             <el-select v-model="localFilters.assignees" multiple collapse-tags collapse-tags-tooltip filterable
-              placeholder="Qualquer" class="w-full enterprise-select" size="large" @change="onChangeFilter"
-              :disabled="localFilters.ownerOnly">
-              <template #prefix><el-icon>
+              placeholder="Qualquer" class="w-full enterprise-select" size="default" @change="onChangeFilter"
+              :disabled="localFilters.ownerOnly" :teleported="false" placement="bottom-start">
+              <template #prefix>
+                <el-icon>
                   <User />
-                </el-icon></template>
-              <el-option label="Admin (Você)" value="1" />
-              <el-option label="João Atendimento" value="2" />
-              <el-option label="Maria Vendas" value="3" />
+                </el-icon>
+              </template>
+              <el-option v-for="user in usersOptions" :key="user.id" :label="user.name" :value="user.id" />
             </el-select>
           </div>
 
           <div>
-            <label class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Cliente</label>
-            <el-select v-model="localFilters.customers" multiple collapse-tags collapse-tags-tooltip filterable
-              placeholder="Qualquer" class="w-full enterprise-select" size="large" @change="onChangeFilter">
-              <template #prefix><el-icon>
+            <label class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Cliente</label>
+            <el-select v-model="localFilters.customers" multiple collapse-tags collapse-tags-tooltip filterable remote
+              reserve-keyword :remote-method="remoteSearchCustomers" :loading="loadingCustomers" placeholder="Todos"
+              class="w-full enterprise-select" size="default" @focus="onFocusCustomers" @change="onChangeFilter"
+              :teleported="false" placement="bottom-start" :fit-input-width="true">
+              <template #prefix>
+                <el-icon>
                   <Briefcase />
-                </el-icon></template>
-              <el-option label="João Silva" value="João Silva" />
-              <el-option label="Maria Santos" value="Maria Santos" />
-              <el-option label="Pedro Costa" value="Pedro Costa" />
-              <el-option label="Ana Oliveira" value="Ana Oliveira" />
-              <el-option label="Carlos Mendes" value="Carlos Mendes" />
-              <el-option label="Julia Ferreira" value="Julia Ferreira" />
+                </el-icon>
+              </template>
+              <el-option v-for="customer in customersOptions" :key="customer.id" :label="customer.name"
+                :value="customer.id" />
             </el-select>
           </div>
 
@@ -110,14 +106,83 @@
 import { ref, computed, watch } from 'vue';
 import { Search, Briefcase, User, Close, Filter } from '@element-plus/icons-vue';
 import type { TicketFilter } from '../../data/ticket.services';
+import { ticketServices } from '../../data/ticket.services';
+import { httpClient } from '@/core/infra/HttpClient';
 
-const props = defineProps<{
-  filters: TicketFilter
-}>();
+const props = defineProps<{ filters: TicketFilter }>();
+const emit = defineEmits<{ (e: 'update:filters', filters: TicketFilter): void }>();
 
-const emit = defineEmits<{
-  (e: 'update:filters', filters: TicketFilter): void
-}>();
+const usersOptions = ref<{ id: string; name: string }[]>([]);
+const customersOptions = ref<{ id: string; name: string }[]>([]);
+const optionsLoaded = ref(false);
+const loadingCustomers = ref(false);
+const customersLoaded = ref(false);
+
+const loadOptions = async () => {
+  if (optionsLoaded.value && customersLoaded.value) return;
+  try {
+    console.log('[TicketFilters] Carregando opções...');
+    const options = await ticketServices.getOptions();
+    console.log('[TicketFilters] Opções carregadas:', options);
+    usersOptions.value = options.users;
+    customersOptions.value = options.customers;
+    optionsLoaded.value = true;
+    customersLoaded.value = true;
+  } catch (e) {
+    console.error('[TicketFilters] Erro ao carregar opções:', e);
+  }
+};
+
+const loadCustomersOnly = async () => {
+  if (customersLoaded.value) return;
+  customersLoaded.value = true;
+  try {
+    const res = await httpClient.get<any>('/customers');
+    const data = res.data?.data || res.data || [];
+const list = Array.isArray(data) ? data : (data.items || []);
+    customersOptions.value = list.map((c: any) => ({
+      id: String(c.id),
+      name: c.tradeName || c.companyName || c.name || 'Sem nome'
+    }));
+  } catch (e) {
+    console.error('[TicketFilters] Erro ao buscar clientes:', e);
+  }
+};
+
+const remoteSearchCustomers = async (query: string) => {
+  if (query && query.length >= 3) {
+    loadingCustomers.value = true;
+    try {
+      const res = await httpClient.get<any>(`/customers?q=${encodeURIComponent(query)}`);
+      const data = res.data?.data || res.data || [];
+      const list = Array.isArray(data) ? data : (data.items || []);
+
+      customersOptions.value = list.map((c: any) => ({
+        id: String(c.id),
+        name: c.tradeName || c.companyName || c.name || 'Sem nome'
+      }));
+    } catch (e) {
+      console.error('[TicketFilters] Erro ao buscar clientes:', e);
+    } finally {
+      loadingCustomers.value = false;
+    }
+  } else if (!query || query.length < 3) {
+    loadCustomersOnly();
+  }
+};
+
+const onFocusCustomers = () => {
+  if (customersOptions.value.length === 0 || !customersLoaded.value) {
+    loadCustomersOnly();
+  }
+};
+
+const onToggleAdvanced = () => {
+  mostrarFiltrosAvancados.value = !mostrarFiltrosAvancados.value;
+  if (mostrarFiltrosAvancados.value) {
+    loadOptions();
+  }
+};
 
 const getDefaultDateRange = (): [Date, Date] => {
   const date = new Date();
@@ -131,7 +196,7 @@ const localFilters = ref<TicketFilter>({
   status: props.filters.status || 'all',
   customers: props.filters.customers || [],
   assignees: props.filters.assignees || [],
-  ownerOnly: props.filters.ownerOnly ?? true,
+  ownerOnly: props.filters.ownerOnly ?? false,
   dateRange: props.filters.dateRange && props.filters.dateRange.length === 2
     ? props.filters.dateRange
     : getDefaultDateRange()
@@ -155,7 +220,6 @@ watch(() => props.filters, (newVal) => {
 const hasActiveFilters = computed(() => {
   const cDates = localFilters.value.dateRange;
   const dDates = getDefaultDateRange();
-
   const isDateChanged = !cDates || cDates.length !== 2 ||
     cDates[0].getTime() !== dDates[0].getTime() ||
     cDates[1].getTime() !== dDates[1].getTime();
@@ -219,7 +283,7 @@ const clearFilters = () => {
     status: 'all',
     customers: [],
     assignees: [],
-    ownerOnly: true,
+    ownerOnly: false,
     dateRange: getDefaultDateRange()
   };
   emit('update:filters', { ...localFilters.value });

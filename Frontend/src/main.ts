@@ -27,7 +27,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 }
 
 app.use(VueApexCharts);
-app.directive('permission', permissionDirective);
+app.directive('permission', { ...permissionDirective, unmounted() {} });
 app.use(safeHtmlDirective);
 
 app.mount('#app');

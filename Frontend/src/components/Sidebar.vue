@@ -41,7 +41,7 @@
         <div class="relative">
           <div
             class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center text-white font-black shadow-inner border border-white/10">
-            U
+            {{ (authStore.user?.name || 'U')[0].toUpperCase() }}
           </div>
           <div
             class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#1a2232] rounded-full shadow-sm">
@@ -49,10 +49,13 @@
         </div>
         <div class="overflow-hidden">
           <p class="text-sm font-black text-white truncate tracking-tight group-hover:text-blue-400 transition-colors">
-            Usuário</p>
-          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Administrador</p>
+            {{ authStore.user?.name || 'Usuário' }}</p>
+          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">
+            <span v-if="authStore.user?.role">{{ getRoleLabel(authStore.user?.role) }}</span>
+            <span v-else class="text-red-400">Sem cargo</span>
+          </p>
         </div>
-        <button class="ml-auto text-slate-500 hover:text-red-400 transition-colors">
+        <button class="ml-auto text-slate-500 hover:text-red-400 transition-colors" @click="handleLogout">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -66,11 +69,32 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref, computed, onMounted } from 'vue'
+import { h, ref, computed, onMounted, markRaw } from 'vue'
 import { useChatStore } from '@/modules/chats/ui/store/chat.store';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { useRouter } from 'vue-router';
 
 const chatStore = useChatStore();
+const authStore = useAuthStore();
+const router = useRouter();
 const queueCount = ref<number | null>(null);
+
+const roleLabels: Record<string, string> = {
+  ADMIN: 'Administrador',
+  MANAGER: 'Gerente',
+  AGENT: 'Atendente',
+  CUSTOMER: 'Cliente',
+};
+
+const getRoleLabel = (role?: string) => {
+  if (!role) return 'Usuário';
+  return roleLabels[role.toUpperCase()] || role;
+};
+
+const handleLogout = () => {
+  authStore.logout();
+  router.push('/login');
+};
 
 onMounted(async () => {
   const count = await chatStore.fetchQueueCount();
@@ -87,15 +111,23 @@ const IconKB = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24'
 const IconKanban = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('rect', { x: '3', y: '3', width: '18', height: '18', rx: '2', ry: '2' }), h('line', { x1: '9', y1: '3', x2: '9', y2: '21' }), h('line', { x1: '15', y1: '3', x2: '15', y2: '21' })])
 const IconSettings = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('circle', { cx: '12', cy: '12', r: '3' }), h('path', { d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' })])
 
-const menuItems = ref([
-  { label: 'Dashboard', path: '/', icon: IconDashboard },
-  { label: 'Agenda', path: '/calendar', icon: IconAgenda },
-  { label: 'Clientes', path: '/customer', icon: IconUsers },
-  { label: 'Chats', path: '/chats', icon: IconChat, badge: computed(() => queueCount.value ?? 0) },
-  { label: 'Atendimento', path: '/atendimentos', icon: IconPhone },
-  { label: 'Relatórios', path: '/relatorios', icon: IconReport },
-  { label: 'FAQ', path: '/kb', icon: IconKB },
-  { label: 'KanBan', path: '/kanban', icon: IconKanban },
-  { label: 'Configurações', path: '/configuracoes', icon: IconSettings },
-])
+const menuItems = computed(() => {
+  const items = [
+    { label: 'Dashboard', path: '/', icon: markRaw(IconDashboard) },
+    { label: 'Agenda', path: '/calendar', icon: markRaw(IconAgenda), module: 'calendar' },
+    { label: 'Clientes', path: '/customer', icon: markRaw(IconUsers), module: 'customer' },
+    { label: 'Chats', path: '/chats', icon: markRaw(IconChat), module: 'chats' },
+    { label: 'Atendimento', path: '/atendimentos', icon: markRaw(IconPhone), module: 'atendimentos' },
+    { label: 'Relatórios', path: '/relatorios', icon: markRaw(IconReport), module: 'relatorios' },
+    { label: 'FAQ', path: '/kb', icon: markRaw(IconKB), module: 'kb' },
+    { label: 'KanBan', path: '/kanban', icon: markRaw(IconKanban), module: 'kanban' },
+    { label: 'Configurações', path: '/configuracoes', icon: markRaw(IconSettings) },
+  ];
+  
+  return items.filter(item => {
+    if (!item.module) return true;
+    if (authStore.hasRole(['ADMIN', 'MANAGER'])) return true;
+    return authStore.hasModulePermission(item.module, 'active') !== false;
+  });
+});
 </script>

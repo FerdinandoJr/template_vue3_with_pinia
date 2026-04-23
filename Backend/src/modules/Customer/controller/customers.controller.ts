@@ -15,7 +15,12 @@ export class CustomersController {
   @Get()
   @ApiOperation({ summary: 'Listar clientes' })
   async findAll(@Req() req: any, @Query('q') query?: string) {
-    return this.customersService.findAll(req.tenantId, query);
+    const data = await this.customersService.findAll(req.tenantId, query);
+    return {
+      success: true,
+      data,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   @Get(':id')

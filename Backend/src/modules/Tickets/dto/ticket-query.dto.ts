@@ -1,17 +1,18 @@
-import { IsEnum, IsOptional, IsUUID, IsDateString } from 'class-validator';
+import { IsOptional, IsUUID, IsDateString, IsInt, Min, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { TicketStatus, TicketPriority } from '../data/ticket.entity';
 
 export class TicketQueryDto {
-  @ApiPropertyOptional({ enum: TicketStatus })
-  @IsEnum(TicketStatus)
+  @ApiPropertyOptional()
   @IsOptional()
-  status?: TicketStatus;
+  q?: string;
 
-  @ApiPropertyOptional({ enum: TicketPriority })
-  @IsEnum(TicketPriority)
+  @ApiPropertyOptional()
   @IsOptional()
-  priority?: TicketPriority;
+  status?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  priority?: string;
 
   @ApiPropertyOptional()
   @IsUUID()
@@ -32,4 +33,16 @@ export class TicketQueryDto {
   @IsDateString()
   @IsOptional()
   endDate?: string;
+
+  @ApiPropertyOptional()
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  page?: number;
+
+  @ApiPropertyOptional()
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  limit?: number;
 }

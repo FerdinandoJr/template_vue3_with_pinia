@@ -21,7 +21,10 @@
         <el-switch v-model="form.chatSounds" style="--el-switch-on-color: #3b82f6;" size="large" />
       </div>
 
-      <div class="flex items-center justify-between p-5 border border-slate-100 rounded-2xl bg-[#f8fafd] hover:border-orange-200 hover:shadow-sm transition-all duration-200">
+      <div 
+        v-if="authStore.hasRole(['ADMIN', 'MANAGER', 'AGENT'])"
+        class="flex items-center justify-between p-5 border border-slate-100 rounded-2xl bg-[#f8fafd] hover:border-orange-200 hover:shadow-sm transition-all duration-200"
+      >
         <div class="flex items-center gap-4">
           <div class="w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-sm text-orange-500 border border-orange-50">
             <el-icon class="text-xl"><Timer /></el-icon>
@@ -69,7 +72,9 @@ import { ref, reactive, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Service, Timer, Message, Check } from '@element-plus/icons-vue';
 import { settingsServices } from '../../data/settings.services';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 
+const authStore = useAuthStore();
 const loading = ref(false);
 
 const form = reactive({

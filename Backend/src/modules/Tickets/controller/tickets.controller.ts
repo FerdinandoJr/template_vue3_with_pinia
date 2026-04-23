@@ -16,7 +16,13 @@ export class TicketsController {
   @Get()
   @ApiOperation({ summary: 'Listar tickets' })
   async findAll(@Req() req: any, @Query() query: TicketQueryDto) {
-    return this.ticketsService.findAll(req.tenantId, query);
+    const result = await this.ticketsService.findAll(req.tenantId, query);
+    return {
+      success: true,
+      data: result.items,
+      total: result.total,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   @Get('stats')

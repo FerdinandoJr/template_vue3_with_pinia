@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 
@@ -17,17 +18,19 @@ export enum UserRole {
 }
 
 @Entity('users')
+@Index('idx_users_email_tenant', ['email', 'tenantId'], { unique: true })
+@Index('idx_users_tenant', ['tenantId'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ length: 255, unique: true })
+  @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ length: 255, select: false })
+  @Column({ type: 'varchar', length: 255, select: false })
   password: string;
 
   @Column({
@@ -37,28 +40,34 @@ export class User {
   })
   role: UserRole;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   avatar: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  @Column({ type: 'jsonb', nullable: true })
-  permissions: Record<string, { active: boolean; features: Record<string, boolean> }>;
+  @Column({ type: 'boolean', default: false })
+  emailVerified: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 6, nullable: true })
+  verificationToken: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  verificationTokenExpires: Date;
+
+  @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
-  @ManyToOne(() => Tenant, (tenant) => tenant.users)
+  @ManyToOne(() => Tenant, (tenant) => tenant.users, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tenantId' })
   tenant: Tenant;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

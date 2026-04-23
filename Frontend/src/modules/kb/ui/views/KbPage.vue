@@ -7,14 +7,14 @@
         <p class="text-slate-500 text-sm font-medium mt-1">Consulte documentações, roteiros e políticas</p>
       </div>
 
-      <div class="flex items-center gap-3">
-        <el-button plain size="large" class="!rounded-lg" @click="isCategoryModalOpen = true" title="Gerir Assuntos">
+      <div class="flex items-center gap-3" v-if="authStore.hasModulePermission('kb', 'feature', 'create_article') || authStore.hasModulePermission('kb', 'feature', 'edit_article') || authStore.hasModulePermission('kb', 'feature', 'delete_article')">
+        <el-button plain size="large" class="!rounded-lg" @click="isCategoryModalOpen = true" title="Gerir Assuntos" v-if="authStore.hasRole(['ADMIN', 'MANAGER'])">
           <el-icon>
             <Setting />
           </el-icon>
         </el-button>
 
-        <el-button type="primary" size="large" class="!font-bold !rounded-lg shadow-sm px-5" @click="openFormModal()">
+        <el-button type="primary" size="large" class="!font-bold !rounded-lg shadow-sm px-5" @click="openFormModal()" v-if="authStore.hasModulePermission('kb', 'feature', 'create_article')">
           <el-icon class="mr-2">
             <Plus />
           </el-icon> Novo Artigo
@@ -129,6 +129,7 @@ import { storeToRefs } from 'pinia';
 import { useKbStore } from '../store/kb.store';
 import { Plus, Search, Filter, DocumentDelete, Setting } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 
 import ArticleCard from '../components/ArticleCard.vue';
 import ArticleFormModal from '../components/ArticleFormModal.vue';
@@ -136,6 +137,7 @@ import ArticleViewModal from '../components/ArticleViewModal.vue';
 import CategoryManagerModal from '../components/CategoryManagerModal.vue';
 
 const store = useKbStore();
+const authStore = useAuthStore();
 const { selectedCategory } = storeToRefs(store);
 
 const localSearch = ref('');

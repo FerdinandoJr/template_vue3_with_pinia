@@ -1,4 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Tenant } from '../../../database/postgres/tenant.entity';
+import { User } from '../../../database/postgres/user.entity';
+import { Customer } from '../../Customer/data/customer.entity';
 
 export enum AgendaType {
   MEETING = 'meeting',
@@ -8,11 +11,14 @@ export enum AgendaType {
 }
 
 @Entity('agenda')
+@Index('idx_agenda_tenant', ['tenantId'])
+@Index('idx_agenda_assignee', ['assignedTo'])
+@Index('idx_agenda_customer', ['customerId'])
 export class Agenda {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   title: string;
 
   @Column({ type: 'text', nullable: true })
@@ -27,48 +33,60 @@ export class Agenda {
   @Column({ type: 'timestamp' })
   endDate: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   customerId: string;
 
-  @Column({ nullable: true })
+  @ManyToOne(() => Customer, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'customerId' })
+  customer: Customer;
+
+  @Column({ type: 'uuid', nullable: true })
   assignedTo: string;
 
-  @Column({ nullable: true })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'assignedTo' })
+  assignee: User;
+
+  @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
-  @Column({ default: false })
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant: Tenant;
+
+  @Column({ type: 'boolean', default: false })
   allDay: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 7, nullable: true })
   color: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 10, nullable: true })
   cep: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   address: string;
 
   @Column({ type: 'text', nullable: true })
   postMeetingNotes: string;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   isRecurring: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   recurrenceType: string;
 
-  @Column('simple-json', { nullable: true })
+  @Column({ type: 'jsonb', nullable: true })
   recurrenceDays: number[];
 
   @Column({ type: 'timestamp', nullable: true })
   recurrenceEndDate: Date;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   isBlocker: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

@@ -1,90 +1,94 @@
 <template>
   <div
-    class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[calc(100vh-300px)]">
-    <el-table :data="clients" style="width: 100%; height: 100%;" @row-click="handleRowClick"
-      row-class-name="cursor-pointer hover:bg-slate-50 transition-colors" highlight-current-row>
-      <el-table-column label="Cliente / Empresa" min-width="250">
-        <template #default="scope">
-          <div class="flex items-center gap-4 py-2">
-            <el-avatar :size="40" class="!bg-blue-50 !text-blue-600 !border !border-blue-100 !font-black">
-              {{ scope.row.avatar }}
-            </el-avatar>
-            <div>
-              <p class="font-bold text-slate-800 leading-tight">
-                {{ scope.row.companyName || scope.row.tradeName || scope.row.name || '-' }}
-              </p>
-              <p class="text-[11px] text-slate-500 font-bold mt-0.5">
-                {{ scope.row.document || 'Sem NIF/CNPJ' }}
-              </p>
+    class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full flex-1 min-h-0">
+
+    <div class="flex-1 overflow-y-auto flex flex-col relative min-h-0 bg-white">
+      <el-table :data="clients" style="width: 100%; height: 100%; position: absolute; inset: 0;"
+        @row-click="handleRowClick" row-class-name="cursor-pointer hover:bg-slate-50 transition-colors"
+        highlight-current-row>
+        <el-table-column label="Cliente / Empresa" min-width="250">
+          <template #default="scope">
+            <div class="flex items-center gap-4 py-2">
+              <el-avatar :size="36" class="!bg-blue-50 !text-blue-600 !border !border-blue-100 !font-black">
+                {{ scope.row.avatar }}
+              </el-avatar>
+              <div>
+                <p class="font-bold text-slate-800 leading-tight text-sm">
+                  {{ scope.row.tradeName || scope.row.companyName || scope.row.name || '-' }}
+                </p>
+                <p class="text-[10px] text-slate-500 font-bold mt-0.5">
+                  {{ scope.row.document || 'Sem NIF/CNPJ' }}
+                </p>
+              </div>
             </div>
-          </div>
-        </template>
-      </el-table-column>
+          </template>
+        </el-table-column>
 
-      <el-table-column label="Contato Responsável" min-width="200">
-        <template #default="scope">
-          <p class="font-bold text-slate-700">{{ scope.row.responsibleName || scope.row.name || '-' }}</p>
-          <div class="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
-            <el-icon>
-              <Phone />
+        <el-table-column label="Contato Responsável" min-width="200">
+          <template #default="scope">
+            <p class="font-bold text-slate-700 text-sm">{{ scope.row.responsibleName || scope.row.name || '-' }}</p>
+            <div class="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
+              <el-icon>
+                <Phone />
+              </el-icon>
+              <span>
+                {{ formatPhone(scope.row.phone) || scope.row.email || 'Sem contato' }}
+              </span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="Origem" width="130">
+          <template #default="scope">
+            <el-tag type="info" effect="plain" round size="small" class="!text-[10px]">
+              {{ scope.row.source || 'Sistema' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="Estado" width="110">
+          <template #default="scope">
+            <el-tag :type="scope.row.status === 'active' ? 'success' : 'danger'" effect="light" round size="small">
+              {{ scope.row.status === 'active' ? 'Ativo' : 'Inativo' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="Ações" width="120" align="right">
+          <template #default="scope">
+            <div @click.stop class="flex justify-end gap-2">
+              <el-button type="primary" circle plain size="small" @click="handleEditClick(scope.row)">
+                <el-icon>
+                  <Edit />
+                </el-icon>
+              </el-button>
+              <el-button type="danger" circle plain size="small" @click="handleDeleteClick(scope.row)">
+                <el-icon>
+                  <Delete />
+                </el-icon>
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+
+        <template #empty>
+          <div class="flex flex-col items-center justify-center h-full text-slate-500 w-full py-10">
+            <el-icon :size="40" class="mb-2 text-slate-300">
+              <FolderDelete />
             </el-icon>
-            <span>
-              {{ formatPhone(scope.row.phone) || scope.row.email || 'Sem contato' }}
-            </span>
+            <p class="text-sm font-medium">Nenhum cliente encontrado no sistema.</p>
           </div>
         </template>
-      </el-table-column>
-
-      <el-table-column label="Origem" width="150">
-        <template #default="scope">
-          <el-tag type="info" effect="plain" round size="small">
-            {{ scope.row.source || 'Sistema' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-
-      <el-table-column label="Estado" width="120">
-        <template #default="scope">
-          <el-tag :type="scope.row.status === 'active' ? 'success' : 'danger'" effect="light" round>
-            {{ scope.row.status === 'active' ? 'Ativo' : 'Inativo' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-
-      <el-table-column label="Ações" width="140" align="right">
-        <template #default="scope">
-          <div @click.stop class="flex justify-end gap-2">
-            <el-button type="primary" circle plain size="small" @click="handleEditClick(scope.row)">
-              <el-icon>
-                <Edit />
-              </el-icon>
-            </el-button>
-            <el-button type="danger" circle plain size="small" @click="handleDeleteClick(scope.row)">
-              <el-icon>
-                <Delete />
-              </el-icon>
-            </el-button>
-          </div>
-        </template>
-      </el-table-column>
-
-      <template #empty>
-        <div class="py-12 text-center text-slate-500">
-          <el-icon :size="40" class="mb-2 block mx-auto">
-            <FolderDelete />
-          </el-icon>
-          <p>Nenhum cliente encontrado no sistema.</p>
-        </div>
-      </template>
-    </el-table>
+      </el-table>
+    </div>
 
     <div
-      class="p-4 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
-      <span class="text-xs text-slate-500 font-bold uppercase tracking-widest">
-        Página {{ currentPage }} de {{ Math.ceil(total / pageSize) || 1 }}
+      class="px-4 py-3 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0">
+      <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+        Pág. {{ currentPage }} de {{ Math.ceil(total / pageSize) || 1 }}
       </span>
       <el-pagination :current-page="currentPage" :page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total"
-        layout="sizes, prev, pager, next" background @size-change="$emit('update:pageSize', $event)"
+        layout="sizes, prev, pager, next" size="small" background @size-change="$emit('update:pageSize', $event)"
         @current-change="$emit('update:currentPage', $event)" />
     </div>
   </div>
@@ -103,17 +107,11 @@ defineProps<{
 
 const emit = defineEmits(['select', 'edit', 'delete', 'update:currentPage', 'update:pageSize'])
 
-interface DeletePayload {
-  id: string
-  name: string
-}
-
 const handleRowClick = (row: ICustomer) => {
   emit('select', row.id)
 }
 
 const handleEditClick = (row: ICustomer) => {
-  console.log('[TABLE EDIT] row:', JSON.stringify(row, null, 2))
   emit('edit', row)
 }
 
@@ -144,12 +142,25 @@ const formatPhone = (phone?: string) => {
   color: #64748b;
   text-transform: uppercase;
   font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.05em;
+  font-weight: 800;
+  padding: 8px 0;
 }
 
-:deep(.el-pagination.is-background .el-pager li.is-active) {
-  background-color: #2563eb;
-  font-weight: bold;
+:deep(.el-table__body-wrapper) {
+  overflow-y: auto;
+  height: 100%;
+}
+
+:deep(.el-table__empty-block) {
+  height: 100% !important;
+  min-height: 200px;
+}
+
+:deep(.el-pagination.is-background .btn-next),
+:deep(.el-pagination.is-background .btn-prev),
+:deep(.el-pagination.is-background .el-pager li) {
+  margin: 0 2px;
+  min-width: 28px;
+  height: 28px;
 }
 </style>

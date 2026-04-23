@@ -23,14 +23,6 @@
 
           <button 
             v-if="authStore.hasRole(['ADMIN', 'MANAGER'])"
-            @click="store.setTab(SettingsTab.MODULES)" 
-            :class="['text-left px-5 py-3.5 rounded-xl text-[13px] font-bold transition-all', store.activeTab === SettingsTab.MODULES ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100']"
-          >
-            🧩 Módulos do Sistema
-          </button>
-
-          <button 
-            v-if="authStore.hasRole(['ADMIN', 'MANAGER'])"
             @click="store.setTab(SettingsTab.WHATSAPP)" 
             :class="['text-left px-5 py-3.5 rounded-xl text-[13px] font-bold transition-all', store.activeTab === SettingsTab.WHATSAPP ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-slate-100']"
           >
@@ -56,8 +48,6 @@
           
           <UserAccessSettings v-if="store.activeTab === SettingsTab.USER_ACCESS && authStore.hasRole(['ADMIN', 'MANAGER'])" />
 
-          <ModuleSettings v-if="store.activeTab === SettingsTab.MODULES && authStore.hasRole(['ADMIN', 'MANAGER'])" />
-
           <WhatsAppSettings v-if="store.activeTab === SettingsTab.WHATSAPP && authStore.hasRole(['ADMIN', 'MANAGER'])" :whatsapp="store.whatsapp" />
           
           <NotificationSettings v-if="store.activeTab === SettingsTab.NOTIFICATIONS" />
@@ -77,13 +67,13 @@ import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import ProfileSettings from '../components/ProfileSettings.vue';
 import WhatsAppSettings from '../components/WhatsAppSettings.vue';
 import NotificationSettings from '../components/NotificationSettings.vue';
-import ModuleSettings from '../components/ModuleSettings.vue';
 import UserAccessSettings from '../components/UserAccessSettings.vue';
 
 const store = useSettingsStore();
 const authStore = useAuthStore();
 
 onMounted(() => {
+  store.setTab(SettingsTab.PROFILE);
   store.fetchSettingsData();
 
   if ((store.activeTab === SettingsTab.WHATSAPP || store.activeTab === SettingsTab.MODULES) && !authStore.hasRole(['ADMIN', 'MANAGER'])) {

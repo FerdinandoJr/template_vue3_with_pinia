@@ -1,55 +1,71 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Tenant } from '../../../database/postgres/tenant.entity';
 
 @Entity('kanban_columns')
+@Index('idx_kanban_columns_tenant', ['tenantId'])
 export class KanbanColumn {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   title: string;
 
-  @Column({ default: 0 })
+  @Column({ type: 'integer', default: 0 })
   order: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 7, nullable: true })
   color: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
-  @CreateDateColumn()
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant: Tenant;
+
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }
 
 @Entity('kanban_cards')
+@Index('idx_kanban_cards_column', ['columnId'])
+@Index('idx_kanban_cards_tenant', ['tenantId'])
 export class KanbanCard {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   title: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   columnId: string;
 
-  @Column({ nullable: true })
+  @ManyToOne(() => KanbanColumn, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'columnId' })
+  column: KanbanColumn;
+
+  @Column({ type: 'uuid', nullable: true })
   ticketId: string;
 
-  @Column({ default: 0 })
+  @Column({ type: 'integer', default: 0 })
   order: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
-  @CreateDateColumn()
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant: Tenant;
+
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

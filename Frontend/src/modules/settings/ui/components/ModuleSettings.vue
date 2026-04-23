@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, markRaw } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Check, Calendar, User, ChatDotRound, Phone, Monitor, DataBoard, Collection, DataLine, Key, Lock } from '@element-plus/icons-vue';
 import { settingsServices } from '../../data/settings.services';
@@ -101,7 +101,7 @@ const loading = ref(false);
 
 const availableModules = [
   { 
-    id: 'customer', name: 'Clientes', description: 'Gestão de Contatos', icon: User,
+    id: 'customer', name: 'Clientes', description: 'Gestão de Contatos', icon: markRaw(User),
     permissionGroups: [
       {
         title: 'Operações de Registro', colorClass: 'bg-emerald-400', switchColor: '#10b981',
@@ -114,7 +114,7 @@ const availableModules = [
     ]
   },
   { 
-    id: 'atendimentos', name: 'Atendimentos', description: 'Tickets de Suporte', icon: Phone,
+    id: 'atendimentos', name: 'Atendimentos', description: 'Tickets de Suporte', icon: markRaw(Phone),
     permissionGroups: [
       {
         title: 'Gestão do Ticket', colorClass: 'bg-blue-400', switchColor: '#3b82f6',
@@ -127,7 +127,7 @@ const availableModules = [
     ]
   },
   { 
-    id: 'chats', name: 'Chats', description: 'Central de WhatsApp', icon: ChatDotRound,
+    id: 'chats', name: 'Chats', description: 'Central de WhatsApp', icon: markRaw(ChatDotRound),
     permissionGroups: [
       {
         title: 'Operações de Chat', colorClass: 'bg-blue-400', switchColor: '#3b82f6',
@@ -140,7 +140,7 @@ const availableModules = [
     ]
   },
   { 
-    id: 'kanban', name: 'Kanban', description: 'Acompanhamento Visual', icon: DataBoard,
+    id: 'kanban', name: 'Kanban', description: 'Acompanhamento Visual', icon: markRaw(DataBoard),
     permissionGroups: [
       {
         title: 'Movimentação e Edição', colorClass: 'bg-purple-400', switchColor: '#a855f7',
@@ -152,7 +152,7 @@ const availableModules = [
     ]
   },
   { 
-    id: 'calendar', name: 'Agenda', description: 'Horários e Agendamentos', icon: Calendar,
+    id: 'calendar', name: 'Agenda', description: 'Horários e Agendamentos', icon: markRaw(Calendar),
     permissionGroups: [
       {
         title: 'Gestão de Eventos', colorClass: 'bg-emerald-400', switchColor: '#10b981',
@@ -165,7 +165,7 @@ const availableModules = [
     ]
   },
   { 
-    id: 'relatorios', name: 'Relatórios', description: 'Gráficos do Dashboard', icon: DataLine,
+    id: 'relatorios', name: 'Relatórios', description: 'Gráficos do Dashboard', icon: markRaw(DataLine),
     permissionGroups: [
       {
         title: 'Acesso às Métricas', colorClass: 'bg-orange-400', switchColor: '#f97316',
@@ -176,7 +176,7 @@ const availableModules = [
     ]
   },
   { 
-    id: 'kb', name: 'FAQ', description: 'Artigos e Manuais', icon: Collection,
+    id: 'kb', name: 'FAQ', description: 'Artigos e Manuais', icon: markRaw(Collection),
     permissionGroups: [
       {
         title: 'Gestão de Conteúdo', colorClass: 'bg-emerald-400', switchColor: '#10b981',

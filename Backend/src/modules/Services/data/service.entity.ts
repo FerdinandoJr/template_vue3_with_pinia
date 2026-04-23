@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Tenant } from '../../../database/postgres/tenant.entity';
 import { Customer } from '../../Customer/data/customer.entity';
 
@@ -25,23 +25,26 @@ export enum ServiceType {
 }
 
 @Entity('services')
+@Index('idx_services_protocol', ['protocol'], { unique: true })
+@Index('idx_services_tenant', ['tenantId'])
+@Index('idx_services_customer', ['customerId'])
 export class Service {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 50, unique: true })
+  @Column({ type: 'varchar', length: 50, unique: true })
   protocol: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   subject: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   document: string;
 
-  @Column({ length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   email: string;
 
   @Column({ type: 'enum', enum: ServiceStatus, default: ServiceStatus.OPEN })
@@ -53,67 +56,68 @@ export class Service {
   @Column({ type: 'enum', enum: ServiceType, default: ServiceType.SUPPORT })
   type: ServiceType;
 
-  @Column({ length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   lastAction: string;
 
   @Column({ type: 'timestamp', nullable: true })
   lastResumedAt: Date;
 
-  @Column({ default: 0 })
+  @Column({ type: 'integer', default: 0 })
   accumulatedTime: number;
 
-  @Column({ length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   timeElapsed: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   customerId: string;
 
-  @ManyToOne(() => Customer)
+  @ManyToOne(() => Customer, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
-  @ManyToOne(() => Tenant)
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tenantId' })
   tenant: Tenant;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }
 
 @Entity('service_history')
+@Index('idx_service_history_service', ['serviceId'])
 export class ServiceHistory {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'uuid' })
   serviceId: string;
 
-  @ManyToOne(() => Service)
+  @ManyToOne(() => Service, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'serviceId' })
   service: Service;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   title: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   author: string;
 
-  @Column({ length: 50, default: 'info' })
+  @Column({ type: 'varchar', length: 50, default: 'info' })
   type: string;
 
-  @Column({ length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   color: string;
 
-  @Column({ length: 500, nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true })
   attachment: string;
 
   @Column({ type: 'timestamp', default: () => 'now()' })

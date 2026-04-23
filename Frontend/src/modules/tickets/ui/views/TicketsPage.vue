@@ -1,6 +1,7 @@
 <template>
-  <div class="p-6 h-[calc(100vh-4rem)] flex flex-col bg-[#f8fafd] overflow-hidden">
-    <div class="mb-6 flex flex-col md:flex-row justify-between md:items-center shrink-0 gap-4">
+  <div class="p-6 h-full flex flex-col bg-[#f8fafd] overflow-hidden">
+
+    <div class="mb-4 flex flex-col md:flex-row justify-between md:items-center shrink-0 gap-4 flex-shrink-0">
       <div>
         <h2 class="text-2xl font-black text-slate-800">Tickets de Suporte</h2>
         <p class="text-slate-500 text-sm font-medium mt-1">Gerencie e priorize o atendimento aos clientes</p>
@@ -9,19 +10,29 @@
         <el-button type="primary" size="large" class="!font-bold !rounded-lg shadow-sm" @click="openModal()">
           <el-icon class="mr-2">
             <Plus />
-          </el-icon> Novo Ticket
+          </el-icon>
+          Novo Ticket
         </el-button>
       </div>
     </div>
 
-    <TicketStats :total="store.total" :open="openTickets" :in-progress="inProgressTickets" :resolved="resolvedTickets" />
-    <TicketFilters :filters="currentFilters" @update:filters="handleFilter" class="shrink-0" />
-
-    <div class="flex-1 min-h-0 relative">
-      <TicketTable :tickets="store.items" @view="openModal" @edit="openModal" />
+    <div class="flex-shrink-0">
+      <TicketStats :total="store.total" :open="openTickets" :in-progress="inProgressTickets"
+        :resolved="resolvedTickets" />
     </div>
 
-    <TicketModal :is-open="isModalOpen" :ticket="selectedTicket" :initial-data="selectedTicket || {}" @close="closeModal" @save="saveTicket" @approve-kanban="handleApproveKanban" />
+    <div class="flex-1 overflow-y-auto min-h-0 pr-2 custom-scrollbar">
+      <TicketFilters :filters="currentFilters" @update:filters="handleFilter" class="mb-6" />
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <TicketTable :tickets="store.items" :total="store.total" :current-page="store.currentPage"
+          :page-size="store.pageSize" @view="openModal" @edit="openModal" @update:current-page="store.setPage"
+          @update:page-size="store.setPageSize" />
+      </div>
+    </div>
+
+    <TicketModal :is-open="isModalOpen" :ticket="selectedTicket" :initial-data="selectedTicket || {}"
+      @close="closeModal" @save="saveTicket" @approve-kanban="handleApproveKanban" />
   </div>
 </template>
 
@@ -33,12 +44,12 @@ import TicketStats from '../components/TicketStats.vue';
 import TicketFilters from '../components/TicketFilters.vue';
 import TicketTable from '../components/TicketTable.vue';
 import TicketModal from '../components/TicketModal.vue';
+
 import { useTicketsStore } from '../store/tickets.store';
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import type { ITicket } from '../../domain/entities/Ticket';
 
-// Convertido as stores dinâmicas para 'any' permitindo tipagem mista nos métodos da store Pinia
 const store = useTicketsStore() as any;
 const kanbanStore = useKanbanStore() as any;
 const customerStore = useCustomerStore() as any;
@@ -60,11 +71,7 @@ const inProgressTickets = computed(() => store.items.filter((t: any) => t.status
 const resolvedTickets = computed(() => store.items.filter((t: any) => t.status === 'resolved').length);
 
 const handleFilter = (filters: any) => {
-  if (typeof store.setFilters === 'function') {
-      store.setFilters({ ...filters, ownerId: '1' });
-  } else if (typeof store.applyFilters === 'function') {
-      store.applyFilters({ ...filters, ownerId: '1' });
-  }
+  store.applyFilters(filters);
 };
 
 const openModal = (ticket?: ITicket) => {
@@ -80,111 +87,71 @@ const closeModal = () => {
 const saveTicket = async (ticketData: any) => {
   try {
     if (ticketData.id) {
-      const numericId = Number(ticketData.id);
-      if (typeof store.updateTicket === 'function') {
-          await store.updateTicket(numericId, ticketData);
-      } else if (typeof store.update === 'function') {
-          await store.update(numericId, ticketData);
-      }
-      ElMessage.success('Ticket atualizado com sucesso!');
+      await store.updateTicket(Number(ticketData.id), ticketData);
+      ElMessage.success('Ticket atualizado!');
     } else {
-      if (typeof store.createTicket === 'function') {
-          await store.createTicket(ticketData);
-      } else if (typeof store.create === 'function') {
-          await store.create(ticketData);
-      }
-      ElMessage.success('Ticket criado com sucesso!');
+      await store.createTicket({ ...ticketData, createdAt: new Date() });
+      ElMessage.success('Novo ticket criado!');
     }
-    closeModal();
   } catch (error) {
-    console.error(error);
+    ElMessage.error('Erro ao salvar.');
+  } finally {
+    closeModal();
   }
 };
 
-const handleApproveKanban = async (ticketData: any) => {
-    try {
-        await ElMessageBox.confirm(
-            'Deseja aprovar este ticket e enviar para a fila do Kanban escolhida?',
-            'Aprovar Triagem',
-            {
-                confirmButtonText: 'Sim, Aprovar',
-                cancelButtonText: 'Cancelar',
-                type: 'success'
-            }
-        );
+const handleApproveKanban = async (ticket: any) => {
+  try {
+    const confirmation = await ElMessageBox.confirm(
+      'Mover para o Kanban?',
+      'Confirmação',
+      { type: 'warning' }
+    );
 
-        ticketData.status = 'open';
-        
-        // Conversão robusta de String | Number explícita para Numérica
-        if (ticketData.id) {
-            const numericId = Number(ticketData.id);
-            if (typeof store.updateTicket === 'function') {
-                await store.updateTicket(numericId, ticketData);
-            } else if (typeof store.update === 'function') {
-                await store.update(numericId, ticketData);
-            }
-        } else {
-            if (typeof store.createTicket === 'function') {
-                await store.createTicket(ticketData);
-            } else if (typeof store.create === 'function') {
-                await store.create(ticketData);
-            }
-        }
-
-        const originalTags = Array.isArray(ticketData.tags) ? ticketData.tags : [];
-        const kanbanTags = originalTags.map((tag: string | any) => {
-            const tagLabel = typeof tag === 'string' ? tag : tag.label;
-            let colorClass = 'bg-slate-100 text-slate-700';
-            if (tagLabel === 'Bug') colorClass = 'bg-red-100 text-red-700';
-            else if (tagLabel === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
-            return { label: tagLabel, colorClass };
-        });
-
-        const cardId = `kb-${Date.now()}`;
-        const newKanbanCard = {
-            ...ticketData,
-            id: cardId,
-            title: ticketData.title || ticketData.subject || 'Ticket sem título',
-            tags: kanbanTags
-        };
-
-        const targetBoardId = ticketData.boardId || kanbanStore.boards[0]?.id;
-        const targetBoard = kanbanStore.boards.find((b: any) => String(b.id) === String(targetBoardId));
-
-        if (targetBoard) {
-            const targetColId = ticketData.status === 'pending_approval' ? targetBoard.columns[0].id : ticketData.status;
-            let targetCol = targetBoard.columns.find((c: any) => String(c.id) === String(targetColId));
-            
-            if (!targetCol && targetBoard.columns.length > 0) targetCol = targetBoard.columns[0];
-            
-            if (targetCol) {
-                newKanbanCard.status = targetCol.id;
-                targetCol.cards.push(newKanbanCard);
-            }
-        }
-
-        kanbanStore.boards = [...kanbanStore.boards];
-        if (typeof kanbanStore.saveBoard === 'function') await kanbanStore.saveBoard();
-
-        ElMessage.success('Ticket aprovado para o Kanban!');
-        
-        closeModal();
-    } catch (error) {
-        console.log('Aprovação cancelada ou erro:', error);
+    if (confirmation === 'confirm') {
+      const kanbanCard = {
+        title: ticket.title,
+        status: 'todo',
+        priority: ticket.priority,
+        ticketId: ticket.id
+      };
+      await kanbanStore.addCard(kanbanCard);
+      await store.updateTicket(Number(ticket.id), { status: 'in-progress' });
+      ElMessage.success('Enviado ao Kanban!');
+      closeModal();
     }
+  } catch (error) {
+    // Cancelamento silencioso
+  }
 };
 
-onMounted(async () => {
-  if (typeof store.fetchTickets === 'function') {
-      store.fetchTickets();
-  } else if (typeof store.fetch === 'function') {
-      store.fetch();
-  }
-  
-  await kanbanStore.fetchKanbanData();
-  
-  if (customerStore.items?.length === 0) {
-    if (typeof customerStore.fetch === 'function') await customerStore.fetch();
-  }
+onMounted(() => {
+  customerStore.fetch?.();
+  store.fetch?.();
 });
 </script>
+
+<style scoped>
+/* Estilização da barra única para não ficar grossa e feia */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: #94a3b8;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* Garante que a tabela use o máximo de largura sem scroll horizontal desnecessário */
+:deep(.el-table) {
+  width: 100% !important;
+}
+</style>

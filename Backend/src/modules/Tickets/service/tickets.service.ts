@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Ticket, TicketStatus } from '../data/ticket.entity';
 import { CreateTicketDto } from '../dto/create-ticket.dto';
 import { UpdateTicketDto } from '../dto/update-ticket.dto';
@@ -13,18 +13,37 @@ export class TicketsService {
     private ticketsRepository: Repository<Ticket>,
   ) {}
 
-  async findAll(tenantId: string, query?: TicketQueryDto): Promise<Ticket[]> {
-    const where: FindOptionsWhere<Ticket> = { tenantId };
+  async findAll(tenantId: string, query?: TicketQueryDto): Promise<{ items: Ticket[]; total: number }> {
+    const qb = this.ticketsRepository.createQueryBuilder('ticket')
+      .where('ticket.tenantId = :tenantId', { tenantId });
     
-    if (query?.status) where.status = query.status;
-    if (query?.priority) where.priority = query.priority;
-    if (query?.customerId) where.customerId = query.customerId;
-    if (query?.assignedTo) where.assignedTo = query.assignedTo;
+    if (query?.status && query.status !== 'all') {
+      qb.andWhere('ticket.status = :status', { status: query.status });
+    }
+    if (query?.priority) {
+      qb.andWhere('ticket.priority = :priority', { priority: query.priority });
+    }
+    if (query?.customerId) {
+      qb.andWhere('ticket.customerId = :customerId', { customerId: query.customerId });
+    }
+    if (query?.assignedTo) {
+      qb.andWhere('ticket.assignedTo = :assignedTo', { assignedTo: query.assignedTo });
+    }
+    if (query?.q) {
+      qb.andWhere('(ticket.title ILIKE :q OR ticket.description ILIKE :q)', { q: `%${query.q}%` });
+    }
 
-    return this.ticketsRepository.find({
-      where,
-      order: { createdAt: 'DESC' },
-    });
+    const page = query?.page || 1;
+    const limit = query?.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await qb
+      .orderBy('ticket.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return { items, total };
   }
 
   async findById(id: string): Promise<Ticket | null> {

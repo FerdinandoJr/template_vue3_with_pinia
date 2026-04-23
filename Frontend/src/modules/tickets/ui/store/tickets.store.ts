@@ -2,7 +2,6 @@ import { defineStore } from "pinia";
 import type { ITicket } from "../../domain/entities/Ticket";
 import { ticketServices, type TicketFilter } from "../../data/ticket.services";
 import { TicketStatus } from "../../domain/valueObjects/ticket-status.enum";
-import { useAuthStore } from "@/modules/auth/ui/store/auth.store";
 
 interface TicketsState {
   total: number;
@@ -53,9 +52,15 @@ export const useTicketsStore = defineStore('tickets', {
       
       this.loading = true;
       try {
+        const status = this.filter.status === 'all' ? undefined : this.filter.status;
         const currentFilter = {
-          status: this.filter.status,
+          status,
           query: this.filter.query,
+          page: this.currentPage,
+          pageSize: this.pageSize,
+          ownerOnly: this.filter.ownerOnly,
+          assignees: this.filter.assignees,
+          customers: this.filter.customers,
         };
         const { total, filteredTotal, items } = await ticketServices.list(currentFilter);
         this.total = total;
@@ -63,6 +68,7 @@ export const useTicketsStore = defineStore('tickets', {
         this.items = items;
       } catch (error) {
         console.error(error);
+        this.items = [];
       } finally {
         this.loading = false;
       }
@@ -71,7 +77,8 @@ export const useTicketsStore = defineStore('tickets', {
       await this._executeFetch();
     },
     async applyFilters(newFilters: TicketFilter) {
-      this.filter = { ...this.filter, ...newFilters };
+      const status = newFilters.status === 'all' ? undefined : newFilters.status;
+      this.filter = { ...this.filter, ...newFilters, status };
       this.currentPage = 1;
       await this._executeFetch();
     },

@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional, IsEnum, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '../../../database/postgres/user.entity';
 
@@ -25,4 +25,30 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   tenantId?: string;
+
+  @ApiProperty({ example: 'abc123token', required: false })
+  @IsOptional()
+  @IsString()
+  verificationToken?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class RequestVerificationDto {
+  @ApiProperty({ example: 'usuario@email.com' })
+  @IsEmail()
+  email: string;
+}
+
+export class VerifyEmailDto {
+  @ApiProperty({ example: 'usuario@email.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: 'abc123token' })
+  @IsString()
+  token: string;
 }

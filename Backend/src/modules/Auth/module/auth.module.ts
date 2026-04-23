@@ -6,6 +6,7 @@ import { AuthController } from '../controller/auth.controller';
 import { AuthService } from '../service/auth.service';
 import { JwtStrategy } from '../strategy/jwt.strategy';
 import { UsersModule } from '../../Users/module/users.module';
+import { UserPermissionsModule } from '../../Users/module/user-permissions.module';
 import { TenantsModule } from '../../Tenants/module/tenants.module';
 import { CustomersModule } from '../../Customer/module/customer.module';
 
@@ -23,6 +24,7 @@ import { CustomersModule } from '../../Customer/module/customer.module';
       inject: [ConfigService],
     }),
     UsersModule,
+    UserPermissionsModule,
     TenantsModule,
     forwardRef(() => CustomersModule),
   ],

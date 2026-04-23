@@ -15,6 +15,10 @@ export class AuthMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     const publicPaths = ['/auth/login', '/auth/register', '/api/docs', '/health'];
 
+    if (req.path.startsWith('/user-permissions')) {
+      console.log('[AuthMiddleware] user-permissions path detected:', req.method, req.path);
+    }
+
     if (publicPaths.some(p => req.path.startsWith(p))) {
       return next();
     }
@@ -28,6 +32,10 @@ export class AuthMiddleware implements NestMiddleware {
     try {
       const secret = process.env.JWT_SECRET || 'default-secret';
       const payload = jwt.verify(token, secret) as any;
+      
+      if (req.path.startsWith('/user-permissions')) {
+        console.log('[AuthMiddleware] JWT verified for user:', payload.sub);
+      }
 
       const user = await this.usersService.findById(payload.sub);
       if (!user) {

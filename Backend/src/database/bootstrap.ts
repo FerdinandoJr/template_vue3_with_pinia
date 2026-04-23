@@ -1,4 +1,5 @@
 import { AppDataSource } from '../data-source';
+import { seedAdminUser } from './seed/admin.seed';
 
 export async function bootstrapDatabase() {
   try {
@@ -11,6 +12,8 @@ export async function bootstrapDatabase() {
       await AppDataSource.synchronize();
       console.log('✅ Schema sincronizado');
     }
+    
+    await seedAdminUser();
   } catch (error) {
     console.error('❌ Erro ao conectar no banco de dados:', error);
     throw error;

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ticket, TicketStatus } from '../../Tickets/data/ticket.entity';
 import { User } from '../../../database/postgres/user.entity';
-import { Chat } from '../../Chats/data/chat.entity';
+import { Chat, ChatStatus } from '../../Chats/data/chat.entity';
 
 @Injectable()
 export class MonitorService {
@@ -24,8 +24,8 @@ export class MonitorService {
     const totalUsers = await this.usersRepository.count({ where: { tenantId } });
     
     const totalChats = await this.chatsRepository.count({ where: { tenantId } });
-    const openChats = await this.chatsRepository.count({ where: { tenantId, status: 'open' } });
-    const closedChats = await this.chatsRepository.count({ where: { tenantId, status: 'closed' } });
+    const openChats = await this.chatsRepository.count({ where: { tenantId, status: ChatStatus.OPEN } });
+    const closedChats = await this.chatsRepository.count({ where: { tenantId, status: ChatStatus.CLOSED } });
 
     const recentTickets = await this.ticketsRepository.find({
       where: { tenantId },

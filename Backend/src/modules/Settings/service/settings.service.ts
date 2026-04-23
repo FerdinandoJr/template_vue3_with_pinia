@@ -18,7 +18,11 @@ export class SettingsService {
     return this.settingsRepository.findOne({ where: { key, tenantId } });
   }
 
-  async set(key: string, value: string, tenantId: string): Promise<Settings> {
+  async getByKey(key: string): Promise<Settings | null> {
+    return this.settingsRepository.findOne({ where: { key } });
+  }
+
+  async set(key: string, value: string, tenantId?: string): Promise<Settings> {
     let setting = await this.findByKey(key, tenantId);
     if (setting) {
       setting.value = value;

@@ -13,6 +13,7 @@ import { ReportsModule } from './modules/Reports/module/reports.module';
 import { MonitorModule } from './modules/Monitor/module/monitor.module';
 import { SettingsModule } from './modules/Settings/module/settings.module';
 import { UsersModule } from './modules/Users/module/users.module';
+import { UserPermissionsModule } from './modules/Users/module/user-permissions.module';
 import { TenantsModule } from './modules/Tenants/module/tenants.module';
 import { ServicesModule } from './modules/Services/module/services.module';
 import { CoreAuthModule } from './core/guards/core-auth.module';
@@ -59,6 +60,7 @@ import configuration from './config/configuration';
     MonitorModule,
     SettingsModule,
     UsersModule,
+    UserPermissionsModule,
     TenantsModule,
     ServicesModule,
     CoreAuthModule,

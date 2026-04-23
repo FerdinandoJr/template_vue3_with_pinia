@@ -45,10 +45,53 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Relatorios',
         component: () => import('@/modules/reports/ui/views/ReportsPage.vue')
       },
-      {
+{
         path: 'customer',
         name: 'Customer',
-        component: () => import('@/modules/customer/ui/views/CustomerPage.vue')
+        component: () => import('@/modules/customer/ui/views/CustomerPage.vue'),
+        meta: { moduleAccess: 'customer' }
+      },
+      {
+        path: 'customer/:id',
+        name: 'CustomerDetails',
+        component: () => import('@/modules/customer/ui/views/CustomerDetailsPage.vue'),
+        meta: { moduleAccess: 'customer' }
+      },
+      {
+        path: 'chats',
+        name: 'Chats',
+        component: () => import('@/modules/chats/ui/views/ChatPage.vue'),
+        meta: { moduleAccess: 'chats' }
+      },
+      {
+        path: 'atendimentos',
+        name: 'Atendimentos',
+        component: () => import('@/modules/tickets/ui/views/TicketsPage.vue'),
+        meta: { moduleAccess: 'atendimentos' }
+      },
+      {
+        path: 'kanban',
+        name: 'Kanban',
+        component: () => import('@/modules/kanban/ui/views/KanbanPage.vue'),
+        meta: { moduleAccess: 'kanban' }
+      },
+      {
+        path: 'calendar',
+        name: 'Calendar',
+        component: () => import('@/modules/calendar/ui/views/CalendarPage.vue'),
+        meta: { moduleAccess: 'calendar' }
+      },
+      {
+        path: 'relatorios',
+        name: 'Relatorios',
+        component: () => import('@/modules/reports/ui/views/ReportsPage.vue'),
+        meta: { moduleAccess: 'relatorios' }
+      },
+      {
+        path: 'kb',
+        name: 'KnowledgeBase',
+        component: () => import('@/modules/kb/ui/views/KbPage.vue'),
+        meta: { moduleAccess: 'kb' }
       },
       {
         path: 'customer/:id',
@@ -97,6 +140,15 @@ router.beforeEach((to, from, next) => {
   if (to.path === '/login' && authStore.token) {
     console.log('Redirect to dashboard - already logged in');
     return next('/');
+  }
+
+  // Verificar acesso por módulo
+  if (to.meta.moduleAccess) {
+    const moduleId = to.meta.moduleAccess as string;
+    if (!authStore.hasModulePermission(moduleId, 'active')) {
+      console.log('Access denied - module:', moduleId);
+      return next('/');
+    }
   }
 
   if (to.meta.roles && Array.isArray(to.meta.roles)) {

@@ -28,18 +28,18 @@ export interface UserWithPermissions extends UserProfile {
 
 export const settingsServices = {
   async getAll(): Promise<Setting[]> {
-    const response = await httpClient.get<ApiResponse<Setting[]>>('/settings');
-    return response.data;
+    const response = await httpClient.get<any>('/settings');
+    return response?.data?.data || response?.data || [];
   },
 
   async get(key: string): Promise<Setting | undefined> {
-    const response = await httpClient.get<ApiResponse<Setting>>(`/settings/${key}`);
-    return response.data;
+    const response = await httpClient.get<any>(`/settings/${key}`);
+    return response?.data || response;
   },
 
   async set(key: string, value: string): Promise<Setting> {
-    const response = await httpClient.post<ApiResponse<Setting>>('/settings', { key, value });
-    return response.data;
+    const response = await httpClient.post<any>('/settings', { key, value });
+    return response?.data || response;
   },
 
   async delete(id: string): Promise<void> {
@@ -47,27 +47,42 @@ export const settingsServices = {
   },
 
   async getUserProfile(): Promise<UserProfile> {
-    const response = await httpClient.get<ApiResponse<UserProfile>>('/users/me');
-    return response.data;
+    const response = await httpClient.get<any>('/users/me');
+    return response?.data || response;
   },
 
   async updateUserProfile(data: { name?: string; phone?: string; avatar?: string }): Promise<UserProfile> {
-    const response = await httpClient.put<ApiResponse<UserProfile>>('/users/me', data);
-    return response.data;
+    const response = await httpClient.put<any>('/users/me', data);
+    return response?.data || response;
   },
 
   async getAllUsers(): Promise<UserWithPermissions[]> {
-    const response = await httpClient.get<ApiResponse<UserWithPermissions[]>>('/users');
-    return response.data;
+    const response = await httpClient.get<any>('/users');
+    return response?.data?.data || response?.data || [];
   },
 
-  async getUserPermissions(userId: string): Promise<UserWithPermissions> {
-    const response = await httpClient.get<ApiResponse<UserWithPermissions>>(`/users/${userId}`);
-    return response.data;
+  async getUserPermissions(userId: string): Promise<any> {
+    const response = await httpClient.get<any>(`/user-permissions/user/${userId}`);
+    return response?.data || response;
   },
 
-  async updateUserPermissions(userId: string, permissions: Record<string, any>): Promise<UserWithPermissions> {
-    const response = await httpClient.put<ApiResponse<UserWithPermissions>>(`/users/${userId}/permissions`, permissions);
+  async updateUserPermissions(userId: string, permissions: Record<string, any>): Promise<any> {
+    const response = await httpClient.put<any>(`/user-permissions/user/${userId}`, permissions);
+    return response?.data || response;
+  },
+
+  async getSystemPermissions(): Promise<any> {
+    const response = await httpClient.get<any>('/settings/system_permissions');
+    return response?.data || response;
+  },
+
+  async saveSystemPermissions(permissions: Record<string, any>): Promise<any> {
+    const response = await httpClient.post<any>('/settings/system_permissions', permissions);
+    return response?.data || response;
+  },
+
+  async createUser(data: { name: string; email: string; password: string; role: string }): Promise<any> {
+    const response = await httpClient.post<ApiResponse<any>>('/users/public-register', data);
     return response.data;
   },
 };

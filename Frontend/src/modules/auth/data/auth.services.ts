@@ -45,4 +45,19 @@ export const authServices = {
     async logout(): Promise<void> {
         // O logout é feito localmente no store
     },
+
+    async requestVerification(email: string): Promise<any> {
+        const response = await httpClient.post<ApiResponse<any>>('/auth/request-verification', {
+            email,
+        });
+        return response.data;
+    },
+
+    async verifyEmail(email: string, token: string): Promise<any> {
+        const response = await httpClient.post<ApiResponse<any>>('/auth/verify-email', {
+            email,
+            token,
+        });
+        return response.data;
+    },
 };
