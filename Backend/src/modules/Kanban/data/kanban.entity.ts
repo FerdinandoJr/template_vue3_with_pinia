@@ -26,7 +26,7 @@ export class KanbanBoard {
 
 @Entity('kanban_columns')
 @Index('idx_kanban_columns_tenant', ['tenantId'])
-@Index('idx_kanban_columns_board', ['boardId'])
+@Index('idx_kanban_columns_board_order', ['boardId', 'order'])
 export class KanbanColumn {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -63,7 +63,7 @@ export class KanbanColumn {
 
 @Entity('kanban_cards')
 @Index('idx_kanban_cards_column', ['columnId'])
-@Index('idx_kanban_cards_tenant', ['tenantId'])
+@Index('idx_kanban_cards_column_order', ['columnId', 'order'])
 export class KanbanCard {
   @PrimaryGeneratedColumn('uuid')
   id: string;

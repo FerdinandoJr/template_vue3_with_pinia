@@ -47,21 +47,26 @@ export class KanbanService {
   }
 
   async deleteBoard(id: string): Promise<void> {
-    await this.cardsRepository.delete({ columnId: id });
-    await this.columnsRepository.delete({ boardId: id });
     await this.boardsRepository.delete({ id });
   }
 
   async findAllColumns(tenantId: string): Promise<KanbanColumn[]> {
-    return this.columnsRepository.find({ where: { tenantId }, order: { order: 'ASC' } });
+    const columns = await this.columnsRepository.find({ 
+      where: { tenantId }, 
+      order: { order: 'ASC' } 
+    });
+    return columns;
   }
 
   async findColumnsByBoard(boardId: string): Promise<KanbanColumn[]> {
-    return this.columnsRepository.find({ where: { boardId }, order: { order: 'ASC' } });
+    return this.columnsRepository.find({ 
+      where: { boardId }, 
+      order: { order: 'ASC' } 
+    });
   }
 
   async findAllCards(tenantId: string): Promise<KanbanCard[]> {
-    return this.cardsRepository.find({ where: { tenantId }, order: { order: 'ASC' } });
+    return this.cardsRepository.find({ order: { order: 'ASC' } });
   }
 
   async createColumn(tenantId: string, data: CreateKanbanColumnDto): Promise<KanbanColumn> {
@@ -77,14 +82,14 @@ export class KanbanService {
   }
 
   async deleteColumn(id: string): Promise<void> {
-    await this.cardsRepository.delete({ columnId: id });
     await this.columnsRepository.delete({ id });
   }
 
   async reorderColumns(boardId: string, columnIds: string[]): Promise<KanbanColumn[]> {
-    for (let i = 0; i < columnIds.length; i++) {
-      await this.columnsRepository.update(columnIds[i], { order: i });
-    }
+    const queries = columnIds.map((id, index) => 
+      this.columnsRepository.update(id, { order: index })
+    );
+    await Promise.all(queries);
     return this.findColumnsByBoard(boardId);
   }
 
