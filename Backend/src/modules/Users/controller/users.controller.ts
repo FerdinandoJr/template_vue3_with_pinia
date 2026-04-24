@@ -41,8 +41,15 @@ export class UsersController {
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Atualizar perfil do usuário' })
   @ApiResponse({ status: 200, description: 'Perfil atualizado' })
-  async updateProfile(@Req() req: any, @Body() data: { name?: string; phone?: string; avatar?: string }) {
+  async updateProfile(@Req() req: any, @Body() data: { name?: string; phone?: string; avatar?: string; defaultBoardId?: string }) {
     return this.usersService.update(req.userId, data);
+  }
+
+  @Put('me/default-board')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Definir quadro padrão do usuário' })
+  async setDefaultBoard(@Req() req: any, @Body() data: { defaultBoardId: string }) {
+    return this.usersService.update(req.userId, { defaultBoardId: data.defaultBoardId });
   }
 
   @Get()

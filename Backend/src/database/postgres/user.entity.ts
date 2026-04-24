@@ -61,6 +61,9 @@ export class User {
   @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  defaultBoardId: string;
+
   @ManyToOne(() => Tenant, (tenant) => tenant.users, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tenantId' })
   tenant: Tenant;

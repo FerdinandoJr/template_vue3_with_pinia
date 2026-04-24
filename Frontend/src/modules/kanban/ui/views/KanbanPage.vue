@@ -8,11 +8,22 @@
         </div>
 
         <div class="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm ml-0 md:ml-4">
-          <el-select v-model="kanbanStore.activeBoardId" placeholder="Selecione o quadro" class="w-56" style="border: none;">
-            <template #prefix><el-icon class="text-blue-500"><DataBoard /></el-icon></template>
+          <el-select v-model="kanbanStore.activeBoardId" placeholder="Selecione" class="!w-40" style="border: none;">
             <el-option v-for="board in kanbanStore.boards" :key="board.id" :label="board.title" :value="board.id" />
           </el-select>
-          <div class="w-px h-6 bg-slate-200 mx-2"></div>
+          <div class="w-px h-6 bg-slate-200 mx-1"></div>
+          <el-dropdown trigger="click" @command="handleBoardCommand">
+            <el-button plain class="!border-none !text-slate-500 hover:!text-blue-600 hover:!bg-blue-50">
+              <el-icon><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="default">Definir como Padrão</el-dropdown-item>
+                <el-dropdown-item command="edit">Editar Nome</el-dropdown-item>
+                <el-dropdown-item command="delete" divided command-type="danger">Excluir Quadro</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-button plain @click="promptCreateBoard" class="!border-none !text-slate-500 hover:!text-blue-600 hover:!bg-blue-50" title="Criar Novo Quadro">
             <el-icon><Plus /></el-icon>
           </el-button>
@@ -27,19 +38,22 @@
       </el-button>
     </div>
 
-    <div class="flex-1 flex gap-6 overflow-x-auto pb-4 custom-scroll-x items-start">
-      <KanbanColumn 
-        v-for="col in kanbanStore.columns" 
-        :key="col.id" 
-        :column-id="col.id" 
-        v-model:title="col.title" 
-        :color="col.color" 
-        :cards="col.cards" 
-        @remove="handleRemoveColumn" 
-        @open-ticket="openTicketDetails" 
-      />
+    <div class="flex-1 flex gap-3 overflow-x-auto pb-4 custom-scroll-x items-start" @dragover.prevent @drop="onDropColumns">
+      <div v-for="(col, index) in kanbanStore.columns" :key="col.id" draggable="true"
+        @dragstart="onDragStartColumn($event, index)" @dragover.prevent @dragenter="onDragEnterColumn($event, index)"
+        :class="['min-w-[270px] transition-opacity', draggedIndex === index ? 'opacity-50' : '']" :data-index="index">
+        <KanbanColumn 
+          :column-id="col.id" 
+          v-model:title="col.title" 
+          :color="col.color" 
+          :cards="col.cards" 
+          @remove="handleRemoveColumn" 
+          @open-ticket="openTicketDetails"
+          @update:title="(title) => kanbanStore.updateColumn(col.id, { title })"
+        />
+      </div>
       
-      <button @click="kanbanStore.addColumn()" class="w-[340px] shrink-0 flex items-center justify-center gap-2 py-4 bg-transparent rounded-2xl border-2 border-dashed border-slate-300 text-slate-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50/50 transition-all font-bold cursor-pointer">
+      <button @click="kanbanStore.addColumn()" class="min-w-[270px] h-[670px] flex items-center justify-center gap-2 py-4 bg-transparent rounded-2xl border-2 border-dashed border-slate-300 text-slate-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50/50 transition-all font-bold cursor-pointer">
         <el-icon>
           <Plus />
         </el-icon>
@@ -61,7 +75,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { Plus, DataBoard } from '@element-plus/icons-vue';
+import { Plus, MoreFilled } from '@element-plus/icons-vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { useKanbanStore } from '../store/kanban.store';
 import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
@@ -76,6 +90,39 @@ const customerStore = useCustomerStore() as any;
 
 const isModalOpen = ref(false);
 const selectedTicket = ref<ITicket | null>(null);
+const draggedIndex = ref<number | null>(null);
+
+const onDragStartColumn = (event: DragEvent, index: number) => {
+  draggedIndex.value = index;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+  }
+};
+
+const onDragEnterColumn = (event: DragEvent, index: number) => {
+  if (draggedIndex.value === null || draggedIndex.value === index) return;
+  
+  const columns = [...kanbanStore.columns];
+  const draggedCol = columns[draggedIndex.value];
+  columns.splice(draggedIndex.value, 1);
+  columns.splice(index, 0, draggedCol);
+  
+  const board = kanbanStore.boards.find((b: any) => b.id === kanbanStore.activeBoardId);
+  if (board) {
+    board.columns = columns;
+  }
+  
+  draggedIndex.value = index;
+};
+
+const onDropColumns = async () => {
+  if (draggedIndex.value === null) return;
+  
+  const columnIds = kanbanStore.columns.map((c: any) => c.id);
+  await kanbanStore.reorderColumns(columnIds);
+  
+  draggedIndex.value = null;
+};
 
 onMounted(async () => {
   await kanbanStore.fetchKanbanData();
@@ -93,6 +140,37 @@ const promptCreateBoard = () => {
   }).then(({ value }) => {
     kanbanStore.createBoard(value);
   }).catch(() => {});
+};
+
+const handleBoardCommand = async (command: string) => {
+  if (command === 'default') {
+    await kanbanStore.setDefaultBoard(kanbanStore.activeBoardId);
+  } else if (command === 'edit') {
+    const board = kanbanStore.boards.find((b: any) => b.id === kanbanStore.activeBoardId);
+    if (!board) return;
+    
+    ElMessageBox.prompt('Digite o novo nome do quadro:', 'Editar Quadro', {
+      confirmButtonText: 'Salvar',
+      cancelButtonText: 'Cancelar',
+      inputValue: board.title,
+      inputPattern: /.+/,
+      inputErrorMessage: 'O nome não pode ser vazio'
+    }).then(({ value }) => {
+      kanbanStore.updateBoardTitle(kanbanStore.activeBoardId, value);
+    }).catch(() => {});
+  } else if (command === 'delete') {
+    ElMessageBox.confirm(
+      'Tem a certeza que deseja excluir este quadro e todas as suas colunas e tarefas?',
+      'Atenção',
+      {
+        confirmButtonText: 'Sim, excluir',
+        cancelButtonText: 'Cancelar',
+        type: 'warning'
+      }
+    ).then(() => {
+      kanbanStore.removeBoard(kanbanStore.activeBoardId);
+    }).catch(() => {});
+  }
 };
 
 const handleRemoveColumn = (id: string) => {

@@ -277,7 +277,21 @@ const modulePermissions: Record<string, any> = {
   },
   kanban: {
     permissionGroups: [
-      { title: 'Movimentação e Edição', colorClass: 'bg-purple-400', switchColor: '#a855f7',
+      { title: 'Gestão de Quadros', colorClass: 'bg-purple-400', switchColor: '#a855f7',
+        features: [
+          { id: 'create_board', name: 'Criar novos quadros' },
+          { id: 'edit_board', name: 'Editar nome e configurações' },
+          { id: 'delete_board', name: 'Excluir quadros' }
+        ]
+      },
+      { title: 'Gestão de Colunas', colorClass: 'bg-indigo-400', switchColor: '#6366f1',
+        features: [
+          { id: 'create_column', name: 'Criar novas colunas' },
+          { id: 'edit_column', name: 'Editar e reordenar colunas' },
+          { id: 'delete_column', name: 'Excluir colunas' }
+        ]
+      },
+      { title: 'Movimentação e Edição', colorClass: 'bg-violet-400', switchColor: '#8b5cf6',
         features: [
           { id: 'move_cards', name: 'Arrastar e mover cartões' },
           { id: 'edit_cards', name: 'Editar conteúdo dos cartões' }

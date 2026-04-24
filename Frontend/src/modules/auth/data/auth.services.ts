@@ -14,6 +14,7 @@ interface LoginResponse {
     email: string;
     role: string;
     tenantId: string;
+    defaultBoardId?: string;
   };
 }
 
@@ -58,6 +59,11 @@ export const authServices = {
             email,
             token,
         });
+        return response.data;
+    },
+
+    async setDefaultBoard(boardId: string): Promise<any> {
+        const response = await httpClient.put<ApiResponse<any>>('/users/me/default-board', { defaultBoardId: boardId });
         return response.data;
     },
 };

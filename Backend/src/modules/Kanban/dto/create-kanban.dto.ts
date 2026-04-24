@@ -1,10 +1,28 @@
 import { IsString, IsOptional, IsNumber, IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+export class CreateKanbanBoardDto {
+  @ApiProperty({ example: 'Meu Quadro' })
+  @IsString()
+  title: string;
+}
+
+export class UpdateKanbanBoardDto {
+  @ApiProperty({ example: 'Meu Quadro', required: false })
+  @IsOptional()
+  @IsString()
+  title?: string;
+}
+
 export class CreateKanbanColumnDto {
   @ApiProperty({ example: 'A Fazer' })
   @IsString()
   title: string;
+
+  @ApiProperty({ example: 'uuid-do-board', required: false })
+  @IsOptional()
+  @IsUUID()
+  boardId?: string;
 
   @ApiProperty({ example: 0, required: false })
   @IsOptional()

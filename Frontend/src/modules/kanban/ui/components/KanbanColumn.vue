@@ -1,9 +1,17 @@
 <template>
   <div
-    class="w-[340px] shrink-0 flex flex-col h-full bg-slate-100/50 rounded-2xl border border-slate-200 shadow-sm relative group overflow-hidden">
+    class="w-[270px] min-w-[270px] h-[670px] shrink-0 flex flex-col bg-slate-100/50 rounded-2xl border border-slate-200 shadow-sm relative group overflow-hidden">
     <div class="p-4 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center justify-between z-10">
       <div class="flex items-center gap-3 w-full">
-        <div class="w-3 h-3 rounded-full shadow-sm" :style="{ backgroundColor: color }"></div>
+        <el-popover trigger="click" :width="200">
+          <template #reference>
+            <div class="w-3 h-3 rounded-full shadow-sm cursor-pointer hover:scale-110 transition-transform" :style="{ backgroundColor: color }"></div>
+          </template>
+          <div class="flex flex-wrap gap-2 p-2">
+            <div v-for="c in colors" :key="c" class="w-6 h-6 rounded-full cursor-pointer hover:scale-110 transition-transform border-2 border-transparent hover:border-white shadow-sm"
+              :style="{ backgroundColor: c }" @click="setColor(c)"></div>
+          </div>
+        </el-popover>
         <input v-model="localTitle" @blur="updateTitle" @keyup.enter="updateTitle"
           class="font-black text-[15px] text-slate-700 bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500/20 rounded px-1 w-full truncate transition-all" />
         <div class="flex items-center gap-2 shrink-0">
@@ -47,6 +55,10 @@ import { useKanbanStore } from '../store/kanban.store';
 import { useCalendarStore } from '@/modules/calendar/ui/store/calendar.store';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 
+let titleUpdateDebounce: any = null;
+
+const colors = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#64748b', '#94a3b8'];
+
 const props = defineProps<{
   columnId: string;
   title: string;
@@ -68,7 +80,19 @@ watch(() => props.title, (newVal) => {
 });
 
 const updateTitle = () => {
-  emit('update:title', localTitle.value);
+  clearTimeout(titleUpdateDebounce);
+  titleUpdateDebounce = setTimeout(() => {
+    kanbanStore.updateColumn(props.columnId, { title: localTitle.value });
+  }, 500);
+};
+
+let colorUpdateDebounce: any = null;
+
+const setColor = (newColor: string) => {
+  clearTimeout(colorUpdateDebounce);
+  colorUpdateDebounce = setTimeout(() => {
+    kanbanStore.updateColumn(props.columnId, { color: newColor });
+  }, 300);
 };
 
 const onDragStart = (event: DragEvent, ticket: any) => {

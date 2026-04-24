@@ -28,31 +28,59 @@ export const useAuthStore = defineStore('auth', () => {
         return roles.some(role => userRole === role.toLowerCase());
     };
 
-    const hasModulePermission = (moduleId: string, action?: 'active' | 'feature', featureId?: string) => {
+const hasModulePermission = (moduleId: string, action?: 'active' | 'feature', featureId?: string) => {
         const perms = user.value?.permissions;
         
-        // Se tem permissões customizadas salvas no banco, usa elas
-        if (perms && Object.keys(perms).length > 0) {
-            const modulePerm = perms[moduleId];
-            if (!modulePerm) return true; // Não existe no banco = acesso total por padrão
-            
-            if (action === 'active') {
-                return modulePerm.active === true;
-            }
-            
-            if (action === 'feature' && featureId) {
-                if (!modulePerm.active) return false;
-                return modulePerm.features?.[featureId] === true;
-            }
-            
+        // Se não tem permissões salvas, acesso TOTAL (padrão)
+        if (!perms || Object.keys(perms).length === 0) {
             return true;
         }
         
-        // Sem permissões no banco = acesso TOTAL (padrão)
+        const modulePerm = perms[moduleId];
+        
+        // Se o módulo não existe nas permissões, acesso TOTAL
+        if (!modulePerm) {
+            return true;
+        }
+        
+        // Se está desativado o módulo inteiro
+        if (modulePerm.active === false) {
+            return false;
+        }
+        
+        // Se action é 'active', retorna se o módulo está ativo
+        if (action === 'active') {
+            return modulePerm.active !== false;
+        }
+        
+        // Se action é 'feature', verifica a feature específica
+        if (action === 'feature' && featureId) {
+            // Se não tem a feature, mas o módulo está ativo, permite
+            if (!modulePerm.features) {
+                return true;
+            }
+            const hasFeature = modulePerm.features[featureId];
+            // Se a feature não existe, permite por padrão
+            if (hasFeature === undefined) {
+                return true;
+            }
+            return hasFeature === true;
+        }
+        
         return true;
     };
 
-    return { user, token, isAuthenticated, login, logout, hasRole, hasModulePermission };
+    const setDefaultBoard = (boardId: string) => {
+        if (user.value) {
+            user.value.defaultBoardId = boardId;
+        }
+    };
+
+    const hasFeature = (moduleId: string, featureId: string) => {
+        return hasModulePermission(moduleId, 'feature', featureId);
+    };
+
+    return { user, token, isAuthenticated, login, logout, hasRole, hasModulePermission, hasFeature, setDefaultBoard };
 }, {
     // Motor de persistência com ofuscação (Base64)
     persist: {

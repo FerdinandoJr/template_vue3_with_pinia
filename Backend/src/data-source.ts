@@ -11,7 +11,7 @@ import { Customer } from './modules/Customer/data/customer.entity';
 import { CustomerSource } from './modules/Customer/data/customer-source.entity';
 import { Service, ServiceHistory } from './modules/Services/data/service.entity';
 import { Agenda } from './modules/Calendar/data/agenda.entity';
-import { KanbanColumn, KanbanCard } from './modules/Kanban/data/kanban.entity';
+import { KanbanColumn, KanbanCard, KanbanBoard } from './modules/Kanban/data/kanban.entity';
 import { Chat, ChatMessage } from './modules/Chats/data/chat.entity';
 import { KbArticle } from './modules/KB/data/kb.entity';
 import { Settings } from './modules/Settings/data/settings.entity';
@@ -40,6 +40,7 @@ export const AppDataSource = new DataSource({
     Agenda,
     KanbanColumn,
     KanbanCard,
+    KanbanBoard,
     Chat,
     ChatMessage,
     KbArticle,
