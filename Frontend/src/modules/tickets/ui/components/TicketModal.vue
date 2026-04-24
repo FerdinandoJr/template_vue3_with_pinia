@@ -537,7 +537,7 @@ watch(() => props.isOpen, (isOpen) => {
         let foundBoardId = form.boardId;
         for (const b of kanbanStore.boards) {
           for (const c of b.columns) {
-            if (c.cards && c.cards.some((card: any) => String(card.id) === String(props.ticket.id))) {
+            if (c.cards && c.cards.some((card: any) => String(card.id) === String(props.ticket!.id))) {
               foundBoardId = b.id;
               form.status = c.id;
             }
@@ -632,7 +632,18 @@ const validateForm = () => {
 
 const submit = () => {
   if (validateForm()) {
-    emit('save', { ...form });
+    const payload = { ...form };
+    if (!payload.boardId) delete payload.boardId;
+    
+    const validStatuses = ['open', 'in_progress', 'waiting', 'resolved', 'closed'];
+    if (!validStatuses.includes(payload.status)) {
+      if (payload.status === 'pending_approval' || payload.status === 'todo') payload.status = 'open';
+      else if (payload.status === 'in-progress') payload.status = 'in_progress';
+      else if (payload.status === 'done') payload.status = 'resolved';
+      else payload.status = 'open';
+    }
+    
+    emit('save', payload);
   } else {
     ElMessage.warning('Preencha todos os campos obrigatórios marcados em vermelho.');
   }
@@ -640,7 +651,9 @@ const submit = () => {
 
 const handleApproveKanban = () => {
   if (validateForm()) {
-    emit('approve-kanban', { ...form });
+    const payload = { ...form };
+    if (!payload.boardId) delete payload.boardId;
+    emit('approve-kanban', payload);
   } else {
     ElMessage.warning('Revise os detalhes pendentes do Ticket antes de enviar para o Kanban.');
   }

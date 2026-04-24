@@ -4,6 +4,9 @@ import { User } from './database/postgres/user.entity';
 import { Tenant } from './database/postgres/tenant.entity';
 import { UserPermissions } from './database/postgres/user-permissions.entity';
 import { Ticket } from './modules/Tickets/data/ticket.entity';
+import { TicketTag } from './modules/Tickets/data/ticket-tag.entity';
+import { TicketChecklist } from './modules/Tickets/data/ticket-checklist.entity';
+import { TicketAttachment } from './modules/Tickets/data/ticket-attachment.entity';
 import { Customer } from './modules/Customer/data/customer.entity';
 import { CustomerSource } from './modules/Customer/data/customer-source.entity';
 import { Service, ServiceHistory } from './modules/Services/data/service.entity';
@@ -27,6 +30,9 @@ export const AppDataSource = new DataSource({
     Tenant,
     UserPermissions,
     Ticket,
+    TicketTag,
+    TicketChecklist,
+    TicketAttachment,
     Customer,
     CustomerSource,
     Service,

@@ -95,15 +95,15 @@ export const useTicketsStore = defineStore('tickets', {
       await ticketServices.create(data);
       await this._executeFetch();
     },
-    async updateTicket(id: number, data: Partial<ITicket>) {
-      const updatedTicket = await ticketServices.update(String(id), data);
+    async updateTicket(id: string, data: Partial<ITicket>) {
+      const updatedTicket = await ticketServices.update(id, data);
       const index = this.items.findIndex(t => t.id === id);
       if (index !== -1) {
         this.items[index] = { ...this.items[index], ...data, ...updatedTicket };
       }
     },
-    async deleteTicket(id: number) {
-      await ticketServices.delete(String(id));
+    async deleteTicket(id: string) {
+      await ticketServices.delete(id);
       await this._executeFetch();
     }
   }

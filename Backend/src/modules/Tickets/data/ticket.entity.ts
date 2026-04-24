@@ -1,7 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index, OneToMany } from 'typeorm';
 import { Tenant } from '../../../database/postgres/tenant.entity';
 import { Customer } from '../../Customer/data/customer.entity';
 import { User } from '../../../database/postgres/user.entity';
+import { TicketTag } from './ticket-tag.entity';
+import { TicketChecklist } from './ticket-checklist.entity';
+import { TicketAttachment } from './ticket-attachment.entity';
 
 export enum TicketStatus {
   OPEN = 'open',
@@ -77,6 +80,15 @@ export class Ticket {
   @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tenantId' })
   tenant: Tenant;
+
+  @OneToMany(() => TicketTag, tag => tag.ticket, { cascade: true })
+  tags: TicketTag[];
+
+  @OneToMany(() => TicketChecklist, checklist => checklist.ticket, { cascade: true })
+  checklist: TicketChecklist[];
+
+  @OneToMany(() => TicketAttachment, attachment => attachment.ticket, { cascade: true })
+  attachments: TicketAttachment[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
