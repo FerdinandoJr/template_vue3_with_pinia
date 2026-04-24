@@ -66,7 +66,8 @@
       :is-open="isModalOpen" 
       :ticket="selectedTicket" 
       :initial-data="selectedTicket || {}" 
-      :is-kanban="true" 
+      :is-kanban="true"
+      append-to-body
       @close="isModalOpen = false" 
       @save="onTicketSaved" 
     />
@@ -92,27 +93,28 @@ const isModalOpen = ref(false);
 const selectedTicket = ref<ITicket | null>(null);
 const draggedIndex = ref<number | null>(null);
 
-const onDragStartColumn = (event: DragEvent, index: number) => {
-  draggedIndex.value = index;
+const onDragStartColumn = (event: DragEvent, index: number | string) => {
+  draggedIndex.value = Number(index);
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move';
   }
 };
 
-const onDragEnterColumn = (event: DragEvent, index: number) => {
-  if (draggedIndex.value === null || draggedIndex.value === index) return;
+const onDragEnterColumn = (event: DragEvent, index: number | string) => {
+  const idx = Number(index);
+  if (draggedIndex.value === null || draggedIndex.value === idx) return;
   
   const columns = [...kanbanStore.columns];
   const draggedCol = columns[draggedIndex.value];
   columns.splice(draggedIndex.value, 1);
-  columns.splice(index, 0, draggedCol);
+  columns.splice(idx, 0, draggedCol);
   
   const board = kanbanStore.boards.find((b: any) => b.id === kanbanStore.activeBoardId);
   if (board) {
     board.columns = columns;
   }
   
-  draggedIndex.value = index;
+  draggedIndex.value = idx;
 };
 
 const onDropColumns = async () => {
