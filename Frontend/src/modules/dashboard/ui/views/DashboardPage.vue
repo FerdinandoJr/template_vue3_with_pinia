@@ -237,7 +237,7 @@ const userName = computed(() => {
 });
 
 const isAdminOrManager = computed(() => {
-  return authStore.hasRole(['ADMIN', 'MANAGER']);
+  return authStore.hasFeature('admin', 'dashboard');
 });
 
 onMounted(() => {

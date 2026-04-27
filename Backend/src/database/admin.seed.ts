@@ -1,6 +1,6 @@
-import { AppDataSource } from '../../data-source';
-import { User } from '../postgres/user.entity';
-import { Tenant } from '../postgres/tenant.entity';
+import { AppDataSource } from '../data-source';
+import { User } from './postgres/user.entity';
+import { Tenant } from './postgres/tenant.entity';
 import * as bcrypt from 'bcrypt';
 
 export async function seedAdminUser() {
@@ -26,7 +26,7 @@ export async function seedAdminUser() {
   
   const hashedPassword = await bcrypt.hash('Data@2026@data', 10);
   
-  const user = await userRepository.save({
+  await userRepository.save({
     name: 'Datacompany',
     email: adminEmail,
     password: hashedPassword,
@@ -37,6 +37,4 @@ export async function seedAdminUser() {
   
   console.log('✅ Tenant criado: Datacompany (datacompany.inf.br)');
   console.log('✅ Admin criado: admin@datacompany.inf.br');
-  
-  return { user, tenant };
 }

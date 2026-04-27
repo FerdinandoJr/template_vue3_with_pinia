@@ -54,6 +54,9 @@ export class HttpClient {
             if (authStore.token) {
                 defaultHeaders['Authorization'] = `Bearer ${authStore.token}`;
             }
+            if (authStore.user?.tenantId) {
+                defaultHeaders['x-tenant-id'] = authStore.user.tenantId;
+            }
         }
 
         let response: Response;

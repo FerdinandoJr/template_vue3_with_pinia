@@ -96,12 +96,10 @@
                   class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                   <el-icon>
                     <EditPen />
-                  </el-icon> Título Breve <span class="text-red-500">*</span>
+                  </el-icon> Título Breve <span v-if="formErrors.title" class="text-red-500">* Requerido</span>
                 </label>
                 <el-input v-model="form.title" placeholder="Descreva em poucas palavras..."
                   class="!text-lg font-medium enterprise-input" @input="formErrors.title = false" />
-                <span v-if="formErrors.title" class="text-xs text-red-500 mt-1 block font-bold">Campo
-                  obrigatório.</span>
               </div>
               <div class="bg-white p-0 rounded-2xl border border-slate-200 shadow-sm flex flex-col"
                 :class="{ 'ring-1 ring-red-500 border-red-500': formErrors.description }">
@@ -110,7 +108,7 @@
                     class="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                     <el-icon>
                       <Document />
-                    </el-icon> Descrição Detalhada <span class="text-red-500">*</span>
+                    </el-icon> Descrição Detalhada <span v-if="formErrors.description" class="text-red-500">* Requerido</span>
                   </label>
                 </div>
                 <div class="p-2 flex-1">
@@ -118,8 +116,6 @@
                     placeholder="Descreva todos os detalhes, anexe prints e organize em tópicos..."
                     @update:modelValue="formErrors.description = false" />
                 </div>
-                <span v-if="formErrors.description" class="text-xs text-red-500 p-2 block font-bold">A descrição é
-                  obrigatória.</span>
               </div>
             </div>
           </div>
@@ -282,7 +278,8 @@
                 </div>
               </template>
               <div class="p-4 space-y-4">
-                <div :class="{ 'p-2 -m-2 bg-red-50 rounded-lg border border-red-200': formErrors.customer }">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm"
+                  :class="{ 'ring-1 ring-red-500 border-red-500 bg-red-50': formErrors.customer }">
                   <label
                     class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
                     Cliente / Contato <span v-if="formErrors.customer" class="text-red-500">* Requerido</span>
@@ -292,9 +289,9 @@
                     <template #prefix><el-icon>
                         <User />
                       </el-icon></template>
-                    <el-option label="João Silva" value="João Silva" />
-                    <el-option label="Maria Santos" value="Maria Santos" />
-                    <el-option label="Pedro Costa" value="Pedro Costa" />
+                    <el-option v-for="customer in customerStore.items" :key="customer.id" 
+                      :label="getCustomerLabel(customer)" 
+                      :value="customer.tradeName || customer.companyName || customer.name" />
                   </el-select>
                 </div>
 
@@ -333,7 +330,7 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                  <div :class="{ 'p-2 -m-2 bg-red-50 rounded-lg border border-red-200': formErrors.priority }">
+                  <div>
                     <label
                       class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
                       Prioridade </label>
@@ -349,7 +346,7 @@
                       </el-option>
                     </el-select>
                   </div>
-                  <div :class="{ 'p-2 -m-2 bg-red-50 rounded-lg border border-red-200': formErrors.type }">
+                  <div>
                     <label
                       class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
                       Categoria </label>
@@ -446,6 +443,7 @@ import type { ITicket } from '../../domain/entities/Ticket';
 import TicketChecklist from './TicketChecklist.vue';
 import TicketTagsSelector from './TicketTagsSelector.vue';
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
+import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import RichTextEditor from '@/components/RichTextEditor.vue';
 
 const props = defineProps<{
@@ -459,6 +457,7 @@ const props = defineProps<{
 const emit = defineEmits(['close', 'save', 'switch-edit', 'approve-kanban']);
 
 const kanbanStore = useKanbanStore() as any;
+const customerStore = useCustomerStore() as any;
 
 const loading = ref(false);
 const activeTab = ref('main');
@@ -521,11 +520,15 @@ const onBoardChange = () => {
   }
 };
 
-watch(() => props.isOpen, (isOpen) => {
+watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
     Object.keys(formErrors).forEach(k => (formErrors as any)[k] = false);
     activeTab.value = 'main';
-
+    
+    if (customerStore.items?.length === 0) {
+      await customerStore.fetch();
+    }
+    
     if (kanbanStore.boards && kanbanStore.boards.length > 0) {
       form.boardId = kanbanStore.activeBoardId || kanbanStore.boards[0].id;
     }
@@ -573,6 +576,10 @@ watch(() => props.isOpen, (isOpen) => {
     }
   }
 }, { immediate: true }); // AQUI ESTÁ A CORREÇÃO DE PREENCHIMENTO E RECARRAGAMENTO DO MODAL
+
+const getCustomerLabel = (customer: any) => {
+  return customer.tradeName || customer.companyName || customer.name;
+};
 
 const getStatusColor = (statusId: string) => {
   if (statusId === 'pending_approval') return 'bg-amber-500';

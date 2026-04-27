@@ -219,18 +219,7 @@ onMounted(async () => {
       });
     }
   } catch (error) {
-    const savedModules = localStorage.getItem('datacrm_permissions');
-    if (savedModules) {
-      const parsed = JSON.parse(savedModules);
-      Object.keys(parsed).forEach(key => {
-        if (form[key]) {
-          form[key].active = parsed[key].active;
-          if (parsed[key].features && form[key].features) {
-            Object.assign(form[key].features, parsed[key].features);
-          }
-        }
-      });
-    }
+    console.error('Erro ao carregar permissões:', error);
   }
 });
 
@@ -240,12 +229,6 @@ const saveModules = async () => {
     const permissionsJson = JSON.stringify(form);
     await settingsServices.set('permissions', permissionsJson);
     
-    const activeModulesSimple = Object.keys(form).reduce((acc, key) => {
-      acc[key] = form[key].active;
-      return acc;
-    }, {} as Record<string, boolean>);
-    
-    localStorage.setItem('datacrm_active_modules', JSON.stringify(activeModulesSimple));
     window.dispatchEvent(new CustomEvent('modules-updated'));
     
     ElMessage({ message: 'Matriz de Acesso salva com sucesso!', type: 'success', icon: Check, customClass: 'font-bold' });

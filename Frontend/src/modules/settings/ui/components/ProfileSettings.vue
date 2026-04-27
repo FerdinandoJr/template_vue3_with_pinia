@@ -37,7 +37,7 @@
       </div>
       <div class="col-span-2 md:col-span-1">
         <label class="block text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Cargo</label>
-        <input type="text" :value="getRoleLabel(localProfile?.role)" disabled
+        <input type="text" :value="userRoleLabel" disabled
           class="w-full bg-slate-100 border border-transparent rounded-xl px-4 py-3 text-[13px] font-bold text-slate-400 cursor-not-allowed" />
       </div>
     </div>
@@ -51,27 +51,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { settingsServices } from '../../data/settings.services';
 import type { IUserProfile } from '../../domain/entities/settings';
 
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+
 const props = defineProps<{ profile: IUserProfile | null }>();
+const authStore = useAuthStore();
 const localProfile = ref<IUserProfile | null>(null);
 const phoneError = ref('');
 const fileInput = ref<HTMLInputElement | null>(null);
 
-const roleLabels: Record<string, string> = {
-  ADMIN: 'Administrador',
-  MANAGER: 'Gerente',
-  AGENT: 'Atendente',
-  CUSTOMER: 'Cliente',
-};
-
-const getRoleLabel = (role?: string) => {
-  if (!role) return 'Usuário';
-  return roleLabels[role.toUpperCase()] || role;
-};
+const userRoleLabel = computed(() => {
+  if (authStore.user?.roles && authStore.user.roles.length > 0) {
+    return authStore.user.roles[0];
+  }
+  if (props.profile?.role) {
+    return props.profile.role;
+  }
+  return 'Usuário';
+});
 
 const triggerFileInput = () => {
   fileInput.value?.click();

@@ -66,4 +66,9 @@ export const authServices = {
         const response = await httpClient.put<ApiResponse<any>>('/users/me/default-board', { defaultBoardId: boardId });
         return response.data;
     },
+
+    async me(): Promise<any> {
+        const response = await httpClient.get<any>('/auth/me');
+        return response?.data || response;
+    },
 };

@@ -10,12 +10,7 @@ import {
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 
-export enum UserRole {
-  ADMIN = 'admin',
-  MANAGER = 'manager',
-  AGENT = 'agent',
-  CUSTOMER = 'customer',
-}
+
 
 @Entity('users')
 @Index('idx_users_email_tenant', ['email', 'tenantId'], { unique: true })
@@ -33,14 +28,7 @@ export class User {
   @Column({ type: 'varchar', length: 255, select: false })
   password: string;
 
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.AGENT,
-  })
-  role: UserRole;
-
-  @Column({ type: 'varchar', nullable: true })
+  
   avatar: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })

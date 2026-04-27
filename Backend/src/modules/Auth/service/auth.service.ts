@@ -6,9 +6,10 @@ import { UsersService } from '../../Users/service/users.service';
 import { UserPermissionsService } from '../../Users/service/user-permissions.service';
 import { TenantsService } from '../../Tenants/service/tenants.service';
 import { CustomerSourceService } from '../../Customer/service/customer-source.service';
+import { RolesService } from '../../Roles/service/roles.service';
+import { Role } from '../../Roles/data/role.entity';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto, RequestVerificationDto, VerifyEmailDto } from '../dto/register.dto';
-import { UserRole } from '../../../database/postgres/user.entity';
 
 const DEFAULT_CUSTOMER_SOURCES = [
   'WhatsApp',
@@ -20,53 +21,6 @@ const DEFAULT_CUSTOMER_SOURCES = [
   'Outro',
 ];
 
-const ROLE_PERMISSIONS_TEMPLATES: Record<string, Record<string, any>> = {
-  [UserRole.ADMIN]: {
-    customer: { active: true, features: { create: true, edit: true, delete: true } },
-    atendimentos: { active: true, features: { create_ticket: true, edit_ticket: true, delete_ticket: true } },
-    chats: { active: true, features: { take_over: true, transfer_chat: true, finish_chat: true } },
-    kanban: { active: true, features: { move_cards: true, edit_cards: true } },
-    calendar: { active: true, features: { create_event: true, edit_event: true, delete_event: true } },
-    relatorios: { active: true, features: { view_metrics: true } },
-    kb: { active: true, features: { create_article: true, edit_article: true, delete_article: true } },
-    monitor: { active: true, features: { view_dashboard: true } },
-  },
-  [UserRole.MANAGER]: {
-    customer: { active: true, features: { create: true, edit: true, delete: true } },
-    atendimentos: { active: true, features: { create_ticket: true, edit_ticket: true, delete_ticket: true } },
-    chats: { active: true, features: { take_over: true, transfer_chat: true, finish_chat: true } },
-    kanban: { active: true, features: { move_cards: true, edit_cards: true } },
-    calendar: { active: true, features: { create_event: true, edit_event: true, delete_event: true } },
-    relatorios: { active: true, features: { view_metrics: true } },
-    kb: { active: true, features: { create_article: true, edit_article: true, delete_article: true } },
-    monitor: { active: true, features: { view_dashboard: true } },
-  },
-  [UserRole.AGENT]: {
-    customer: { active: true, features: { create: true, edit: true, delete: false } },
-    atendimentos: { active: true, features: { create_ticket: true, edit_ticket: true, delete_ticket: false } },
-    chats: { active: true, features: { take_over: true, transfer_chat: false, finish_chat: true } },
-    kanban: { active: true, features: { move_cards: true, edit_cards: true } },
-    calendar: { active: true, features: { create_event: true, edit_event: true, delete_event: true } },
-    relatorios: { active: true, features: { view_metrics: true } },
-    kb: { active: true, features: { create_article: false, edit_article: false, delete_article: false } },
-    monitor: { active: false, features: { view_dashboard: false } },
-  },
-  [UserRole.CUSTOMER]: {
-    customer: { active: true, features: { create: false, edit: false, delete: false } },
-    atendimentos: { active: true, features: { create_ticket: false, edit_ticket: false, delete_ticket: false } },
-    chats: { active: false, features: { take_over: false, transfer_chat: false, finish_chat: false } },
-    kanban: { active: false, features: { move_cards: false, edit_cards: false } },
-    calendar: { active: false, features: { create_event: false, edit_event: false, delete_event: false } },
-    relatorios: { active: false, features: { view_metrics: false } },
-    kb: { active: true, features: { create_article: false, edit_article: false, delete_article: false } },
-    monitor: { active: false, features: { view_dashboard: false } },
-  },
-};
-
-const getDefaultPermissions = (role: string): Record<string, any> => {
-  return ROLE_PERMISSIONS_TEMPLATES[role] || ROLE_PERMISSIONS_TEMPLATES[UserRole.ADMIN];
-};
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -75,6 +29,7 @@ export class AuthService {
     private jwtService: JwtService,
     private tenantsService: TenantsService,
     private customerSourceService: CustomerSourceService,
+    private rolesService: RolesService,
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -107,20 +62,24 @@ export class AuthService {
       throw new UnauthorizedException('Empresa desativada. Entre em contato com o administrador.');
     }
 
-    // Buscar permissões do usuário
-    let userPermissions = await this.userPermissionsService.findByUserId(user.id);
-    let permissions = userPermissions?.permissions || null;
+    let permissions: Record<string, any>;
+    const userPermissions = await this.userPermissionsService.findByUserId(user.id);
     
-    // Se não tem permissões salvas, usar template basedo no role
-    if (!permissions || Object.keys(permissions).length === 0) {
-      permissions = getDefaultPermissions(user.role);
+    if (userPermissions?.permissions && Object.keys(userPermissions.permissions).length > 0) {
+      permissions = userPermissions.permissions;
+    } else {
+      const { permissions: rolePermissions } = await this.rolesService.getUserRolesWithPermissions(user.id);
+      permissions = rolePermissions || {};
     }
+
+    const { roles } = await this.rolesService.getUserRolesWithPermissions(user.id);
+    const roleNames = roles.map(r => r.name);
 
     const payload = { 
       sub: user.id, 
       email: user.email, 
       tenantId: user.tenantId,
-      role: user.role,
+      roles: roleNames,
     };
     
     return {
@@ -129,7 +88,7 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        roles: roleNames,
         tenantId: user.tenantId,
         permissions,
       },
@@ -163,15 +122,16 @@ export class AuthService {
       name: registerDto.name,
       email: registerDto.email,
       password: hashedPassword,
-      role: registerDto.role as UserRole || UserRole.ADMIN,
       tenantId,
     };
     
     const result = await this.usersService.create(userData);
     const user = result.user;
     
-    const defaultPermissions = getDefaultPermissions(user.role);
-    await this.userPermissionsService.upsert(user.id, defaultPermissions);
+    const { permissions } = await this.rolesService.getUserRolesWithPermissions(user.id);
+    if (permissions) {
+      await this.userPermissionsService.upsert(user.id, permissions);
+    }
     
     console.log(`[REGISTER] User created for ${registerDto.email}, token: ${result.token}`);
     
@@ -239,6 +199,39 @@ export class AuthService {
     return {
       verified: true,
       message: 'Email verificado! Agora você pode fazer login.',
+    };
+  }
+
+  async me(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+    
+    let permissions: Record<string, any>;
+    const userPermissions = await this.userPermissionsService.findByUserId(user.id);
+    
+    if (userPermissions?.permissions && Object.keys(userPermissions.permissions).length > 0) {
+      permissions = userPermissions.permissions;
+    } else {
+      const { permissions: rolePermissions } = await this.rolesService.getUserRolesWithPermissions(user.id);
+      permissions = rolePermissions || {};
+    }
+
+    const { roles } = await this.rolesService.getUserRolesWithPermissions(user.id);
+    const roleNames = roles.map(r => r.name);
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      roles: roleNames,
+      tenantId: user.tenantId,
+      permissions,
+      avatar: user.avatar,
+      phone: user.phone,
+      isActive: user.isActive,
+      defaultBoardId: user.defaultBoardId,
     };
   }
 }

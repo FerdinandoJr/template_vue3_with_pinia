@@ -81,8 +81,18 @@ export const settingsServices = {
     return response?.data || response;
   },
 
-  async createUser(data: { name: string; email: string; password: string; role: string }): Promise<any> {
-    const response = await httpClient.post<ApiResponse<any>>('/users/public-register', data);
+  async createUser(data: { name: string; email: string; password: string; roleId?: string }): Promise<any> {
+    const response = await httpClient.post<ApiResponse<any>>('/users', data);
     return response.data;
+  },
+
+  async getRoles(): Promise<any> {
+    const response = await httpClient.get<any>('/roles');
+    return response?.data || response;
+  },
+
+  async assignRoleToUser(userId: string, roleId: string): Promise<any> {
+    const response = await httpClient.post<any>(`/roles/${roleId}/assign/${userId}`, {});
+    return response?.data || response;
   },
 };

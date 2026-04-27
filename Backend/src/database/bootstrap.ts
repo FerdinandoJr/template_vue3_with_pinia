@@ -1,5 +1,5 @@
 import { AppDataSource } from '../data-source';
-import { seedAdminUser } from './seed/admin.seed';
+import { seedAdminUser } from './admin.seed';
 
 export async function bootstrapDatabase() {
   try {

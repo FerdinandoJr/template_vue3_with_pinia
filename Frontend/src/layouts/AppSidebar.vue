@@ -75,22 +75,21 @@ const chatStore = useChatStore()
 const chatsQueueCount = ref(0)
 
 onMounted(async () => {
+  // Garantir que auth está inicializado
+  if (!authStore.isReady && authStore.token) {
+    await authStore.initAuth();
+  }
   chatsQueueCount.value = await chatStore.fetchQueueCount()
 })
 
 const userName = computed(() => authStore.user?.name || 'Usuário')
 const userInitials = computed(() => userName.value.charAt(0).toUpperCase())
-const roleLabels: Record<string, string> = {
-  ADMIN: 'Administrador',
-  MANAGER: 'Gerente',
-  AGENT: 'Atendente',
-  CUSTOMER: 'Cliente',
-}
-const getRoleLabel = (role?: string) => {
-  if (!role) return 'Usuário'
-  return roleLabels[role.toUpperCase()] || role
-}
-const userRoleLabel = computed(() => getRoleLabel(authStore.user?.role))
+const userRoleLabel = computed(() => {
+  if (authStore.user?.roles && authStore.user.roles.length > 0) {
+    return authStore.user.roles[0]
+  }
+  return 'Usuário'
+})
 
 const handleLogout = async () => {
   authStore.logout()

@@ -9,6 +9,7 @@ import { UsersModule } from '../../Users/module/users.module';
 import { UserPermissionsModule } from '../../Users/module/user-permissions.module';
 import { TenantsModule } from '../../Tenants/module/tenants.module';
 import { CustomersModule } from '../../Customer/module/customer.module';
+import { RolesModule } from '../../Roles/module/roles.module';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { CustomersModule } from '../../Customer/module/customer.module';
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get('jwt.secret') || 'default-secret',
         signOptions: {
-          expiresIn: configService.get('jwt.expiresIn') || '7d',
+          expiresIn: configService.get('jwt.expiresIn') || '12h',
         },
       }),
       inject: [ConfigService],
@@ -27,6 +28,7 @@ import { CustomersModule } from '../../Customer/module/customer.module';
     UserPermissionsModule,
     TenantsModule,
     forwardRef(() => CustomersModule),
+    RolesModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

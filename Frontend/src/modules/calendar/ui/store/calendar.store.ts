@@ -28,8 +28,9 @@ export const useCalendarStore = defineStore('calendar', () => {
 
       try {
         const response = await httpClient.get<any>('/users');
-        if (response && response.data && response.data.length > 0) {
-          availableUsers.value = response.data;
+        const users = response?.data?.data || response?.data || [];
+        if (users.length > 0) {
+          availableUsers.value = users;
         } else {
           availableUsers.value = [{ id: authStore.user?.id, name: authStore.user?.name }];
         }

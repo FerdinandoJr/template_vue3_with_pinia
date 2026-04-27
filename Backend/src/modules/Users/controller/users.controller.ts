@@ -26,7 +26,7 @@ export class UsersController {
   @ApiResponse({ status: 201, description: 'Usuário criado' })
   async publicCreate(@Body() data: any) {
     const result = await this.usersService.create(data);
-    return { token: result.token };
+    return { id: result.user.id, token: result.token };
   }
 
   @Get('me')
@@ -57,6 +57,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Listar todos os usuários' })
   @ApiResponse({ status: 200, description: 'Lista de usuários' })
   async findAll(@Req() req: any) {
+    console.log('[UsersController] findAll - tenantId from req:', req.tenantId);
     const data = await this.usersService.findAll(req.tenantId);
     return {
       success: true,

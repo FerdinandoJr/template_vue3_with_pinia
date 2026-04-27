@@ -2,6 +2,8 @@ import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './modules/Auth/module/auth.module';
 import { AgendaModule } from './modules/Calendar/module/agenda.module';
 import { TicketsModule } from './modules/Tickets/module/tickets.module';
@@ -16,12 +18,30 @@ import { UsersModule } from './modules/Users/module/users.module';
 import { UserPermissionsModule } from './modules/Users/module/user-permissions.module';
 import { TenantsModule } from './modules/Tenants/module/tenants.module';
 import { ServicesModule } from './modules/Services/module/services.module';
+import { RolesModule } from './modules/Roles/module/roles.module';
 import { CoreAuthModule } from './core/guards/core-auth.module';
 import { AuthMiddleware } from './core/middleware/auth.middleware';
 import configuration from './config/configuration';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 3,
+      },
+      {
+        name: 'medium',
+        ttl: 10000,
+        limit: 20,
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
@@ -45,7 +65,7 @@ import configuration from './config/configuration';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('jwt.secret') || 'default-secret',
-        signOptions: { expiresIn: configService.get('jwt.expiresIn') || '7d' },
+        signOptions: { expiresIn: configService.get('jwt.expiresIn') || '12h' },
       }),
       inject: [ConfigService],
     }),
@@ -63,7 +83,14 @@ import configuration from './config/configuration';
     UserPermissionsModule,
     TenantsModule,
     ServicesModule,
+    RolesModule,
     CoreAuthModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {

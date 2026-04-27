@@ -51,7 +51,7 @@
           <p class="text-sm font-black text-white truncate tracking-tight group-hover:text-blue-400 transition-colors">
             {{ authStore.user?.name || 'Usuário' }}</p>
           <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">
-            <span v-if="authStore.user?.role">{{ getRoleLabel(authStore.user?.role) }}</span>
+            <span v-if="userRoleLabel">{{ userRoleLabel }}</span>
             <span v-else class="text-red-400">Sem cargo</span>
           </p>
         </div>
@@ -79,17 +79,12 @@ const authStore = useAuthStore();
 const router = useRouter();
 const queueCount = ref<number | null>(null);
 
-const roleLabels: Record<string, string> = {
-  ADMIN: 'Administrador',
-  MANAGER: 'Gerente',
-  AGENT: 'Atendente',
-  CUSTOMER: 'Cliente',
-};
-
-const getRoleLabel = (role?: string) => {
-  if (!role) return 'Usuário';
-  return roleLabels[role.toUpperCase()] || role;
-};
+const userRoleLabel = computed(() => {
+  if (authStore.user?.roles && authStore.user.roles.length > 0) {
+    return authStore.user.roles[0];
+  }
+  return '';
+});
 
 const handleLogout = () => {
   authStore.logout();
@@ -111,9 +106,18 @@ const IconKB = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24'
 const IconKanban = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('rect', { x: '3', y: '3', width: '18', height: '18', rx: '2', ry: '2' }), h('line', { x1: '9', y1: '3', x2: '9', y2: '21' }), h('line', { x1: '15', y1: '3', x2: '15', y2: '21' })])
 const IconSettings = () => h('svg', { xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' }, [h('circle', { cx: '12', cy: '12', r: '3' }), h('path', { d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' })])
 
+interface MenuItem {
+  label: string;
+  path: string;
+  icon: any;
+  module?: string;
+  feature?: string;
+  badge?: string | number;
+}
+
 const menuItems = computed(() => {
-  const items = [
-    { label: 'Dashboard', path: '/', icon: markRaw(IconDashboard) },
+  const items: MenuItem[] = [
+    { label: 'Dashboard', path: '/', icon: markRaw(IconDashboard), module: 'admin', feature: 'dashboard' },
     { label: 'Agenda', path: '/calendar', icon: markRaw(IconAgenda), module: 'calendar' },
     { label: 'Clientes', path: '/customer', icon: markRaw(IconUsers), module: 'customer' },
     { label: 'Chats', path: '/chats', icon: markRaw(IconChat), module: 'chats' },
@@ -126,8 +130,10 @@ const menuItems = computed(() => {
   
   return items.filter(item => {
     if (!item.module) return true;
-    if (authStore.hasRole(['ADMIN', 'MANAGER'])) return true;
-    return authStore.hasModulePermission(item.module, 'active') !== false;
+    if (item.feature) {
+      return authStore.hasFeature(item.module, item.feature as string);
+    }
+    return authStore.hasModulePermission(item.module, 'active');
   });
 });
 </script>

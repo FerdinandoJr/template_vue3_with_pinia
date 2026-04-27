@@ -126,11 +126,23 @@ const router = createRouter({
   routes
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
 
+  // Se não está pronto e tem token, aguardar carregamento
+  if (!authStore.isReady && authStore.token) {
+    console.log('Auth loading, waiting...');
+    await authStore.initAuth();
+  }
+
+  // Se ainda tem token mas não carregou, permitir acesso (vai tentar carregar)
+  if (to.meta.requiresAuth && !authStore.isReady && authStore.token) {
+    console.log('Allowing access while loading auth');
+    return next();
+  }
+
   // Debug
-  console.log('Router - to:', to.path, 'auth:', !!authStore.token, 'user:', authStore.user?.name);
+  console.log('Router - to:', to.path, 'auth:', !!authStore.token, 'user:', authStore.user?.name, 'ready:', authStore.isReady);
 
   if (to.meta.requiresAuth && !authStore.token) {
     console.log('Redirect to login - no token');

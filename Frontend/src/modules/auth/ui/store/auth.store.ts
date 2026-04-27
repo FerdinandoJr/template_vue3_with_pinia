@@ -1,104 +1,161 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { authServices } from '../../data/auth.services';
+import { isTokenValid } from '@/util/jwt';
+
+const STORAGE_KEY = 'datacrm_auth';
+
+function encodeAuth(data: { token: string; user: any }): string {
+  const json = JSON.stringify(data);
+  return btoa(encodeURIComponent(json));
+}
+
+function decodeAuth(encoded: string): { token: string; user: any } | null {
+  try {
+    const json = decodeURIComponent(atob(encoded));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function loadStoredAuth(): { token: string; user: any } | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    return decodeAuth(stored);
+  } catch {
+    return null;
+  }
+}
+
+async function loadUserFromToken(token: string): Promise<any | null> {
+  try {
+    const userData = await authServices.me();
+    return userData;
+  } catch {
+    return null;
+  }
+}
+
+const storedAuth = loadStoredAuth();
+const initialToken = storedAuth?.token || null;
+const initialUser = storedAuth?.user || null;
+const initialLoading = !!initialToken && !initialUser;
 
 export const useAuthStore = defineStore('auth', () => {
-    const user = ref<any | null>(null);
-    const token = ref<string | null>(null);
+  const user = ref<any | null>(initialUser);
+  const token = ref<string | null>(initialToken);
+  const loading = ref<boolean>(initialLoading);
 
-    const isAuthenticated = computed(() => !!token.value);
+  const isAuthenticated = computed(() => !!token.value && isTokenValid(token.value));
+  const isReady = computed(() => !loading.value && (!!user.value || !token.value));
 
-    const login = (userData: any, userToken: string) => {
-        user.value = userData;
-        token.value = userToken;
-    };
+  const initAuth = async () => {
+    if (loading.value) return;
 
-    const logout = () => {
-        user.value = null;
-        token.value = null;
-
-        // Limpeza profunda de resquícios de sessão
-        localStorage.removeItem('datacrm_auth_session');
-        localStorage.removeItem('token');
-        sessionStorage.clear();
-    };
-
-    const hasRole = (roles: string[]) => {
-        if (!user.value || !user.value.role) return false;
-        const userRole = user.value.role.toLowerCase();
-        return roles.some(role => userRole === role.toLowerCase());
-    };
-
-const hasModulePermission = (moduleId: string, action?: 'active' | 'feature', featureId?: string) => {
-        const perms = user.value?.permissions;
-        
-        // Se não tem permissões salvas, acesso TOTAL (padrão)
-        if (!perms || Object.keys(perms).length === 0) {
-            return true;
+    const stored = loadStoredAuth();
+    if (stored && isTokenValid(stored.token)) {
+      token.value = stored.token;
+      loading.value = true;
+      try {
+        const userData = await loadUserFromToken(stored.token);
+        if (userData) {
+          user.value = userData;
         }
-        
-        const modulePerm = perms[moduleId];
-        
-        // Se o módulo não existe nas permissões, acesso TOTAL
-        if (!modulePerm) {
-            return true;
-        }
-        
-        // Se está desativado o módulo inteiro
-        if (modulePerm.active === false) {
-            return false;
-        }
-        
-        // Se action é 'active', retorna se o módulo está ativo
-        if (action === 'active') {
-            return modulePerm.active !== false;
-        }
-        
-        // Se action é 'feature', verifica a feature específica
-        if (action === 'feature' && featureId) {
-            // Se não tem a feature, mas o módulo está ativo, permite
-            if (!modulePerm.features) {
-                return true;
-            }
-            const hasFeature = modulePerm.features[featureId];
-            // Se a feature não existe, permite por padrão
-            if (hasFeature === undefined) {
-                return true;
-            }
-            return hasFeature === true;
-        }
-        
-        return true;
-    };
-
-    const setDefaultBoard = (boardId: string) => {
-        if (user.value) {
-            user.value.defaultBoardId = boardId;
-        }
-    };
-
-    const hasFeature = (moduleId: string, featureId: string) => {
-        return hasModulePermission(moduleId, 'feature', featureId);
-    };
-
-    return { user, token, isAuthenticated, login, logout, hasRole, hasModulePermission, hasFeature, setDefaultBoard };
-}, {
-    // Motor de persistência com ofuscação (Base64)
-    persist: {
-        key: 'datacrm_auth_session',
-        storage: {
-            getItem: (key: string) => {
-                try {
-                    const data = localStorage.getItem(key);
-                    // Desofusca e converte de volta para JSON
-                    return data ? JSON.parse(atob(data)) : null;
-                } catch (e) {
-                    return null;
-                }
-            },
-            setItem: (key: string, value: any) => {
-                // Converte para JSON e ofusca antes de salvar no navegador
-                localStorage.setItem(key, btoa(JSON.stringify(value)));
-            }
-        }
+      } finally {
+        loading.value = false;
+      }
+    } else if (stored) {
+      localStorage.removeItem(STORAGE_KEY);
     }
+  };
+
+  const login = async (userData: any, userToken: string) => {
+    user.value = userData;
+    token.value = userToken;
+    loading.value = false;
+    const authData = encodeAuth({ token: userToken, user: userData });
+    localStorage.setItem(STORAGE_KEY, authData);
+  };
+
+  const logout = () => {
+    user.value = null;
+    token.value = null;
+    loading.value = false;
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
+  const hasRole = (rolesToCheck: string[]) => {
+    if (!user.value) return false;
+
+    let hasMatch = false;
+    if (user.value.roles && Array.isArray(user.value.roles) && user.value.roles.length > 0) {
+      hasMatch = user.value.roles.some((userRole: string) =>
+        rolesToCheck.some(r => r.toUpperCase() === userRole.toUpperCase() || r.toUpperCase() === userRole.toUpperCase().replace('á', 'a'))
+      );
+    }
+
+    return hasMatch;
+  };
+
+  const hasModulePermission = (moduleId: string, action?: 'active' | 'feature', featureId?: string) => {
+    const perms = user.value?.permissions;
+
+    if (!perms || Object.keys(perms).length === 0) {
+      return hasRole(['Administrador', 'Gerente', 'Desenvolvedor']);
+    }
+
+    const modulePerm = perms[moduleId];
+
+    if (!modulePerm) {
+      return false;
+    }
+
+    if (modulePerm.active === false) {
+      return false;
+    }
+
+    if (action === 'active') {
+      return modulePerm.active !== false;
+    }
+
+    if (action === 'feature' && featureId) {
+      if (!modulePerm.features) {
+        return false;
+      }
+      const hasFeature = modulePerm.features[featureId];
+      if (hasFeature === undefined) {
+        return false;
+      }
+      return hasFeature === true;
+    }
+
+    return true;
+  };
+
+  const setDefaultBoard = (boardId: string) => {
+    if (user.value) {
+      user.value.defaultBoardId = boardId;
+    }
+  };
+
+  const hasFeature = (moduleId: string, featureId: string) => {
+    return hasModulePermission(moduleId, 'feature', featureId);
+  };
+
+  return {
+    user,
+    token,
+    loading,
+    isAuthenticated,
+    isReady,
+    initAuth,
+    login,
+    logout,
+    hasRole,
+    hasModulePermission,
+    hasFeature,
+    setDefaultBoard,
+  };
 });
