@@ -104,3 +104,60 @@ export class CreateKanbanCardDto {
   @IsArray()
   checklist?: any[];
 }
+
+export class UpdateKanbanCardDto {
+  @ApiProperty({ example: 'Tarefa 1', required: false })
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @ApiProperty({ example: 'Descrição da tarefa', required: false })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiProperty({ example: 'uuid-da-coluna', required: false })
+  @IsOptional()
+  @IsUUID()
+  columnId?: string;
+
+  @ApiProperty({ example: 'uuid-do-board', required: false })
+  @IsOptional()
+  @IsUUID()
+  boardId?: string;
+
+  @ApiProperty({ example: 'urgent', required: false })
+  @IsOptional()
+  @IsString()
+  priority?: string;
+
+  @ApiProperty({ example: 'feature', required: false })
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @ApiProperty({ example: 'uuid-do-cliente', required: false })
+  @IsOptional()
+  @IsUUID()
+  customerId?: string;
+
+  @ApiProperty({ example: ['uuid1', 'uuid2'], required: false })
+  @IsOptional()
+  @IsArray()
+  assignees?: string[];
+
+  @ApiProperty({ example: 2.5, required: false })
+  @IsOptional()
+  @IsNumber()
+  estimatedHours?: number;
+
+  @ApiProperty({ example: [], required: false })
+  @IsOptional()
+  @IsArray()
+  tags?: any[];
+
+  @ApiProperty({ example: [], required: false })
+  @IsOptional()
+  @IsArray()
+  checklist?: any[];
+}

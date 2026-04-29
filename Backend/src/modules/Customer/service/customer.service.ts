@@ -12,7 +12,12 @@ export class CustomersService {
     private customersRepository: Repository<Customer>,
   ) {}
 
-  async findAll(tenantId: string, query?: string): Promise<Customer[]> {
+  async findAll(
+    tenantId: string, 
+    query?: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<{ data: Customer[]; total: number; filteredTotal: number }> {
     const qb = this.customersRepository.createQueryBuilder('customer')
       .where('customer.tenantId = :tenantId', { tenantId });
     
@@ -25,11 +30,22 @@ export class CustomersService {
     }
     
     qb.orderBy('customer.createdAt', 'DESC');
-    return qb.getMany();
+    
+    const [data, total] = await qb.getManyAndCount();
+    
+    const filteredTotal = total;
+    const startIndex = (page - 1) * limit;
+    const paginatedData = data.slice(startIndex, startIndex + limit);
+    
+    return { data: paginatedData, total, filteredTotal };
   }
 
-  async findById(id: string): Promise<Customer | null> {
-    return this.customersRepository.findOne({ where: { id } });
+  async findById(id: string, tenantId?: string): Promise<Customer | null> {
+    const where: any = { id };
+    if (tenantId) {
+      where.tenantId = tenantId;
+    }
+    return this.customersRepository.findOne({ where });
   }
 
   async findByEmail(email: string): Promise<Customer | null> {
@@ -62,37 +78,19 @@ export class CustomersService {
     return this.customersRepository.save(customer);
   }
 
-  async update(id: string, data: UpdateCustomerDto): Promise<Customer> {
-    const customer = await this.findById(id);
+  async update(id: string, tenantId: string, data: UpdateCustomerDto): Promise<Customer> {
+    const customer = await this.findById(id, tenantId);
     if (!customer) {
       throw new NotFoundException('Cliente não encontrado');
     }
     
-    if (data.name !== undefined) customer.name = data.name;
-    if (data.email !== undefined) customer.email = data.email;
-    if (data.phone !== undefined) customer.phone = data.phone;
-    if (data.document !== undefined) customer.document = data.document;
-    if (data.type !== undefined) customer.type = data.type;
-    if (data.companyName !== undefined) customer.companyName = data.companyName;
-    if (data.tradeName !== undefined) customer.tradeName = data.tradeName;
-    if (data.responsibleName !== undefined) customer.responsibleName = data.responsibleName;
-    if (data.website !== undefined) customer.website = data.website;
-    if (data.status !== undefined) customer.status = data.status as CustomerStatus;
-    if (data.source !== undefined) customer.source = data.source as any;
-    if (data.zipCode !== undefined) customer.zipCode = data.zipCode;
-    if (data.street !== undefined) customer.street = data.street;
-    if (data.number !== undefined) customer.number = data.number;
-    if (data.complement !== undefined) customer.complement = data.complement;
-    if (data.neighborhood !== undefined) customer.neighborhood = data.neighborhood;
-    if (data.city !== undefined) customer.city = data.city;
-    if (data.state !== undefined) customer.state = data.state;
-    if (data.avatar !== undefined) customer.avatar = data.avatar;
+    Object.assign(customer, data);
     
     return this.customersRepository.save(customer);
   }
 
-  async delete(id: string): Promise<void> {
-    const customer = await this.findById(id);
+  async delete(id: string, tenantId: string): Promise<void> {
+    const customer = await this.findById(id, tenantId);
     if (!customer) {
       throw new NotFoundException('Cliente não encontrado');
     }

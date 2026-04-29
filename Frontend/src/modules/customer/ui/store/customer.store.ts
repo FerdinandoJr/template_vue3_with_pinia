@@ -32,7 +32,6 @@ export const useCustomerStore = defineStore('customer', {
                 this.filter.limit = this.pageSize;
 
                 const { total, filteredTotal, items } = await customerServices.list(this.filter)
-                console.log('[FETCH CUSTOMERS] items[0]:', items[0])
                 this.total = total
                 this.filteredTotal = filteredTotal
                 this.items = items
@@ -65,7 +64,6 @@ export const useCustomerStore = defineStore('customer', {
             try {
                 return await customerServices.getById(id);
             } catch (error) {
-                console.error("Erro ao buscar cliente:", error);
                 return undefined;
             } finally {
                 this.loading = false;
@@ -106,12 +104,10 @@ export const useCustomerStore = defineStore('customer', {
             const { showToast } = useToast();
             this.loading = true;
             try {
-                console.log('[DELETE CUSTOMER] id:', id);
                 await customerServices.delete(id);
                 showToast("Cliente excluído com sucesso!", "success");
                 await this.fetch();
             } catch (error) {
-                console.error('[DELETE CUSTOMER] error:', error);
                 showToast("Erro ao excluir cliente.", "error");
             } finally {
                 this.loading = false;

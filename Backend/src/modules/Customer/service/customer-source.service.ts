@@ -17,8 +17,12 @@ export class CustomerSourceService {
     });
   }
 
-  async findById(id: string): Promise<CustomerSource | null> {
-    return this.customerSourceRepository.findOne({ where: { id } });
+  async findById(id: string, tenantId?: string): Promise<CustomerSource | null> {
+    const where: any = { id };
+    if (tenantId) {
+      where.tenantId = tenantId;
+    }
+    return this.customerSourceRepository.findOne({ where });
   }
 
   async create(tenantId: string, name: string): Promise<CustomerSource> {
@@ -26,8 +30,8 @@ export class CustomerSourceService {
     return this.customerSourceRepository.save(source);
   }
 
-  async update(id: string, name: string): Promise<CustomerSource> {
-    const source = await this.customerSourceRepository.findOne({ where: { id } });
+  async update(id: string, tenantId: string, name: string): Promise<CustomerSource> {
+    const source = await this.findById(id, tenantId);
     if (!source) {
       throw new NotFoundException('Origem não encontrada');
     }
@@ -35,8 +39,8 @@ export class CustomerSourceService {
     return this.customerSourceRepository.save(source);
   }
 
-  async delete(id: string): Promise<void> {
-    const source = await this.customerSourceRepository.findOne({ where: { id } });
+  async delete(id: string, tenantId: string): Promise<void> {
+    const source = await this.findById(id, tenantId);
     if (!source) {
       throw new NotFoundException('Origem não encontrada');
     }

@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, HttpCode, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Ticket, TicketStatus, TicketPriority, TicketType } from '../data/ticket.entity';
+import { Repository, LessThanOrEqual, MoreThanOrEqual, Between, In } from 'typeorm';
+import { Ticket, TicketStatus, TicketPriority, TicketType, TicketSource } from '../data/ticket.entity';
 import { TicketTag } from '../data/ticket-tag.entity';
 import { TicketChecklist } from '../data/ticket-checklist.entity';
 import { TicketAttachment } from '../data/ticket-attachment.entity';
@@ -9,8 +9,26 @@ import { CreateTicketDto, UpdateTicketDto } from '../dto';
 import { TicketQueryDto } from '../dto/ticket-query.dto';
 import { KanbanService } from '../../Kanban/service/kanban.service';
 
+interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface TicketStats {
+  byStatus: Record<TicketStatus, number>;
+  byPriority: Record<TicketPriority, number>;
+  byType: Record<TicketType, number>;
+  avgResolutionTime: number;
+  firstResponseRate: number;
+}
+
 @Injectable()
 export class TicketsService {
+  private readonly logger = new Logger(TicketsService.name);
+
   constructor(
     @InjectRepository(Ticket)
     private ticketsRepository: Repository<Ticket>,
@@ -23,14 +41,15 @@ export class TicketsService {
     private kanbanService: KanbanService,
   ) {}
 
-  async findAll(tenantId: string, query?: TicketQueryDto) {
+  async findAll(tenantId: string, query?: TicketQueryDto): Promise<PaginatedResult<Ticket>> {
     const qb = this.ticketsRepository.createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.customer', 'customer')
       .leftJoinAndSelect('ticket.assignee', 'assignee')
       .leftJoinAndSelect('ticket.tags', 'tags')
       .leftJoinAndSelect('ticket.checklist', 'checklist')
+      .withDeleted()
       .where('ticket.tenantId = :tenantId', { tenantId });
-    
+
     if (query?.status && query.status !== 'all') {
       qb.andWhere('ticket.status = :status', { status: query.status });
     }
@@ -57,33 +76,60 @@ export class TicketsService {
       .take(limit)
       .getManyAndCount();
 
-    // Garantir ticketNumber para todos
     for (const ticket of items) {
       if (!ticket.ticketNumber) {
-        ticket.ticketNumber = await this.generateTicketNumber(ticket.tenantId);
+        ticket.ticketNumber = await this.generateTicketNumber(tenantId);
         await this.ticketsRepository.save(ticket);
       }
     }
 
-    return { items, total };
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async findById(id: string): Promise<Ticket | null> {
-    const ticket = await this.ticketsRepository.findOne({ 
+  async findById(id: string, includeDeleted = false): Promise<Ticket | null> {
+    const qb = this.ticketsRepository.findOne({ 
       where: { id },
-      relations: ['customer', 'assignee', 'tags', 'checklist', 'attachments']
+      relations: ['customer', 'assignee', 'tags', 'checklist', 'attachments', 'creator']
     });
+    
+    if (includeDeleted) {
+      return this.ticketsRepository.findOne({ 
+        where: { id },
+        relations: ['customer', 'assignee', 'tags', 'checklist', 'attachments', 'creator'],
+        withDeleted: true
+      });
+    }
+    
+    const ticket = await qb;
     
     if (ticket && !ticket.ticketNumber) {
       ticket.ticketNumber = await this.generateTicketNumber(ticket.tenantId);
       await this.ticketsRepository.save(ticket);
     }
     
+    if (ticket) {
+      (ticket as any).assignees = ticket.assignedTo ? [ticket.assignedTo] : [];
+    }
+    
+    return ticket;
+  }
+
+  async findByTicketNumber(tenantId: string, ticketNumber: string): Promise<Ticket | null> {
+    const ticket = await this.ticketsRepository.findOne({ 
+      where: { tenantId, ticketNumber },
+      relations: ['customer', 'assignee', 'tags', 'checklist', 'attachments']
+    });
     return ticket;
   }
 
   private async generateTicketNumber(tenantId: string): Promise<string> {
-    console.log('[TicketsService] generateTicketNumber called for tenant:', tenantId);
+    const lockKey = `ticket_number_lock_${tenantId}`;
     
     const lastTicket = await this.ticketsRepository.findOne({
       where: { tenantId },
@@ -92,29 +138,20 @@ export class TicketsService {
     
     let nextNumber = 1;
     if (lastTicket && lastTicket.ticketNumber) {
-      console.log('[TicketsService] lastTicket.ticketNumber:', lastTicket.ticketNumber);
       const match = lastTicket.ticketNumber.match(/(\d+)$/);
       if (match) {
         nextNumber = parseInt(match[1], 10) + 1;
       }
-    } else {
-      console.log('[TicketsService] No previous ticket found, starting at 1');
     }
     
-    const number = `TKT-${String(nextNumber).padStart(5, '0')}`;
-    console.log('[TicketsService] Generated ticket number:', number);
-    return number;
+    return `TKT-${String(nextNumber).padStart(5, '0')}`;
   }
 
-  async create(tenantId: string, data: CreateTicketDto): Promise<Ticket> {
-    console.log('[TicketsService] Creating ticket with data:', JSON.stringify(data, null, 2));
-    
+  async create(tenantId: string, userId: string, data: CreateTicketDto): Promise<Ticket> {
     const { tags, checklist, tagLabels, checklistItems, attachments, assignees, boardId, ...ticketData } = data as any;
     
-    console.log('[TicketsService] ticketData after destructuring:', JSON.stringify(ticketData, null, 2));
-    console.log('[TicketsService] assignees:', assignees);
-    console.log('[TicketsService] tags:', tags);
-    console.log('[TicketsService] checklist:', checklist);
+    this.logger.log(`[createTicket] checklist from data: ${JSON.stringify(checklist)}`);
+    this.logger.log(`[createTicket] checklistItems from data: ${JSON.stringify(checklistItems)}`);
     
     if (assignees && assignees.length > 0) {
       ticketData.assignedTo = assignees[0];
@@ -124,25 +161,15 @@ export class TicketsService {
     
     const checklistSrc = checklist || checklistItems || [];
     
-    console.log('[TicketsService] Creating ticket with:', {
-      title: ticketData.title,
-      priority: ticketData.priority,
-      type: ticketData.type,
-      customerId: ticketData.customerId,
-      assignees: ticketData.assignees,
-      estimatedHours: ticketData.estimatedHours,
-      tags: tags?.length,
-      checklist: checklistSrc?.length
-    });
-    
     const ticket = this.ticketsRepository.create({
       ...ticketData,
       ticketNumber,
       tenantId,
+      createdBy: userId,
+      source: ticketData.source || TicketSource.MANUAL,
     } as Partial<Ticket>);
     
     const savedTicket = await this.ticketsRepository.save(ticket);
-    console.log('[TicketsService] Ticket saved:', savedTicket.id, 'number:', ticketNumber, 'priority:', savedTicket.priority, 'customerId:', savedTicket.customerId);
 
     const tagSource = tags || tagLabels || [];
     if (tagSource.length > 0) {
@@ -167,37 +194,34 @@ export class TicketsService {
       await this.checklistRepository.save(checklistEntities);
     }
 
-    if (boardId) {
-      const columns = await this.kanbanService.findColumnsByBoard(boardId);
-      if (columns.length > 0) {
-        await this.kanbanService.createCard(tenantId, {
-          title: savedTicket.title,
-          description: savedTicket.description,
-          priority: savedTicket.priority,
-          type: savedTicket.type,
-          customerId: savedTicket.customerId,
-          assignees: savedTicket.assignedTo ? [savedTicket.assignedTo] : [],
-          estimatedHours: savedTicket.estimatedHours,
-          columnId: columns[0].id,
-          ticketId: savedTicket.id,
-          order: 0,
-        });
-      }
-    }
-
     return this.findById(savedTicket.id) as Promise<Ticket>;
   }
 
-  async update(id: string, data: UpdateTicketDto): Promise<Ticket> {
+  async update(id: string, userId: string, data: UpdateTicketDto): Promise<Ticket> {
     const ticket = await this.findById(id);
     if (!ticket) {
-      throw new NotFoundException('Ticket não encontrado');
+      throw new NotFoundException(`Ticket #${id} não encontrado`);
     }
 
     const { tags, checklist, tagLabels, checklistItems, attachments, assignees, ...ticketData } = data as any;
     
+    const previousStatus = ticket.status;
+    const previousAssignee = ticket.assignedTo;
+    
     if (assignees && assignees.length > 0) {
       ticketData.assignedTo = assignees[0];
+    }
+    
+    if (ticketData.status && ticketData.status !== previousStatus) {
+      ticketData.resolvedAt = ticketData.status === TicketStatus.RESOLVED ? new Date() : ticket.resolvedAt;
+      ticketData.closedAt = ticketData.status === TicketStatus.CLOSED ? new Date() : ticket.closedAt;
+      
+      if (!ticket.firstResponseAt && ticketData.assignedTo && ticketData.assignedTo !== previousAssignee) {
+        ticketData.firstResponseAt = new Date();
+      }
+      
+      await this.kanbanService.syncCardFromTicket(id, ticketData.status);
+      this.logger.log(`Sincronizando card do ticket ${id} para status ${ticketData.status}`);
     }
     
     Object.assign(ticket, ticketData);
@@ -238,9 +262,66 @@ export class TicketsService {
   async delete(id: string): Promise<void> {
     const ticket = await this.findById(id);
     if (!ticket) {
-      throw new NotFoundException('Ticket não encontrado');
+      throw new NotFoundException(`Ticket #${id} não encontrado`);
     }
-    await this.ticketsRepository.remove(ticket);
+    await this.ticketsRepository.softRemove(ticket);
+  }
+
+  async restore(id: string): Promise<Ticket> {
+    const ticket = await this.findById(id, true);
+    if (!ticket || ticket.deletedAt) {
+      throw new NotFoundException(`Ticket #${id} não encontrado ou não excluído`);
+    }
+    await this.ticketsRepository.restore(id);
+    return this.findById(id);
+  }
+
+  async assignTicket(ticketId: string, userId: string, assigneeId: string): Promise<Ticket> {
+    const ticket = await this.findById(ticketId);
+    if (!ticket) {
+      throw new NotFoundException(`Ticket #${ticketId} não encontrado`);
+    }
+    
+    ticket.assignedTo = assigneeId;
+    
+    if (!ticket.firstResponseAt) {
+      ticket.firstResponseAt = new Date();
+    }
+    
+    await this.ticketsRepository.save(ticket);
+    return this.findById(ticketId);
+  }
+
+  async changeStatus(ticketId: string, status: TicketStatus): Promise<Ticket> {
+    const ticket = await this.findById(ticketId);
+    if (!ticket) {
+      throw new NotFoundException(`Ticket #${ticketId} não encontrado`);
+    }
+    
+    const previousStatus = ticket.status;
+    ticket.status = status;
+    
+    if (status === TicketStatus.RESOLVED) {
+      ticket.resolvedAt = new Date();
+    } else if (status === TicketStatus.CLOSED) {
+      ticket.closedAt = new Date();
+    }
+    
+    await this.ticketsRepository.save(ticket);
+    
+    if (previousStatus !== status) {
+      await this.kanbanService.syncCardFromTicket(ticketId, status);
+      this.logger.log(`Status alterado: ticket ${ticketId} → ${status}, card sincronizado`);
+    }
+    
+    return this.findById(ticketId);
+  }
+
+  async addComment(ticketId: string, tenantId: string, comment: string, userId: string): Promise<void> {
+    const ticket = await this.findById(ticketId);
+    if (!ticket) {
+      throw new NotFoundException(`Ticket #${ticketId} não encontrado`);
+    }
   }
 
   async getChecklist(ticketId: string): Promise<TicketChecklist[]> {
@@ -296,6 +377,41 @@ export class TicketsService {
 
   async deleteAttachment(id: string): Promise<void> {
     await this.attachmentsRepository.delete(id);
+  }
+
+  async getStats(tenantId: string): Promise<TicketStats> {
+    const [byStatus, byPriority, byType] = await Promise.all([
+      this.countByStatus(tenantId),
+      this.getPriorityStats(tenantId),
+      this.getTypeStats(tenantId),
+    ]);
+
+    const resolvedTickets = await this.ticketsRepository.find({
+      where: { tenantId, status: TicketStatus.RESOLVED }
+    });
+    
+    let avgResolutionTime = 0;
+    if (resolvedTickets.length > 0) {
+      const totalTime = resolvedTickets.reduce((acc, t) => {
+        if (t.resolvedAt && t.createdAt) {
+          return acc + (t.resolvedAt.getTime() - t.createdAt.getTime());
+        }
+        return acc;
+      }, 0);
+      avgResolutionTime = totalTime / resolvedTickets.length / (1000 * 60 * 60);
+    }
+
+    const ticketsWithFirstResponse = await this.ticketsRepository.count({
+      where: { tenantId }
+    });
+
+    return {
+      byStatus,
+      byPriority,
+      byType,
+      avgResolutionTime: Math.round(avgResolutionTime * 10) / 10,
+      firstResponseRate: ticketsWithFirstResponse > 0 ? Math.round((ticketsWithFirstResponse / ticketsWithFirstResponse) * 100) : 0,
+    };
   }
 
   async countByStatus(tenantId: string): Promise<Record<TicketStatus, number>> {
@@ -366,5 +482,20 @@ export class TicketsService {
     });
 
     return counts;
+  }
+
+  private mapStatusToColumnTitle(status: TicketStatus): string {
+    const mapping: Record<TicketStatus, string> = {
+      [TicketStatus.OPEN]: 'pendente',
+      [TicketStatus.IN_PROGRESS]: 'fazer',
+      [TicketStatus.WAITING]: 'análise',
+      [TicketStatus.RESOLVED]: 'desenvolvimento',
+      [TicketStatus.CLOSED]: 'finalizado',
+    };
+    return mapping[status] || 'pendente';
+  }
+
+  async syncKanbanCard(ticketId: string, ticketStatus: TicketStatus): Promise<void> {
+    await this.kanbanService.syncCardFromTicket(ticketId, ticketStatus);
   }
 }

@@ -16,7 +16,10 @@ export interface IContactPerson {
 
 @Entity('customers')
 @Index('idx_customers_tenant_email', ['tenantId', 'email'])
-@Index('idx_customers_tenant', ['tenantId'])
+@Index('idx_customers_tenant_status', ['tenantId', 'status'])
+@Index('idx_customers_tenant_type', ['tenantId', 'type'])
+@Index('idx_customers_tenant_source', ['tenantId', 'source'])
+@Index('idx_customers_created_at', ['createdAt'])
 export class Customer {
   @PrimaryGeneratedColumn('uuid')
   id: string;

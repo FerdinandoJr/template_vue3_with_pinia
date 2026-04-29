@@ -127,15 +127,12 @@ const openCreateModal = () => {
 }
 
 const openEditModal = (customer: any) => {
-  console.log('[EDIT MODAL] customer:', JSON.stringify(customer, null, 2))
   customerToEdit.value = { ...customer }
   modalKey.value++
   isFormModalOpen.value = true
 }
 
 const handleSaveCustomer = async (data: any) => {
-  console.log('[handleSaveCustomer] data:', JSON.stringify(data, null, 2));
-  console.log('[handleSaveCustomer] customerToEdit:', JSON.stringify(customerToEdit.value, null, 2));
   if (customerToEdit.value && customerToEdit.value.id) {
     await store.updateCustomer(customerToEdit.value.id, data)
   } else {
@@ -145,7 +142,6 @@ const handleSaveCustomer = async (data: any) => {
 }
 
 const promptDeleteCustomer = (customer: any) => {
-  console.log('[DELETE] customer:', customer)
   customerUuidToDelete.value = customer.id
   customerToDeleteName.value = customer.tradeName || customer.companyName || customer.name || 'este cliente'
   isDeleteModalOpen.value = true
@@ -153,7 +149,6 @@ const promptDeleteCustomer = (customer: any) => {
 
 const confirmDeleteCustomer = async () => {
   if (customerUuidToDelete.value) {
-    console.log('[CONFIRM DELETE] id:', customerUuidToDelete.value)
     await store.deleteCustomer(customerUuidToDelete.value)
   }
   isDeleteModalOpen.value = false

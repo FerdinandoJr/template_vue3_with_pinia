@@ -1,5 +1,6 @@
-import { IsString, IsEmail, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsEmail, IsOptional, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { CustomerStatus } from '../data/customer.entity';
 
 export class CreateCustomerDto {
   @ApiProperty({ example: 'Empresa XYZ', required: false })
@@ -32,9 +33,9 @@ export class CreateCustomerDto {
   @IsString()
   address?: string;
 
-  @ApiProperty({ example: '12345678900', required: false })
+  @ApiProperty({ example: '12345678901234', required: false })
   @IsOptional()
-  @IsString()
+  @Matches(/^\d{11}|\d{14}$/, { message: 'Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)' })
   document?: string;
 
   @ApiProperty({ required: false })
@@ -57,10 +58,9 @@ export class CreateCustomerDto {
   @IsString()
   website?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, enum: CustomerStatus })
   @IsOptional()
-  @IsString()
-  status?: string;
+  status?: CustomerStatus;
 
   @ApiProperty({ required: false })
   @IsOptional()

@@ -12,9 +12,24 @@
       </el-tag>
     </div>
 
-    <h4 class="font-bold text-slate-800 text-sm mb-3 leading-tight line-clamp-2" :title="ticket?.title">
+    <h4 class="font-bold text-slate-800 text-sm mb-2 leading-tight line-clamp-2" :title="ticket?.title">
       {{ ticket?.title || 'Sem Título' }}
     </h4>
+
+    <div v-if="ticket?.tags?.length" class="flex flex-wrap gap-1 mb-3">
+      <el-tag
+        v-for="(tag, idx) in (ticket?.tags || []).slice(0, 3)"
+        :key="idx"
+        size="small"
+        :type="getTagType(tag)"
+        effect="plain"
+        class="!text-[10px] !px-1.5 !py-0 font-medium border-none">
+        {{ tag.label || tag.name || tag }}
+      </el-tag>
+      <el-tag v-if="(ticket?.tags?.length || 0) > 3" size="small" type="info" effect="plain" class="!text-[10px] !px-1.5 !py-0 font-medium border-none">
+        +{{ (ticket?.tags?.length || 0) - 3 }}
+      </el-tag>
+    </div>
 
     <div class="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
       <div class="flex items-center">
@@ -66,6 +81,18 @@ const getAllUsers = () => {
     return [currentUser, ...users];
   }
   return users;
+};
+
+const getTagType = (tag: any) => {
+  if (!tag) return 'info';
+  const label = tag.label || tag.name || '';
+  const colorClass = tag.colorClass || '';
+  if (colorClass.includes('red') || label === 'Bug') return 'danger';
+  if (colorClass.includes('pink') || label === 'Crítico') return 'danger';
+  if (colorClass.includes('orange') || label === 'Urgente') return 'warning';
+  if (colorClass.includes('green') || label === 'Nova Funcionalidade') return 'success';
+  if (colorClass.includes('blue') || label === 'Melhoria') return 'primary';
+  return 'info';
 };
 
 const displayAvatars = computed(() => {

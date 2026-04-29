@@ -393,21 +393,11 @@
 
         <div
           class="p-4 bg-white border-t border-slate-200 flex flex-col gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-30">
-          <div v-if="props.ticket && props.ticket.status === 'Pendente'"
-            class="bg-amber-50 p-3 rounded-lg border border-amber-200 flex items-start gap-2 mb-1">
-            <el-icon class="text-amber-500 mt-0.5">
-              <Warning />
-            </el-icon>
-            <div>
-              <p class="text-xs font-bold text-amber-800">Ticket Pendente</p>
-              <p class="text-[10px] text-amber-600 mt-0.5 leading-tight">Aguardando aprovação de um Desenvolvedor, Gerente ou Administrador.</p>
-            </div>
-          </div>
           <div class="flex flex-col sm:flex-row items-center gap-3 w-full">
             <el-button @click="handleClose" size="large" class="w-full sm:flex-1 !rounded-xl !h-12 !font-bold"> Cancelar
             </el-button>
-            <el-button type="success" size="large" :loading="loading" @click="handleApproveKanban"
-              v-if="canApprove"
+            <el-button type="success" size="large" :loading="loading" @click="handleApprove"
+              v-if="canApprove && (ticket?.status === 'Pendente' || ticket?.status === 'open' || form.status === 'Pendente')"
               class="w-full sm:flex-1 !rounded-xl !h-12 !font-black tracking-wide shadow-md">
               <el-icon class="mr-2"><Check /></el-icon> Aprovar
             </el-button>
@@ -415,7 +405,7 @@
               class="w-full sm:flex-1 !bg-blue-600 hover:!bg-blue-700 !border-none !rounded-xl !h-12 !font-black tracking-wide shadow-md shadow-blue-200">
               <el-icon class="mr-2">
                 <Check />
-              </el-icon> {{ isEditing ? 'Salvar' : 'Criar Ticket' }}
+              </el-icon> Salvar
             </el-button>
           </div>
         </div>
@@ -563,6 +553,34 @@ watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
       }
       delete ticketData.customer;
       Object.assign(form, ticketData);
+      
+      if (ticketData.checklist && Array.isArray(ticketData.checklist)) {
+        form.checklist = ticketData.checklist.map((item: any) => ({
+          title: item.title || item.text || '',
+          completed: item.completed ?? item.done ?? false
+        }));
+      }
+      
+      if (ticketData.tags && Array.isArray(ticketData.tags)) {
+        form.tags = ticketData.tags.map((tag: any) => {
+          if (typeof tag === 'object' && tag !== null) {
+            return {
+              id: tag.id || tag.name,
+              name: tag.name || tag.label || '',
+              type: tag.type || tag.color || 'info',
+              colorClass: tag.colorClass || ''
+            };
+          }
+          return { name: String(tag), type: 'info' };
+        });
+      }
+      
+      if (ticketData.assignees && Array.isArray(ticketData.assignees)) {
+        form.assignees = ticketData.assignees.map((a: any) => typeof a === 'object' ? a.id : a);
+      }
+      if (ticketData.assignee && ticketData.assignee.id && !form.assignees.includes(ticketData.assignee.id)) {
+        form.assignees = [ticketData.assignee.id];
+      }
 
       if (!props.ticket.boardId && kanbanStore.boards) {
         let foundBoardId = form.boardId;
@@ -680,31 +698,69 @@ const validateForm = () => {
   return isValid;
 };
 
+const mapStatusToEnum = (status: string): string => {
+  const s = String(status).toLowerCase();
+  if (s.includes('pendente') || s === 'open') return 'open';
+  if (s.includes('fazer') || s.includes('progress')) return 'in_progress';
+  if (s.includes('análise') || s.includes('waiting')) return 'waiting';
+  if (s.includes('desenvolvimento') || s.includes('resolved')) return 'resolved';
+  if (s.includes('finalizado') || s.includes('closed')) return 'closed';
+  return 'open';
+};
+
 const submit = () => {
   if (validateForm()) {
+    const statusEnum = mapStatusToEnum(form.status);
+    
+    const formattedTags = (form.tags || []).map((tag: any) => {
+      if (typeof tag === 'object' && tag !== null) {
+        return { name: tag.name || tag.label || String(tag), color: tag.color || tag.colorClass?.split(' ')[0]?.replace('bg-', '') || 'info' };
+      }
+      return { name: String(tag), color: 'info' };
+    });
+    
+    const formattedChecklist = (form.checklist || []).map((item: any) => {
+      if (typeof item === 'object') {
+        return { title: String(item.title || item.text || '').slice(0, 200), completed: item.completed || false };
+      }
+      return { title: String(item).slice(0, 200), completed: false };
+    });
+    
     const payload = {
+      ...(form.id ? { id: form.id } : {}),
+      ...(props.isKanban ? { cardId: form.id } : {}),
       title: form.title,
       description: form.description || '',
-      status: form.status || 'open',
-      priority: form.priority || 'low',
+      status: statusEnum,
+      priority: form.priority || 'medium',
       type: form.type || 'support',
       customerId: form.customerId,
       assignees: form.assignees || [],
       startDate: form.startDate || null,
       endDate: form.endDate || null,
       estimatedHours: typeof form.estimatedHours === 'number' ? form.estimatedHours : 2,
-      tags: form.tags || [],
-      checklist: form.checklist || [],
-      attachments: form.attachments || [],
+      tags: formattedTags,
+      checklist: formattedChecklist,
       boardId: form.boardId || null
     };
     
-    console.log('[submit] emit save with payload:', payload);
-    console.log('[submit] form.status:', form.status);
+    console.log('[submit] checklist formattedChecklist:', formattedChecklist);
+    console.log('[submit] full payload:', JSON.stringify(payload));
     
     emit('save', payload);
   } else {
     ElMessage.warning('Preencha todos os campos obrigatórios marcados em vermelho.');
+  }
+};
+
+const handleApprove = () => {
+  if (validateForm()) {
+    const targetCol = kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('fazer'));
+    form.status = targetCol?.title || 'A Fazer';
+    
+    submit();
+  } else {
+    ElMessage.warning('Revise os detalhes pendentes do Ticket antes de aprovar.');
   }
 };
 

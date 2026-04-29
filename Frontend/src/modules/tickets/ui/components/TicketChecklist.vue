@@ -8,10 +8,10 @@
         <div class="space-y-2.5">
             <div v-for="(item, index) in items" :key="index"
                 class="flex items-center gap-3 group bg-white border border-slate-200 p-2.5 rounded-lg shadow-sm transition-all hover:border-slate-300">
-                <el-checkbox v-model="item.done" :disabled="readonly" @change="emitUpdate" />
-                <input v-model="item.text"
+                <el-checkbox v-model="item.completed" :disabled="readonly" @change="emitUpdate" />
+                <input v-model="item.title"
                     class="flex-1 bg-transparent border-none outline-none text-sm text-slate-700 transition-all placeholder-slate-400"
-                    :style="item.done ? { textDecoration: 'line-through', color: '#94a3b8' } : {}"
+                    :style="item.completed ? { textDecoration: 'line-through', color: '#94a3b8' } : {}"
                     placeholder="Descreva a tarefa..." :disabled="readonly" @input="emitUpdate" />
                 <el-button v-if="!readonly" link type="danger" size="small"
                     class="opacity-0 group-hover:opacity-100 transition-opacity" @click="removeItem(index)">
@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { List, Delete, Plus } from '@element-plus/icons-vue';
 
-interface ChecklistItem { text: string; done: boolean; }
+interface ChecklistItem { title: string; completed: boolean; }
 
 const props = defineProps<{
     items: ChecklistItem[];
@@ -49,7 +49,7 @@ const emitUpdate = () => {
 };
 
 const addItem = () => {
-    const updated = [...props.items, { text: '', done: false }];
+    const updated = [...props.items, { title: '', completed: false }];
     emit('update:items', updated);
 };
 

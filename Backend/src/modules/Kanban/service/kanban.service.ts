@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KanbanColumn, KanbanCard, KanbanBoard } from '../data/kanban.entity';
 import { CreateKanbanColumnDto, CreateKanbanCardDto, CreateKanbanBoardDto, UpdateKanbanBoardDto } from '../dto/create-kanban.dto';
+import { Ticket, TicketStatus } from '../../Tickets/data/ticket.entity';
 
 @Injectable()
 export class KanbanService {
@@ -112,6 +113,16 @@ export class KanbanService {
   }
 
   async createCard(tenantId: string, data: CreateKanbanCardDto): Promise<KanbanCard> {
+    if (data.tags) {
+      data.tags = data.tags.map((tag: any) => {
+        if (typeof tag === 'object' && tag !== null) {
+          const label = tag.label || tag.name || String(tag);
+          return { label: label === '[object Object]' ? 'Geral' : label, colorClass: tag.colorClass || 'bg-slate-100 text-slate-700' };
+        }
+        const label = String(tag);
+        return { label: label === '[object Object]' ? 'Geral' : label, colorClass: 'bg-slate-100 text-slate-700' };
+      });
+    }
     const card = this.cardsRepository.create({ ...data, tenantId });
     return this.cardsRepository.save(card);
   }
@@ -119,6 +130,21 @@ export class KanbanService {
   async updateCard(id: string, data: Partial<CreateKanbanCardDto>): Promise<KanbanCard> {
     const card = await this.cardsRepository.findOne({ where: { id } });
     if (!card) throw new NotFoundException('Card não encontrado');
+    
+    if (data.tags) {
+      data.tags = data.tags.map((tag: any) => {
+        if (typeof tag === 'object' && tag !== null) {
+          const label = tag.label || tag.name || String(tag);
+          if (label === '[object Object]' || label === '[Sem Tag]') {
+            return { label: 'Geral', colorClass: 'bg-slate-100 text-slate-700' };
+          }
+          return { label, colorClass: tag.colorClass || 'bg-slate-100 text-slate-700' };
+        }
+        const label = String(tag);
+        return { label: label === '[object Object]' ? 'Geral' : label, colorClass: 'bg-slate-100 text-slate-700' };
+      });
+    }
+    
     Object.assign(card, data);
     return this.cardsRepository.save(card);
   }
@@ -150,5 +176,78 @@ export class KanbanService {
       this.cardsRepository.update(id, { order: index, columnId })
     );
     await Promise.all(queries);
+  }
+
+  async syncCardFromTicket(ticketId: string, ticketStatus: TicketStatus): Promise<KanbanCard | null> {
+    const card = await this.cardsRepository.findOne({ where: { ticketId } });
+    if (!card) {
+      this.logger.warn(`Card não encontrado para ticketId: ${ticketId}`);
+      return null;
+    }
+
+    const column = await this.columnsRepository.findOne({ where: { id: card.columnId } });
+    if (!column) return card;
+
+    const newStatus = this.mapTicketStatusToColumnTitle(ticketStatus);
+    
+    if (column.title !== newStatus) {
+      const targetColumn = await this.columnsRepository.findOne({
+        where: { boardId: card.boardId, title: newStatus }
+      });
+      
+      if (targetColumn) {
+        card.columnId = targetColumn.id;
+        await this.cardsRepository.save(card);
+        this.logger.log(`Card sincronizado: ticket ${ticketId} → coluna ${newStatus}`);
+      }
+    }
+
+    return card;
+  }
+
+  async syncTicketFromCard(cardId: string): Promise<{ ticketId: string; status: TicketStatus } | null> {
+    const card = await this.cardsRepository.findOne({ where: { id: cardId } });
+    if (!card || !card.ticketId) {
+      return null;
+    }
+
+    const column = await this.columnsRepository.findOne({ where: { id: card.columnId } });
+    if (!column) {
+      return null;
+    }
+
+    const ticketStatus = this.mapColumnTitleToTicketStatus(column.title);
+    
+    return {
+      ticketId: card.ticketId,
+      status: ticketStatus,
+    };
+  }
+
+  async findCardByTicketId(ticketId: string): Promise<KanbanCard | null> {
+    return this.cardsRepository.findOne({ where: { ticketId } });
+  }
+
+  private mapTicketStatusToColumnTitle(ticketStatus: TicketStatus): string {
+    const mapping: Record<TicketStatus, string> = {
+      [TicketStatus.OPEN]: 'Pendente',
+      [TicketStatus.IN_PROGRESS]: 'A Fazer',
+      [TicketStatus.WAITING]: 'Análise',
+      [TicketStatus.RESOLVED]: 'Desenvolvimento',
+      [TicketStatus.CLOSED]: 'Finalizado',
+    };
+    return mapping[ticketStatus] || 'Pendente';
+  }
+
+  private mapColumnTitleToTicketStatus(columnTitle: string): TicketStatus {
+    const title = columnTitle.toLowerCase();
+    
+    if (title.includes('pendente') || title.includes('open')) return TicketStatus.OPEN;
+    if (title.includes('fazer') || title.includes('progress')) return TicketStatus.IN_PROGRESS;
+    if (title.includes('análise') || title.includes('waiting')) return TicketStatus.WAITING;
+    if (title.includes('desenvolvimento') || title.includes('resolved')) return TicketStatus.RESOLVED;
+    if (title.includes('finalizado') || title.includes('closed')) return TicketStatus.CLOSED;
+    
+    return TicketStatus.OPEN;
   }
 }

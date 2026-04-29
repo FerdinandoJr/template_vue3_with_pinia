@@ -312,20 +312,23 @@ const formatPhone = (phone?: string) => {
     return phone;
 };
 
-const loadCustomer = () => {
+const loadCustomer = async () => {
     const id = route.params.id as string;
-    console.log('[loadCustomer] id:', id, 'items:', store.items.map(c => ({ id: c.id, name: c.name })));
-    const found = store.items.find(c => c.id === id);
-    if (found) {
-        customer.value = JSON.parse(JSON.stringify(found));
-    } else {
-        ElMessage.error('Cliente não encontrado.');
+    try {
+        const data = await store.fetchById(id);
+        if (data) {
+            customer.value = data;
+        } else {
+            ElMessage.error('Cliente não encontrado.');
+            router.push('/customer');
+        }
+    } catch (error) {
+        ElMessage.error('Erro ao carregar cliente.');
         router.push('/customer');
     }
 };
 
 const handleUpdate = async (updatedData: any) => {
-    console.log('[handleUpdate] updatedData:', updatedData);
     await store.updateCustomer(updatedData.id, updatedData);
     ElMessage.success('Cadastro atualizado com sucesso!');
     isModalOpen.value = false;
@@ -339,7 +342,6 @@ const loadServices = async () => {
         const allServices = await serviceServices.list({ customerId: customer.value.id });
         services.value = allServices;
     } catch (error) {
-        console.error('[loadServices] error:', error);
         services.value = [];
     } finally {
         loadingServices.value = false;
@@ -370,15 +372,8 @@ const getStatusLabel = (status?: string) => {
 };
 
 onMounted(() => {
-    if (store.items.length === 0) {
-        store.fetch().then(() => {
-            loadCustomer();
-            loadServices();
-        });
-    } else {
-        loadCustomer();
-        loadServices();
-    }
+    loadCustomer();
+    loadServices();
 });
 </script>
 

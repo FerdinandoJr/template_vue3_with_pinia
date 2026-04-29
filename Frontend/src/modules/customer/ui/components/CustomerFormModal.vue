@@ -228,14 +228,12 @@ onMounted(() => {
 })
 
 watch([() => props.isOpen, () => props.customerData], ([val, data]) => {
-    console.log('[MODAL WATCH] isOpen:', val, 'customerData:', data)
     if (val && data) {
         activeTab.value = 'general'
         if (formRef.value) formRef.value.clearValidate()
         sourceStore.fetchSources()
 
         if (props.customerData && props.customerData.id) {
-            console.log('[MODAL WATCH] customerData:', JSON.stringify(props.customerData, null, 2))
             form.uuid = props.customerData.id || ''
             form.name = props.customerData.name || ''
             form.companyName = props.customerData.companyName || ''
@@ -263,8 +261,7 @@ watch([() => props.isOpen, () => props.customerData], ([val, data]) => {
             } else {
                 form.type = 'PJ'
             }
-        } else if (data && !data.id) {
-            console.log('[MODAL WATCH] Novo cliente')
+            } else if (data && !data.id) {
             form.uuid = ''
             form.type = 'PJ'
             form.name = ''
@@ -393,12 +390,11 @@ const submit = async () => {
                 form.companyName = form.name;
             }
 
+            const { uuid, ...formRest } = form;
             const payload = {
-                id: form.uuid,
-                ...form
-            }
-            delete payload.uuid;
-            console.log('[SUBMIT] payload:', JSON.stringify(payload, null, 2))
+                id: uuid,
+                ...formRest
+            };
             emit('save', payload)
         } else {
             ElMessage.warning('Por favor, preencha todos os campos obrigatórios.')

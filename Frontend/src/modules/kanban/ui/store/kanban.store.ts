@@ -39,13 +39,20 @@ export const useKanbanStore = defineStore('kanban', {
           await this.createDefaultBoard();
         } else {
           const authStore = useAuthStore();
-          const defaultBoardId = authStore.user?.defaultBoardId;
+          
+          let defaultBoardId = authStore.user?.defaultBoardId;
+          if (!defaultBoardId) {
+            defaultBoardId = localStorage.getItem('lastBoardId');
+          }
+          console.log('[KanbanStore] defaultBoardId:', defaultBoardId);
           
           if (defaultBoardId && this.boards.some(b => b.id === defaultBoardId)) {
             this.activeBoardId = defaultBoardId;
-          } else if (!this.activeBoardId) {
+          } else if (!this.activeBoardId && this.boards.length > 0) {
             this.activeBoardId = this.boards[0].id;
+            localStorage.setItem('lastBoardId', this.activeBoardId);
           }
+          console.log('[KanbanStore] activeBoardId set to:', this.activeBoardId);
         }
       } catch (error) {
         console.error("Erro ao carregar dados do Kanban:", error);
@@ -200,6 +207,11 @@ export const useKanbanStore = defineStore('kanban', {
       } catch (error) {
         console.error("Erro ao reordenar colunas:", error);
       }
+    },
+
+    setActiveBoard(boardId: string) {
+      this.activeBoardId = boardId;
+      localStorage.setItem('lastBoardId', boardId);
     }
   }
 });

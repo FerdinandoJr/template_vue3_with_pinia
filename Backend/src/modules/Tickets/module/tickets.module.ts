@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TicketsController } from '../controller/tickets.controller';
 import { TicketsService } from '../service/tickets.service';
@@ -11,7 +11,7 @@ import { KanbanModule } from '../../Kanban/module/kanban.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Ticket, TicketTag, TicketChecklist, TicketAttachment]),
-    KanbanModule
+    forwardRef(() => KanbanModule)
   ],
   controllers: [TicketsController],
   providers: [TicketsService],

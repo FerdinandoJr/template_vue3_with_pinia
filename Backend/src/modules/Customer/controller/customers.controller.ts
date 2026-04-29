@@ -2,31 +2,41 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req 
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CustomersService } from '../service/customer.service';
 import { AuthGuard } from '../../../core/guards/auth.guard';
+import { TenantGuard } from '../../../core/guards/tenant.guard';
 import { CreateCustomerDto } from '../dto/create-customer.dto';
 import { UpdateCustomerDto } from '../dto/update-customer.dto';
 
 @ApiTags('Customers')
 @Controller('customers')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, TenantGuard)
 @ApiBearerAuth()
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @Get()
   @ApiOperation({ summary: 'Listar clientes' })
-  async findAll(@Req() req: any, @Query('q') query?: string) {
-    const data = await this.customersService.findAll(req.tenantId, query);
+  async findAll(
+    @Req() req: any, 
+    @Query('q') query?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    const result = await this.customersService.findAll(req.tenantId, query, pageNum, limitNum);
     return {
       success: true,
-      data,
+      data: result.data,
+      total: result.total,
+      filteredTotal: result.filteredTotal,
       timestamp: new Date().toISOString(),
     };
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Buscar cliente por ID' })
-  async findOne(@Param('id') id: string) {
-    return this.customersService.findById(id);
+  async findOne(@Param('id') id: string, @Req() req: any) {
+    return this.customersService.findById(id, req.tenantId);
   }
 
   @Post()
@@ -37,13 +47,13 @@ export class CustomersController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Atualizar cliente' })
-  async update(@Param('id') id: string, @Body() data: UpdateCustomerDto) {
-    return this.customersService.update(id, data);
+  async update(@Param('id') id: string, @Req() req: any, @Body() data: UpdateCustomerDto) {
+    return this.customersService.update(id, req.tenantId, data);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Excluir cliente' })
-  async delete(@Param('id') id: string) {
-    return this.customersService.delete(id);
+  async delete(@Param('id') id: string, @Req() req: any) {
+    return this.customersService.delete(id, req.tenantId);
   }
 }

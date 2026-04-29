@@ -1,4 +1,5 @@
 import type { IServiceItem, IServiceHistory } from "../domain/entities/service.entity";
+export type { IServiceItem, IServiceHistory };
 import { httpClient } from "@/core/infra/HttpClient";
 
 interface ApiResponse<T> {

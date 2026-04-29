@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index, OneToMany, DeleteDateColumn } from 'typeorm';
 import { Tenant } from '../../../database/postgres/tenant.entity';
 import { Customer } from '../../Customer/data/customer.entity';
 import { User } from '../../../database/postgres/user.entity';
@@ -28,11 +28,24 @@ export enum TicketType {
   INTERNAL = 'internal',
 }
 
+export enum TicketSource {
+  EMAIL = 'email',
+  WHATSAPP = 'whatsapp',
+  PORTAL = 'portal',
+  PHONE = 'phone',
+  CHAT = 'chat',
+  MANUAL = 'manual',
+}
+
 @Entity('tickets')
 @Index('idx_tickets_tenant', ['tenantId'])
 @Index('idx_tickets_customer', ['customerId'])
 @Index('idx_tickets_assignee', ['assignedTo'])
 @Index('idx_tickets_number', ['tenantId', 'ticketNumber'])
+@Index('idx_tickets_status', ['status'])
+@Index('idx_tickets_priority', ['priority'])
+@Index('idx_tickets_created', ['createdAt'])
+@Index('idx_tickets_sla_deadline', ['slaDeadline'])
 export class Ticket {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -46,6 +59,9 @@ export class Ticket {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Column({ type: 'text', nullable: true })
+  internalNotes: string;
+
   @Column({ type: 'enum', enum: TicketStatus, default: TicketStatus.OPEN })
   status: TicketStatus;
 
@@ -55,11 +71,32 @@ export class Ticket {
   @Column({ type: 'enum', enum: TicketType, default: TicketType.SUPPORT })
   type: TicketType;
 
+  @Column({ type: 'enum', enum: TicketSource, default: TicketSource.MANUAL })
+  source: TicketSource;
+
   @Column({ type: 'timestamp', nullable: true })
   startDate: Date;
 
   @Column({ type: 'timestamp', nullable: true })
   endDate: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resolvedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  closedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  firstResponseAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  slaFirstResponse: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  slaDeadline: Date;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  actualHours: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   estimatedHours: number;
@@ -77,6 +114,13 @@ export class Ticket {
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'assignedTo' })
   assignee: User;
+
+  @Column({ type: 'uuid', nullable: true })
+  createdBy: string;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'createdBy' })
+  creator: User;
 
   @Column({ type: 'uuid', nullable: true })
   tenantId: string;
@@ -99,4 +143,7 @@ export class Ticket {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamp' })
+  deletedAt: Date;
 }

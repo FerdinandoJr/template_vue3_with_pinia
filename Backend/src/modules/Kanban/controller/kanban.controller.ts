@@ -1,15 +1,21 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, Inject, forwardRef } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { KanbanService } from '../service/kanban.service';
 import { AuthGuard } from '../../../core/guards/auth.guard';
-import { CreateKanbanColumnDto, CreateKanbanCardDto, CreateKanbanBoardDto, UpdateKanbanBoardDto } from '../dto/create-kanban.dto';
+import { CreateKanbanColumnDto, CreateKanbanCardDto, CreateKanbanBoardDto, UpdateKanbanBoardDto, UpdateKanbanCardDto } from '../dto/create-kanban.dto';
+import { TicketsService } from '../../Tickets/service/tickets.service';
+import { TicketStatus } from '../../Tickets/data/ticket.entity';
 
 @ApiTags('Kanban')
 @Controller('kanban')
 @UseGuards(AuthGuard)
 @ApiBearerAuth()
 export class KanbanController {
-  constructor(private readonly kanbanService: KanbanService) {}
+  constructor(
+    private readonly kanbanService: KanbanService,
+    @Inject(forwardRef(() => TicketsService))
+    private readonly ticketsService: TicketsService,
+  ) {}
 
   @Get('boards')
   @ApiOperation({ summary: 'Listar quadros' })
@@ -32,7 +38,6 @@ export class KanbanController {
   @Delete('boards/:id')
   @ApiOperation({ summary: 'Excluir quadro' })
   async deleteBoard(@Param('id') id: string) {
-    console.log('[KanbanController] deleteBoard chamado para id:', id);
     await this.kanbanService.deleteBoard(id);
     return { success: true };
   }
@@ -85,12 +90,6 @@ export class KanbanController {
     return this.kanbanService.createCard(req.tenantId, data);
   }
 
-  @Put('cards/:id')
-  @ApiOperation({ summary: 'Atualizar card' })
-  async updateCard(@Param('id') id: string, @Body() data: Partial<CreateKanbanCardDto>) {
-    return this.kanbanService.updateCard(id, data);
-  }
-
   @Delete('cards/:id')
   @ApiOperation({ summary: 'Excluir card' })
   async deleteCard(@Param('id') id: string) {
@@ -98,12 +97,36 @@ export class KanbanController {
   }
 
   @Put('cards/:id/move')
-  @ApiOperation({ summary: 'Mover card para outra coluna' })
+  @ApiOperation({ summary: 'Mover card para outra coluna (sincroniza ticket)' })
   async moveCard(
     @Param('id') id: string, 
     @Body() data: { targetColumnId: string; targetOrder: number }
   ) {
-    return this.kanbanService.moveCard(id, data.targetColumnId, data.targetOrder);
+    const card = await this.kanbanService.moveCard(id, data.targetColumnId, data.targetOrder);
+    
+    if (card.ticketId) {
+      const syncData = await this.kanbanService.syncTicketFromCard(id);
+      if (syncData) {
+        await this.ticketsService.changeStatus(syncData.ticketId, syncData.status);
+      }
+    }
+    
+    return card;
+  }
+
+  @Put('cards/:id')
+  @ApiOperation({ summary: 'Atualizar card (sincroniza ticket se houver)' })
+  async updateCard(@Param('id') id: string, @Body() data: UpdateKanbanCardDto) {
+    const card = await this.kanbanService.updateCard(id, data);
+    
+    if (card.ticketId && data.columnId) {
+      const syncData = await this.kanbanService.syncTicketFromCard(id);
+      if (syncData) {
+        await this.ticketsService.changeStatus(syncData.ticketId, syncData.status);
+      }
+    }
+    
+    return card;
   }
 
   @Put('columns/:columnId/cards/reorder')

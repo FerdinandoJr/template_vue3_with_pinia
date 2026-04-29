@@ -24,7 +24,7 @@
                             class="flex items-center justify-between p-1.5 rounded-md hover:bg-slate-50 group border border-transparent hover:border-slate-100">
                             <div class="flex items-center gap-2 cursor-pointer flex-1" @click="toggleTag(tag.name)">
                                 <el-checkbox :model-value="isChecked(tag)" size="small" />
-                                <el-tag size="small" :type="tag.type as any" effect="light" round
+                                <el-tag size="small" :type="getTagType(tag) as any" effect="light" round
                                     class="!border-0 font-bold">{{
                                     tag.name }}</el-tag>
                             </div>
@@ -72,7 +72,7 @@
         </div>
 
         <div class="flex flex-wrap gap-2">
-            <el-tag v-for="(tag, index) in normalizedSelectedTags" :key="index" :type="tag.type as any" closable
+            <el-tag v-for="(tag, index) in normalizedSelectedTags" :key="index" :type="getTagType(tag) as any" closable
                 @close="toggleTag(tag.originalValue)" size="default" effect="light" round
                 class="font-semibold !border-none shadow-sm">{{ tag.name }}</el-tag>
             <span v-if="normalizedSelectedTags.length === 0"
@@ -126,12 +126,30 @@ const normalizedSelectedTags = computed(() => {
         }
         if (typeof val === 'object' && val !== null) {
             const name = val.label || val.name || String(val);
-            const type = val.type || val.colorClass?.split(' ')[0]?.replace('bg-', '').replace('-100', '') || 'info';
-            return { id: val.id || name, name, type, originalValue: val };
+            let colorStr = val.color || val.colorClass?.split(' ')[0]?.replace('bg-', '').replace('-100', '') || 'info';
+            if (name === 'Bug') colorStr = 'danger';
+            else if (name === 'Crítico') colorStr = 'danger';
+            else if (name === 'Urgente') colorStr = 'warning';
+            else if (name === 'Nova Funcionalidade') colorStr = 'success';
+            else if (name === 'Melhoria') colorStr = 'info';
+            if (colorStr === 'pink' || colorStr === '') colorStr = 'info';
+            return { id: val.id || name, name, type: colorStr, originalValue: val };
         }
         return { id: 'unknown', name: String(val), type: 'info', originalValue: val };
     });
 });
+
+const getTagType = (tag: any) => {
+    const validTypes = ['primary', 'success', 'info', 'warning', 'danger'];
+    if (!tag) return 'info';
+    if (tag.type && validTypes.includes(tag.type)) return tag.type;
+    const name = (tag.name || tag.label || '').toLowerCase();
+    if (name.includes('bug') || name.includes('crítico') || name.includes('critico')) return 'danger';
+    if (name.includes('urgente')) return 'warning';
+    if (name.includes('nova funcionalidade') || name.includes('funcionalidade')) return 'success';
+    if (name.includes('melhoria') || name.includes('melhoria')) return 'info';
+    return 'info';
+};
 
 const isChecked = (tag: any) => {
     return props.selectedTags?.some(val => {
