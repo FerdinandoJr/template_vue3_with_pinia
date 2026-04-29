@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsUUID, IsArray, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateKanbanBoardDto {
@@ -33,6 +33,11 @@ export class CreateKanbanColumnDto {
   @IsOptional()
   @IsString()
   color?: string;
+
+  @ApiProperty({ example: 5, required: false })
+  @IsOptional()
+  @IsNumber()
+  wipLimit?: number;
 }
 
 export class CreateKanbanCardDto {
@@ -49,8 +54,53 @@ export class CreateKanbanCardDto {
   @IsUUID()
   columnId: string;
 
+  @ApiProperty({ example: 'uuid-do-board', required: false })
+  @IsOptional()
+  @IsUUID()
+  boardId?: string;
+
   @ApiProperty({ example: 'uuid-do-ticket', required: false })
   @IsOptional()
   @IsUUID()
   ticketId?: string;
+
+  @ApiProperty({ example: 0, required: false })
+  @IsOptional()
+  @IsNumber()
+  order?: number;
+
+  @ApiProperty({ example: 'urgent', required: false })
+  @IsOptional()
+  @IsString()
+  priority?: string;
+
+  @ApiProperty({ example: 'feature', required: false })
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @ApiProperty({ example: 'uuid-do-cliente', required: false })
+  @IsOptional()
+  @IsUUID()
+  customerId?: string;
+
+  @ApiProperty({ example: ['uuid1', 'uuid2'], required: false })
+  @IsOptional()
+  @IsArray()
+  assignees?: string[];
+
+  @ApiProperty({ example: 2.5, required: false })
+  @IsOptional()
+  @IsNumber()
+  estimatedHours?: number;
+
+  @ApiProperty({ example: [], required: false })
+  @IsOptional()
+  @IsArray()
+  tags?: any[];
+
+  @ApiProperty({ example: [], required: false })
+  @IsOptional()
+  @IsArray()
+  checklist?: any[];
 }

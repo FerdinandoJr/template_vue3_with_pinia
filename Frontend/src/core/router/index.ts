@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
-import { isTokenValid } from '@/util/jwt';
+import { isTokenValid } from '@/utils/jwt';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 const routes: Array<RouteRecordRaw> = [
@@ -45,7 +45,7 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Relatorios',
         component: () => import('@/modules/reports/ui/views/ReportsPage.vue')
       },
-{
+      {
         path: 'customer',
         name: 'Customer',
         component: () => import('@/modules/customer/ui/views/CustomerPage.vue'),
@@ -64,10 +64,16 @@ const routes: Array<RouteRecordRaw> = [
         meta: { moduleAccess: 'chats' }
       },
       {
-        path: 'atendimentos',
-        name: 'Atendimentos',
+        path: 'service',
+        name: 'Service',
+        component: () => import('@/modules/service/ui/views/ServiceRecordsPage.vue'),
+        meta: { moduleAccess: 'service' }
+      },
+      {
+        path: 'tickets',
+        name: 'Tickets',
         component: () => import('@/modules/tickets/ui/views/TicketsPage.vue'),
-        meta: { moduleAccess: 'atendimentos' }
+        meta: { moduleAccess: 'tickets' }
       },
       {
         path: 'kanban',

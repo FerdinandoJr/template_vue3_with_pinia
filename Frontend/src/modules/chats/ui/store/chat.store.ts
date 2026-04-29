@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import type { IContact, IMessage } from '../../data/chat.services';
 import { ChatFilter, ChatSortOption, MessageType } from '../../domain/valueObjects/chat-enums';
 import type { SendMessageDTO } from '../../domain/dto/chat.dto';
-import { getTimeWeight } from '../../../../util/helpers';
+import { getTimeWeight } from '../../../../utils/helpers';
 import { chatServices } from '../../data/chat.services';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import { ElNotification } from 'element-plus';
@@ -275,16 +275,16 @@ export const useChatStore = defineStore('chat', () => {
 
   function initSlaMonitor() {
     if (slaInterval) clearInterval(slaInterval);
-    
+
     slaInterval = setInterval(() => {
       const authStore = useAuthStore();
       const userRole = authStore.user?.role;
       if (userRole !== 'ADMIN' && userRole !== 'MANAGER') return;
-      
+
       const now = Date.now();
       const QUEUE_LIMIT = 15 * 60 * 1000;
       const SERVICE_LIMIT = 30 * 60 * 1000;
-      
+
       contacts.value.forEach(contact => {
         if (contact.status === 'queued' && contact.createdAt && !contact.slaNotifiedQueued) {
           if (now - contact.createdAt > QUEUE_LIMIT) {
@@ -300,7 +300,7 @@ export const useChatStore = defineStore('chat', () => {
             });
           }
         }
-        
+
         if (contact.status === 'in_progress' && contact.serviceStartedAt && !contact.slaNotifiedService) {
           if (now - contact.serviceStartedAt > SERVICE_LIMIT) {
             contact.slaNotifiedService = true;

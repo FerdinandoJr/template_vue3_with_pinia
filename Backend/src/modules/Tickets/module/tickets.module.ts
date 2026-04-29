@@ -6,10 +6,12 @@ import { Ticket } from '../data/ticket.entity';
 import { TicketTag } from '../data/ticket-tag.entity';
 import { TicketChecklist } from '../data/ticket-checklist.entity';
 import { TicketAttachment } from '../data/ticket-attachment.entity';
+import { KanbanModule } from '../../Kanban/module/kanban.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Ticket, TicketTag, TicketChecklist, TicketAttachment])
+    TypeOrmModule.forFeature([Ticket, TicketTag, TicketChecklist, TicketAttachment]),
+    KanbanModule
   ],
   controllers: [TicketsController],
   providers: [TicketsService],

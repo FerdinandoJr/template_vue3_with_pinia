@@ -27,7 +27,7 @@ export const useRolesStore = defineStore('roles', {
     async fetchRoles() {
       this.loading = true;
       try {
-        const response = await httpClient.get<ApiResponse<Role[]>>('/roles');
+        const response: ApiResponse<Role[]> = await httpClient.get('/roles');
         this.roles = response.data;
       } catch (error) {
         console.error('Erro ao carregar cargos:', error);
@@ -37,13 +37,13 @@ export const useRolesStore = defineStore('roles', {
     },
 
     async createRole(data: { name: string; color?: string }) {
-      const response = await httpClient.post<ApiResponse<Role>>('/roles', data);
+      const response: ApiResponse<Role> = await httpClient.post('/roles', data);
       this.roles.push(response.data);
       return response.data;
     },
 
     async updateRole(id: string, data: Partial<Role>) {
-      const response = await httpClient.put<ApiResponse<Role>>(`/roles/${id}`, data);
+      const response: ApiResponse<Role> = await httpClient.put(`/roles/${id}`, data);
       const index = this.roles.findIndex(r => r.id === id);
       if (index !== -1) {
         this.roles[index] = response.data;
@@ -57,13 +57,13 @@ export const useRolesStore = defineStore('roles', {
     },
 
     async reorderRoles(roleIds: string[]) {
-      const response = await httpClient.post<ApiResponse<Role[]>>('/roles/reorder', roleIds);
+      const response: ApiResponse<Role[]> = await httpClient.post('/roles/reorder', roleIds);
       this.roles = response.data;
     },
 
     async fetchUserRoles(userId: string) {
       try {
-        const response = await httpClient.get<ApiResponse<Role[]>>(`/roles/user/${userId}`);
+        const response: ApiResponse<Role[]> = await httpClient.get(`/roles/user/${userId}`);
         this.userRoles[userId] = response.data;
         return response.data;
       } catch (error) {

@@ -67,7 +67,7 @@ const currentFilters = ref<any>({
 });
 
 const openTickets = computed(() => store.items.filter((t: any) => t.status === 'open' || t.status === 'pending_approval').length);
-const inProgressTickets = computed(() => store.items.filter((t: any) => t.status === 'in-progress').length);
+const inProgressTickets = computed(() => store.items.filter((t: any) => t.status === 'in_progress').length);
 const resolvedTickets = computed(() => store.items.filter((t: any) => t.status === 'resolved').length);
 
 const handleFilter = (filters: any) => {
@@ -116,7 +116,7 @@ const handleApproveKanban = async (ticket: any) => {
         ticketId: ticket.id
       };
       await kanbanStore.addCard(kanbanCard);
-      await store.updateTicket(Number(ticket.id), { status: 'in-progress' });
+      await store.updateTicket(Number(ticket.id), { status: 'in_progress' });
       ElMessage.success('Enviado ao Kanban!');
       closeModal();
     }

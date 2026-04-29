@@ -32,7 +32,9 @@ export class KanbanController {
   @Delete('boards/:id')
   @ApiOperation({ summary: 'Excluir quadro' })
   async deleteBoard(@Param('id') id: string) {
-    return this.kanbanService.deleteBoard(id);
+    console.log('[KanbanController] deleteBoard chamado para id:', id);
+    await this.kanbanService.deleteBoard(id);
+    return { success: true };
   }
 
   @Get('columns')
@@ -93,5 +95,20 @@ export class KanbanController {
   @ApiOperation({ summary: 'Excluir card' })
   async deleteCard(@Param('id') id: string) {
     return this.kanbanService.deleteCard(id);
+  }
+
+  @Put('cards/:id/move')
+  @ApiOperation({ summary: 'Mover card para outra coluna' })
+  async moveCard(
+    @Param('id') id: string, 
+    @Body() data: { targetColumnId: string; targetOrder: number }
+  ) {
+    return this.kanbanService.moveCard(id, data.targetColumnId, data.targetOrder);
+  }
+
+  @Put('columns/:columnId/cards/reorder')
+  @ApiOperation({ summary: 'Reordenar cards em uma coluna' })
+  async reorderCards(@Param('columnId') columnId: string, @Body() cardIds: string[]) {
+    return this.kanbanService.reorderCardsInColumn(columnId, cardIds);
   }
 }

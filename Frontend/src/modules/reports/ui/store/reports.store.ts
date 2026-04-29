@@ -68,9 +68,11 @@ export const useReportsStore = defineStore('reports', {
             finishedChats++;
             totalServiceTime += (chat.accumulatedTime || 0);
 
-            const score = 4 + (Math.random());
-            totalScore += score;
-            ratedChats++;
+            const score = chat.satisfactionScore || 0;
+            if (score > 0) {
+              totalScore += score;
+              ratedChats++;
+            }
           }
         });
       }
@@ -131,8 +133,6 @@ export const useReportsStore = defineStore('reports', {
           if (!performance[agentId]) {
             let agentName = `Atendente ${agentId}`;
             if (agentId === '1') agentName = 'Admin (Você)';
-            if (agentId === '2') agentName = 'João Atendimento';
-            if (agentId === '3') agentName = 'Maria Vendas';
             if (agentId === '0') agentName = 'Não Atribuído / Fila';
 
             performance[agentId] = {
@@ -140,7 +140,8 @@ export const useReportsStore = defineStore('reports', {
               total: 0,
               finished: 0,
               time: 0,
-              satisfactionScore: agentId === '0' ? 0 : 4.2 + (Math.random() * 0.8) // Score realista
+              satisfactionScore: chat.satisfactionScore || 0,
+              scoreCount: chat.satisfactionScore ? 1 : 0
             };
           }
 
@@ -149,13 +150,19 @@ export const useReportsStore = defineStore('reports', {
           if (chat.status === 'finished') {
             performance[agentId].finished++;
             performance[agentId].time += (chat.accumulatedTime || 0);
+            
+            if (chat.satisfactionScore) {
+              performance[agentId].satisfactionScore += chat.satisfactionScore;
+              performance[agentId].scoreCount++;
+            }
           }
         });
       }
 
       return Object.values(performance).map(p => ({
         ...p,
-        avgTime: p.finished > 0 ? formatMs(p.time / p.finished) : '00:00'
+        avgTime: p.finished > 0 ? formatMs(p.time / p.finished) : '00:00',
+        satisfactionScore: p.scoreCount > 0 ? (p.satisfactionScore / p.scoreCount).toFixed(1) : '0.0'
       }));
     },
 

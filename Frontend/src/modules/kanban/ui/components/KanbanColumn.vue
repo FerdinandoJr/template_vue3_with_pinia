@@ -15,8 +15,19 @@
         <input v-model="localTitle" @blur="updateTitle" @keyup.enter="updateTitle"
           class="font-black text-[15px] text-slate-700 bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-500/20 rounded px-1 w-full truncate transition-all" />
         <div class="flex items-center gap-2 shrink-0">
-          <span class="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded-full">{{ cards.length
-            }}</span>
+          <el-popover trigger="click" :width="160">
+            <template #reference>
+              <span class="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded-full" :class="{ '!text-orange-600 !bg-orange-50': isWipExceeded, '!text-blue-600 !bg-blue-50': isWipNearLimit && !isWipExceeded }">
+                <template v-if="wipLimit">{{ cards.length }}/{{ wipLimit }}</template>
+                <template v-else>{{ cards.length }}</template>
+              </span>
+            </template>
+            <div class="p-2">
+              <p class="text-xs font-bold text-slate-600 mb-2">Limite WIP (Work In Progress)</p>
+              <el-input-number v-model="localWipLimit" :min="0" :max="20" size="small" class="!w-full" />
+              <el-button size="small" type="primary" class="!w-full mt-2" @click="saveWipLimit">Salvar</el-button>
+            </div>
+          </el-popover>
           <button @click="$emit('remove', columnId)"
             class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
             <el-icon>
@@ -27,10 +38,16 @@
       </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 custom-scrollbar" @dragover.prevent @drop="onDropColumn">
-      <KanbanCard v-for="card in cards" :key="card.id" :ticket="card" draggable="true"
-        @dragstart="onDragStart($event, card)" @drop.stop="onDropCard($event, card)"
-        @click="$emit('open-ticket', card)" />
+    <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 custom-scrollbar" :class="{ 'opacity-50': !canMove }" @dragover.prevent @drop="canMove ? onDropColumn($event) : null">
+      <KanbanCard 
+        v-for="card in cards" 
+        :key="card.id" 
+        :ticket="card" 
+        :draggable="canMove"
+        @dragstart="onDragStart($event, card)" 
+        @drop.stop="onDropCard($event, card)"
+        @click="$emit('open-ticket', card)" 
+      />
 
       <div v-if="cards.length === 0"
         class="h-24 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-xs font-bold pointer-events-none">
@@ -47,13 +64,14 @@ let scheduleDebounceTimer: any = null;
 </script>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { Close } from '@element-plus/icons-vue';
 import KanbanCard from './KanbanCard.vue';
-import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
 import { useKanbanStore } from '../store/kanban.store';
 import { useCalendarStore } from '@/modules/calendar/ui/store/calendar.store';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { kanbanServices } from '../../data/kanban.services';
+import { ticketServices } from '@/modules/tickets/data/ticket.services';
 
 let titleUpdateDebounce: any = null;
 
@@ -64,14 +82,32 @@ const props = defineProps<{
   title: string;
   color: string;
   cards: any[];
+  wipLimit?: number;
 }>();
 
-const emit = defineEmits(['update:title', 'remove', 'open-ticket']);
+const emit = defineEmits(['update:title', 'remove', 'open-ticket', 'update:wipLimit']);
 
-const ticketsStore = useTicketsStore() as any;
 const kanbanStore = useKanbanStore() as any;
 const calendarStore = useCalendarStore() as any;
 const authStore = useAuthStore() as any;
+
+const localWipLimit = ref(props.wipLimit || 0);
+
+const isWipExceeded = computed(() => props.wipLimit && props.cards.length >= props.wipLimit);
+const isWipNearLimit = computed(() => props.wipLimit && props.cards.length >= props.wipLimit * 0.8);
+
+const saveWipLimit = () => {
+  emit('update:wipLimit', localWipLimit.value);
+  kanbanStore.updateColumn(props.columnId, { wipLimit: localWipLimit.value });
+};
+
+const canMove = computed(() => {
+  const isApproved = props.title?.toLowerCase().includes('fazer') || 
+                   props.title?.toLowerCase().includes('análise') || 
+                   props.title?.toLowerCase().includes('desenvolvimento') ||
+                   props.title?.toLowerCase().includes('finalizado');
+  return authStore.hasRole(['Desenvolvedor', 'Gerente', 'Administrador']) || isApproved;
+});
 
 const localTitle = ref(props.title);
 
@@ -96,30 +132,34 @@ const setColor = (newColor: string) => {
 };
 
 const onDragStart = (event: DragEvent, ticket: any) => {
+  event.stopPropagation();
+  const idToSend = ticket.ticketId || ticket.id;
   if (event.dataTransfer) {
-    event.dataTransfer.setData('ticketId', String(ticket.id));
+    event.dataTransfer.setData('ticketId', String(idToSend));
+    event.dataTransfer.setData('type', 'card');
     event.dataTransfer.effectAllowed = 'move';
   }
 };
 
 const findCardInKanban = (id: string) => {
   for (const col of kanbanStore.columns) {
-    const index = col.cards.findIndex((c: any) => String(c.id) === id);
+    const index = col.cards.findIndex((c: any) => String(c.ticketId || c.id) === String(id));
     if (index !== -1) return { col, index, card: col.cards[index] };
   }
   return null;
 };
 
-const syncTicketBackend = async (id: string, newStatus: string) => {
+const syncTicketBackend = async (ticketId: string, newColumnId: string) => {
+  if (!ticketId) return;
+  
   try {
-    const ticketExists = ticketsStore.items?.find((t: any) => String(t.id) === String(id));
-    if (typeof ticketsStore.updateTicket === 'function') {
-      await ticketsStore.updateTicket(id, { status: newStatus });
-    } else if (typeof ticketsStore.update === 'function') {
-      await ticketsStore.update(id, { status: newStatus });
-    }
-  } catch (e: any) {
-    console.warn("Aviso: Sincronização via API falhou, mas seguindo com a agenda...", e);
+    const targetColumn = kanbanStore.columns.find((c: any) => c.id === newColumnId);
+    const newStatus = targetColumn?.title || 'Pendente';
+    
+    await ticketServices.update(ticketId, { status: newStatus });
+    console.log('[KanbanColumn] Ticket atualizado para status:', newStatus);
+  } catch (error) {
+    console.error('[KanbanColumn] Erro ao sincronizar ticket:', error);
   }
 };
 
@@ -245,14 +285,22 @@ const onDropColumn = async (event: DragEvent) => {
   const targetCol = kanbanStore.columns.find((c: any) => c.id === props.columnId);
 
   if (targetCol) {
-    draggedCard.status = props.columnId;
+    draggedCard.status = targetCol.title;
+    draggedCard.columnId = targetCol.id;
+    draggedCard.order = targetCol.cards.length;
     targetCol.cards.push(draggedCard);
+
+    try {
+      await kanbanServices.moveCard(draggedCard.id, targetCol.id, targetCol.cards.length - 1);
+      console.log('[KanbanColumn] Card movido com sucesso para:', targetCol.title);
+    } catch (error) {
+      console.error('[KanbanColumn] Erro ao mover card:', error);
+      sourceCol.cards.splice(draggedIndex, 0, draggedCard);
+      targetCol.cards.pop();
+    }
 
     if (typeof kanbanStore.saveBoard === 'function') kanbanStore.saveBoard();
 
-    syncTicketBackend(draggedCard.id, props.columnId);
-
-    // O watcher lá em cima já vai capturar a queda na coluna, porém chamamos por redundância (o debounce evita rodar 2x)
     const userId = authStore.user?.id || draggedCard.assignedTo || draggedCard.userId || '1';
     smartScheduleQueue(String(userId));
   }
@@ -279,12 +327,27 @@ const onDropCard = async (event: DragEvent, targetTicket: any) => {
   let targetIndex = targetCol.cards.findIndex((t: any) => String(t.id) === String(targetTicket.id));
   if (!isUpperHalf) targetIndex++;
 
-  draggedCard.status = props.columnId;
+  draggedCard.status = targetCol.title;
+  draggedCard.columnId = targetCol.id;
+  draggedCard.order = targetIndex;
   targetCol.cards.splice(targetIndex, 0, draggedCard);
+
+  try {
+    await kanbanServices.moveCard(draggedCard.id, targetCol.id, targetIndex);
+    await kanbanServices.reorderCardsInColumn(
+      targetCol.id, 
+      targetCol.cards.map((c: any) => c.id)
+    );
+    console.log('[KanbanColumn] Card movido para posição específica com sucesso');
+  } catch (error) {
+    console.error('[KanbanColumn] Erro ao mover card:', error);
+  }
 
   if (typeof kanbanStore.saveBoard === 'function') kanbanStore.saveBoard();
 
-  syncTicketBackend(draggedCard.id, props.columnId);
+  if (draggedCard.ticketId) {
+    syncTicketBackend(draggedCard.ticketId, props.columnId);
+  }
 
   const userId = authStore.user?.id || draggedCard.assignedTo || draggedCard.userId || '1';
   smartScheduleQueue(String(userId));

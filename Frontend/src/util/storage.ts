@@ -70,8 +70,8 @@ export async function getItem<T>(key: string, userId?: string): Promise<T | null
     const item = localStorage.getItem(storageKey);
     if (!item) return null;
 
-    const key = await getEncryptionKey();
-    const decrypted = await decrypt(item, key);
+    const cryptoKey = await getEncryptionKey();
+    const decrypted = await decrypt(item, cryptoKey);
     return JSON.parse(decrypted) as T;
   } catch {
     return null;
@@ -81,8 +81,8 @@ export async function getItem<T>(key: string, userId?: string): Promise<T | null
 export async function setItem<T>(key: string, value: T, userId?: string): Promise<void> {
   try {
     const storageKey = getStorageKey(key, userId);
-    const key = await getEncryptionKey();
-    const encrypted = await encrypt(JSON.stringify(value), key);
+    const cryptoKey = await getEncryptionKey();
+    const encrypted = await encrypt(JSON.stringify(value), cryptoKey);
     localStorage.setItem(storageKey, encrypted);
   } catch (error) {
     console.error(`Error saving to localStorage:`, error);

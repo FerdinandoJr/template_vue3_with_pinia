@@ -14,6 +14,17 @@ export class CreateTagDto {
   color?: string;
 }
 
+export class CreateTagFromFrontendDto {
+  @ApiProperty({ example: 'Bug' })
+  @IsString()
+  label: string;
+
+  @ApiProperty({ example: 'bg-red-100 text-red-700' })
+  @IsString()
+  @IsOptional()
+  colorClass?: string;
+}
+
 export class CreateChecklistItemDto {
   @ApiProperty({ example: 'Verificar logs' })
   @IsString()
@@ -25,7 +36,23 @@ export class CreateChecklistItemDto {
   completed?: boolean;
 }
 
+export class CreateChecklistItemFromFrontendDto {
+  @ApiProperty({ example: 'Verificar logs' })
+  @IsString()
+  text: string;
+
+  @ApiProperty({ example: false })
+  @IsBoolean()
+  @IsOptional()
+  done?: boolean;
+}
+
 export class CreateTicketDto {
+  @ApiProperty({ example: 'TKT-00001', required: false })
+  @IsOptional()
+  @IsString()
+  ticketNumber?: string;
+
   @ApiProperty({ example: 'Problema com login' })
   @IsString()
   title: string;
@@ -50,15 +77,20 @@ export class CreateTicketDto {
   @IsOptional()
   status?: TicketStatus;
 
-  @ApiProperty({ example: 'uuid-do-cliente' })
-  @IsUUID()
+  @ApiProperty({ example: 'uuid-do-cliente', required: false })
   @IsOptional()
+  @IsUUID()
   customerId?: string;
 
   @ApiProperty({ example: 'uuid-do-agente' })
   @IsUUID()
   @IsOptional()
   assignedTo?: string;
+
+  @ApiProperty({ example: ['uuid1', 'uuid2'], required: false })
+  @IsArray()
+  @IsOptional()
+  assignees?: string[];
 
   @ApiProperty({ example: '2024-01-15T10:00:00Z', required: false })
   @IsOptional()
@@ -83,10 +115,24 @@ export class CreateTicketDto {
   @IsOptional()
   tags?: CreateTagDto[];
 
+  @ApiProperty({ type: [CreateTagFromFrontendDto], required: false, description: 'Formato do frontend' })
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreateTagFromFrontendDto)
+  tagLabels?: CreateTagFromFrontendDto[];
+
   @ApiProperty({ type: [CreateChecklistItemDto], required: false })
   @IsArray()
   @IsOptional()
   checklist?: CreateChecklistItemDto[];
+
+  @ApiProperty({ type: [CreateChecklistItemFromFrontendDto], required: false, description: 'Formato do frontend' })
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreateChecklistItemFromFrontendDto)
+  checklistItems?: CreateChecklistItemFromFrontendDto[];
 
   @ApiProperty({ type: 'object', required: false })
   @IsObject()

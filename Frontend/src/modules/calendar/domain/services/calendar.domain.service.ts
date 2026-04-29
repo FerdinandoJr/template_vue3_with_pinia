@@ -1,5 +1,5 @@
 import type { ICalendarEvent } from '../entities/calendar';
-import { generateUUIDv7 } from '@/util/helpers';
+import { generateUUIDv7 } from '@/utils/helpers';
 
 export const CalendarDomainService = {
 

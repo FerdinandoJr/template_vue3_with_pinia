@@ -139,10 +139,10 @@ const kanbanStore = useKanbanStore();
 const getStatusType = (status: string) => {
     const map: Record<string, string> = {
         'open': 'warning',
-        'in-progress': 'primary',
+        'in_progress': 'primary',
         'resolved': 'success',
         'done': 'success',
-        'internal': 'info',
+        'closed': 'info',
         'pending_approval': 'danger'
     };
     return map[status] || 'info';

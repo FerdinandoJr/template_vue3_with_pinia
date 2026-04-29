@@ -7,10 +7,11 @@ export interface IKanbanTag {
 
 export interface IKanbanCard {
   id: string;
+  columnId: string;
   title: string;
   description: string;
   customerName: string;
-  status: KanbanStatus; 
+  status: KanbanStatus;
   tags: IKanbanTag[];
   dateDisplay: string;
   avatars: string[];

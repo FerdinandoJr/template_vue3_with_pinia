@@ -61,43 +61,15 @@ const finishedChats = ref<any[]>([]);
 
 const loadFinishedChats = () => {
   loading.value = true;
-  // Simular delay de rede
-  setTimeout(() => {
-    // Buscar todos os contatos que foram finalizados e possuem a descrição armazenada
-    const list = chatStore.contacts.filter(c => (c as any).status === 'finished');
-    
-    // Pegar o mock se não houver registros REAIS da store.
-    if (list.length === 0) {
-      finishedChats.value = [
-        {
-          id: 'test-1',
-          name: 'João Silva',
-          company: 'Construtora Alpha',
-          phone: '(11) 98888-1111',
-          finishReason: 'venda_concluida',
-          finishDescription: 'Cliente aceitou a proposta de plano anual com desconto. Enviar contrato até as 17h.',
-          finishedAt: new Date(Date.now() - 1000 * 60 * 15) // 15 mins atrás
-        },
-        {
-          id: 'test-2',
-          name: 'Maria Fernandes',
-          company: '',
-          phone: '(21) 97777-2222',
-          finishReason: 'duvida_resolvida',
-          finishDescription: 'Tirou dúvida sobre o estorno no cartão de crédito. Procedimento já realizado no gateway.',
-          finishedAt: new Date(Date.now() - 1000 * 60 * 120) // 2h atrás
-        }
-      ];
-    } else {
-      finishedChats.value = list.sort((a, b) => {
-        const dateA = (a as any).finishedAt ? new Date((a as any).finishedAt).getTime() : 0;
-        const dateB = (b as any).finishedAt ? new Date((b as any).finishedAt).getTime() : 0;
-        return dateB - dateA; // newest first
-      });
-    }
-    
-    loading.value = false;
-  }, 400);
+  const list = chatStore.contacts.filter(c => (c as any).status === 'finished');
+  
+  finishedChats.value = list.sort((a, b) => {
+    const dateA = (a as any).finishedAt ? new Date((a as any).finishedAt).getTime() : 0;
+    const dateB = (b as any).finishedAt ? new Date((b as any).finishedAt).getTime() : 0;
+    return dateB - dateA;
+  });
+  
+  loading.value = false;
 };
 
 const getReasonType = (reason: string) => {

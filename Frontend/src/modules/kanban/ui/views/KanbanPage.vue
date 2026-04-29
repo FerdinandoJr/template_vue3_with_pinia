@@ -38,10 +38,10 @@
       </el-button>
     </div>
 
-    <div class="flex-1 flex gap-3 overflow-x-auto pb-4 custom-scroll-x items-start" @dragover.prevent @drop="onDropColumns">
-      <div v-for="(col, index) in kanbanStore.columns" :key="col.id" draggable="true"
-        @dragstart="onDragStartColumn($event, index)" @dragover.prevent @dragenter="onDragEnterColumn($event, index)"
-        :class="['min-w-[270px] transition-opacity', draggedIndex === index ? 'opacity-50' : '']" :data-index="index">
+    <div class="flex-1 flex gap-3 overflow-x-auto pb-4 custom-scroll-x items-start">
+      <div v-for="(col, index) in kanbanStore.columns" :key="col.id" :draggable="canMoveColumns"
+        @dragstart="onDragStartColumn($event, index)" @dragend="onDragEndColumn($event)" @dragover="onDragOverColumn($event)" @dragenter="onDragEnterColumn($event, index)" @drop="onDropColumns($event, index)"
+        :class="['min-w-[270px]', draggedIndex === index ? 'opacity-50' : 'opacity-100']" :data-index="index">
         <KanbanColumn 
           :column-id="col.id" 
           v-model:title="col.title" 
@@ -69,124 +69,89 @@
       :is-kanban="true"
       append-to-body
       @close="isModalOpen = false" 
-      @save="onTicketSaved" 
+      @save="onTicketSaved"
+      @approve-kanban="onTicketApproved"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Plus, MoreFilled } from '@element-plus/icons-vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { useKanbanStore } from '../store/kanban.store';
-import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { kanbanServices } from '../../data/kanban.services';
 import type { ITicket } from '@/modules/tickets/domain/entities/Ticket';
 import KanbanColumn from '../components/KanbanColumn.vue';
 import TicketModal from '@/modules/tickets/ui/components/TicketModal.vue';
 
 const kanbanStore = useKanbanStore() as any;
-const ticketsStore = useTicketsStore() as any;
 const customerStore = useCustomerStore() as any;
+const authStore = useAuthStore() as any;
+
+const canMoveColumns = computed(() => authStore.hasRole(['Desenvolvedor', 'Gerente', 'Administrador']));
 
 const isModalOpen = ref(false);
 const selectedTicket = ref<ITicket | null>(null);
 const draggedIndex = ref<number | null>(null);
 
 const onDragStartColumn = (event: DragEvent, index: number | string) => {
+  if (!canMoveColumns.value) {
+    event.preventDefault();
+    return;
+  }
   draggedIndex.value = Number(index);
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.dropEffect = 'move';
   }
 };
 
 const onDragEnterColumn = (event: DragEvent, index: number | string) => {
-  const idx = Number(index);
-  if (draggedIndex.value === null || draggedIndex.value === idx) return;
-  
-  const columns = [...kanbanStore.columns];
-  const draggedCol = columns[draggedIndex.value];
-  columns.splice(draggedIndex.value, 1);
-  columns.splice(idx, 0, draggedCol);
-  
-  const board = kanbanStore.boards.find((b: any) => b.id === kanbanStore.activeBoardId);
-  if (board) {
-    board.columns = columns;
-  }
-  
-  draggedIndex.value = idx;
+  event.preventDefault();
+  event.stopPropagation();
 };
 
-const onDropColumns = async () => {
-  if (draggedIndex.value === null) return;
-  
-  const columnIds = kanbanStore.columns.map((c: any) => c.id);
-  await kanbanStore.reorderColumns(columnIds);
-  
+const onDragOverColumn = (event: DragEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+};
+
+const onDragEndColumn = (event: DragEvent) => {
   draggedIndex.value = null;
 };
 
-onMounted(async () => {
-  await kanbanStore.fetchKanbanData();
-  if (customerStore.items?.length === 0) {
-    if (typeof customerStore.fetch === 'function') await customerStore.fetch();
+const onDropColumns = async (event: DragEvent, targetIndex: number) => {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  if (draggedIndex.value === null || draggedIndex.value === targetIndex) {
+    draggedIndex.value = null;
+    return;
   }
-});
-
-const promptCreateBoard = () => {
-  ElMessageBox.prompt('Digite o nome do novo Quadro Kanban:', 'Novo Quadro Kanban', {
-    confirmButtonText: 'Criar',
-    cancelButtonText: 'Cancelar',
-    inputPattern: /.+/,
-    inputErrorMessage: 'O nome não pode ser vazio'
-  }).then(({ value }) => {
-    kanbanStore.createBoard(value);
-  }).catch(() => {});
-};
-
-const handleBoardCommand = async (command: string) => {
-  if (command === 'default') {
-    await kanbanStore.setDefaultBoard(kanbanStore.activeBoardId);
-  } else if (command === 'edit') {
-    const board = kanbanStore.boards.find((b: any) => b.id === kanbanStore.activeBoardId);
-    if (!board) return;
+  
+  const board = kanbanStore.boards.find((b: any) => b.id === kanbanStore.activeBoardId);
+  if (board && board.columns) {
+    const columns = [...board.columns];
+    const [movedCol] = columns.splice(draggedIndex.value, 1);
+    columns.splice(targetIndex, 0, movedCol);
     
-    ElMessageBox.prompt('Digite o novo nome do quadro:', 'Editar Quadro', {
-      confirmButtonText: 'Salvar',
-      cancelButtonText: 'Cancelar',
-      inputValue: board.title,
-      inputPattern: /.+/,
-      inputErrorMessage: 'O nome não pode ser vazio'
-    }).then(({ value }) => {
-      kanbanStore.updateBoardTitle(kanbanStore.activeBoardId, value);
-    }).catch(() => {});
-  } else if (command === 'delete') {
-    ElMessageBox.confirm(
-      'Tem a certeza que deseja excluir este quadro e todas as suas colunas e tarefas?',
-      'Atenção',
-      {
-        confirmButtonText: 'Sim, excluir',
-        cancelButtonText: 'Cancelar',
-        type: 'warning'
+    board.columns = columns;
+    
+    const columnIds = columns.map((c: any) => c.id);
+    
+    try {
+      if (typeof kanbanStore.reorderColumns === 'function') {
+        await kanbanStore.reorderColumns(columnIds);
       }
-    ).then(() => {
-      kanbanStore.removeBoard(kanbanStore.activeBoardId);
-    }).catch(() => {});
-  }
-};
-
-const handleRemoveColumn = (id: string) => {
-  ElMessageBox.confirm(
-    'Tem a certeza que deseja excluir esta coluna e todas as suas tarefas?',
-    'Atenção',
-    {
-      confirmButtonText: 'Sim, excluir',
-      cancelButtonText: 'Cancelar',
-      type: 'warning'
+    } catch (e) {
+      console.error('[KanbanPage] Error reordering:', e);
     }
-  ).then(() => {
-    kanbanStore.removeColumn(id);
-  }).catch(() => {});
+  }
+  
+  draggedIndex.value = null;
 };
 
 const openNewTicketModal = () => {
@@ -195,22 +160,89 @@ const openNewTicketModal = () => {
 };
 
 const openTicketDetails = (ticket: any) => {
-  const formattedTicket = JSON.parse(JSON.stringify(ticket));
-  if (Array.isArray(formattedTicket.tags)) {
-    formattedTicket.tags = formattedTicket.tags.map((tag: any) => {
-      return typeof tag === 'string' ? tag : (tag?.label || tag?.name || tag?.value || '');
-    }).filter(Boolean);
+  console.log('[openTicketDetails] ticket before:', ticket);
+  console.log('[openTicketDetails] ticket.tags:', ticket?.tags);
+  
+  const ticketCopy = JSON.parse(JSON.stringify(ticket));
+  console.log('[openTicketDetails] ticketCopy after parse:', ticketCopy);
+  
+  if (ticketCopy.tags && Array.isArray(ticketCopy.tags)) {
+    ticketCopy.tags = ticketCopy.tags.map((tag: any) => {
+      console.log('[openTicketDetails] processing tag:', tag, 'type:', typeof tag);
+      if (typeof tag === 'object' && tag !== null) {
+        const name = tag.label || tag.name;
+        console.log('[openTicketDetails] tag name extracted:', name);
+        return name || '[Sem Nome]';
+      }
+      const strTag = String(tag);
+      return strTag === '[object Object]' ? '[Sem Nome]' : strTag;
+    });
   } else {
-    formattedTicket.tags = [];
+    ticketCopy.tags = [];
   }
-  selectedTicket.value = formattedTicket;
+  
+  console.log('[openTicketDetails] ticketCopy.tags after map:', ticketCopy.tags);
+  selectedTicket.value = ticketCopy;
   isModalOpen.value = true;
 };
 
-const onTicketSaved = async (ticketData: any) => {
-  isModalOpen.value = false;
-  let ticketId = ticketData.id || selectedTicket.value?.id;
+const handleBoardCommand = async (command: string) => {
+  const board = kanbanStore.boards.find((b: any) => b.id === kanbanStore.activeBoardId);
+  if (!board) return;
 
+  if (command === 'default') {
+    ElMessage.success('Quadro definido como padrão!');
+  } else if (command === 'edit') {
+    ElMessageBox.prompt('Novo nome do quadro', 'Editar Quadro', {
+      confirmButtonText: 'Salvar',
+      cancelButtonText: 'Cancelar',
+      inputValue: board.title,
+    }).then(async ({ value }) => {
+      await kanbanStore.updateBoard(board.id, { title: value });
+      ElMessage.success('Quadro atualizado!');
+    }).catch(() => {});
+  } else if (command === 'delete') {
+    ElMessageBox.confirm('Excluir este quadro?', 'Atenção', {
+      confirmButtonText: 'Excluir',
+      cancelButtonText: 'Cancelar',
+      type: 'warning',
+    }).then(async () => {
+      console.log('[KanbanPage] Chamando removeBoard para:', board.id);
+      await kanbanStore.removeBoard(board.id);
+      ElMessage.success('Quadro excluído!');
+    }).catch(() => {});
+  }
+};
+
+const promptCreateBoard = async () => {
+  ElMessageBox.prompt('Nome do novo quadro', 'Criar Quadro', {
+    confirmButtonText: 'Criar',
+    cancelButtonText: 'Cancelar',
+  }).then(async ({ value }) => {
+    if (value) {
+      await kanbanStore.createBoard(value);
+    }
+  }).catch(() => {});
+};
+
+const handleRemoveColumn = async (columnId: string) => {
+  ElMessageBox.confirm('Excluir esta lista?', 'Atenção', {
+    confirmButtonText: 'Excluir',
+    cancelButtonText: 'Cancelar',
+    type: 'warning',
+  }).then(async () => {
+    await kanbanStore.removeColumn(columnId);
+    ElMessage.success('Lista excluída!');
+  }).catch(() => {});
+};
+
+const onTicketSaved = async (ticketData: any) => {
+  console.log('[onTicketSaved] ticketData:', ticketData);
+  console.log('[onTicketSaved] ticketData.status:', ticketData.status);
+  console.log('[onTicketSaved] kanbanStore.columns:', kanbanStore.columns);
+  
+  isModalOpen.value = false;
+  
   const kanbanFriendlyTags = (ticketData.tags || []).map((tag: any) => {
     if (typeof tag === 'object' && tag !== null && tag.label) return tag;
     const label = String(tag);
@@ -224,99 +256,200 @@ const onTicketSaved = async (ticketData: any) => {
   });
 
   ticketData.tags = kanbanFriendlyTags;
-
-  if (ticketId) {
-    try {
-      const numericId = Number(ticketId);
-      if (typeof ticketsStore.updateTicket === 'function') {
-        await ticketsStore.updateTicket(numericId || ticketId, ticketData);
-      } else if (typeof ticketsStore.update === 'function') {
-        await ticketsStore.update(numericId || ticketId, ticketData);
-      }
-    } catch (error) {
-      console.warn("Ignorado: O Ticket principal não encontrou este ID do Kanban.");
-    }
-
-    let existingCard = null;
-    let sourceColId = null;
-    let sourceBoardId = null;
-
+  
+  const ticketId = ticketData.id || selectedTicket.value?.id;
+  const canApprove = authStore.hasRole(['Desenvolvedor', 'Gerente', 'Administrador']);
+  
+  let selectedStatus = ticketData.status;
+  let selectedBoardId = ticketData.boardId;
+  
+  let foundCard: any = null;
+  let foundBoard: any = null;
+  let foundCol: any = null;
+  
+  console.log('[onTicketSaved] foundCard:', foundCard?.title);
+  console.log('[onTicketSaved] foundCol:', foundCol?.title);
+  console.log('[onTicketSaved] selectedBoardId:', selectedBoardId);
+  console.log('[onTicketSaved] foundBoard?.id:', foundBoard?.id);
+  
+  // Se mudou de board, procura no novo board
+  if (selectedBoardId && foundBoard && foundBoard.id !== selectedBoardId) {
+    foundCard = null;
+    foundCol = null;
+    foundBoard = null;
+  }
+  
+  if (ticketId && !foundCard) {
     for (const b of kanbanStore.boards) {
-        for (const col of b.columns) {
-            const card = col.cards.find((c: any) => String(c.id) === String(ticketId));
-            if (card) {
-                existingCard = { ...card };
-                sourceColId = col.id;
-                sourceBoardId = b.id;
-                break;
-            }
+      for (const col of b.columns) {
+        const card = col.cards.find((c: any) => String(c.ticketId) === String(ticketId) || c.id === ticketId);
+        if (card) {
+          foundCard = card;
+          foundBoard = b;
+          foundCol = col;
+          break;
         }
-    }
-
-    if (existingCard) {
-      const updatedCard = { ...existingCard, ...ticketData };
-
-      const sourceBoard = kanbanStore.boards.find((b: any) => String(b.id) === String(sourceBoardId));
-      if (sourceBoard) {
-          const sourceCol = sourceBoard.columns.find((c: any) => String(c.id) === String(sourceColId));
-          if (sourceCol) {
-              sourceCol.cards = sourceCol.cards.filter((c: any) => String(c.id) !== String(ticketId));
-          }
       }
-
-      const targetBoardId = ticketData.boardId || sourceBoardId || kanbanStore.activeBoardId;
-      const targetBoard = kanbanStore.boards.find((b: any) => String(b.id) === String(targetBoardId));
-      
-      if (targetBoard) {
-          const targetColId = ticketData.status || sourceColId;
-          let targetCol = targetBoard.columns.find((c: any) => String(c.id) === String(targetColId));
-          if (!targetCol && targetBoard.columns.length > 0) targetCol = targetBoard.columns[0];
-          
-          if (targetCol) {
-              updatedCard.status = targetCol.id;
-              targetCol.cards.push(updatedCard);
-          }
-      }
-
-      kanbanStore.boards = [...kanbanStore.boards];
-      if (typeof kanbanStore.saveBoard === 'function') kanbanStore.saveBoard();
-      ElMessage.success('Ticket atualizado e movido!');
+      if (foundCard) break;
     }
-  } else {
-    ticketId = Math.floor(Math.random() * 1000000);
-    ticketData.id = ticketId;
-
+  }
+  
+  if (foundCard && foundCol) {
+    foundCol.cards = foundCol.cards.filter((c: any) => c.id !== foundCard.id);
+  }
+  
+  let targetCol: any = null;
+  let targetBoard: any = null;
+  
+  console.log('[onTicketSaved] searching for column with status:', selectedStatus);
+  console.log('[onTicketSaved] canApprove:', canApprove);
+  
+  // Primeiro, identifica qual board usar
+  let boardsToSearch = kanbanStore.boards;
+  if (selectedBoardId) {
+    const selectedBoard = kanbanStore.boards.find((b: any) => b.id === selectedBoardId);
+    if (selectedBoard) {
+      boardsToSearch = [selectedBoard];
+      targetBoard = selectedBoard;
+      console.log('[onTicketSaved] using selected board:', selectedBoard.title);
+    }
+  }
+  
+  for (const b of boardsToSearch) {
+    const cols = b.columns || [];
+    console.log('[onTicketSaved] board:', b.title, 'columns:', cols.map((c: any) => c.title));
+    let col: any = null;
+    
+    if (selectedStatus) {
+      col = cols.find((c: any) => c.title === selectedStatus || c.title.toLowerCase().includes(selectedStatus.toLowerCase()));
+      console.log('[onTicketSaved] found column for status:', col?.title);
+    }
+    
+    if (!col && !canApprove) {
+      col = cols.find((c: any) => c.title.toLowerCase().includes('pendente')) || cols[0];
+    }
+    
+    if (!col) {
+      col = cols.find((c: any) => c.title.toLowerCase().includes('fazer')) || cols[1] || cols[0];
+    }
+    
+    if (col) {
+      targetCol = col;
+      targetBoard = b;
+      console.log('[onTicketSaved] targetCol found:', targetCol.title);
+      break;
+    }
+  }
+  
+  // Se tinha board selecionado e não encontrou coluna, usa o primeiro board disponível
+  if (!targetCol && selectedBoardId && kanbanStore.boards.length > 0) {
+    const fallbackBoard = kanbanStore.boards.find((b: any) => b.id === selectedBoardId) || kanbanStore.boards[0];
+    if (fallbackBoard?.columns?.[0]) {
+      targetCol = fallbackBoard.columns[0];
+      targetBoard = fallbackBoard;
+    }
+  }
+  
+  console.log('[onTicketSaved] targetCol after loop:', targetCol?.title);
+  
+  if (!targetCol && kanbanStore.boards.length > 0) {
+    const firstBoard = kanbanStore.boards[0];
+    targetCol = firstBoard.columns?.[0];
+    if (!targetCol) {
+      const allCols = Object.values(firstBoard)?.filter((c: any) => c.cards !== undefined);
+      if (allCols?.length > 0) targetCol = allCols[0];
+    }
+  }
+  
+  if (targetCol) {
+    console.log('[onTicketSaved] saving to column:', targetCol.title, 'id:', targetCol.id);
+    console.log('[onTicketSaved] is update:', !!foundCard, 'card id:', foundCard?.id || 'new');
+    const cardId = foundCard?.id || crypto.randomUUID();
+    
+    const formattedTags = (ticketData.tags || []).map((tag: any) => {
+      if (typeof tag === 'object' && tag !== null) {
+        return { label: tag.name || tag.label || String(tag), colorClass: tag.colorClass || 'bg-slate-100 text-slate-700' };
+      }
+      const label = String(tag);
+      return { label, colorClass: 'bg-slate-100 text-slate-700' };
+    });
+    
+    const cardData = {
+      id: cardId,
+      title: ticketData.title,
+      description: ticketData.description || '',
+      priority: ticketData.priority || 'medium',
+      type: ticketData.type || 'support',
+      customerId: ticketData.customerId,
+      assignees: ticketData.assignees || [],
+      estimatedHours: ticketData.estimatedHours,
+      tags: formattedTags,
+      checklist: ticketData.checklist || [],
+      ticketId: ticketId,
+      status: targetCol.title,
+      columnId: targetCol.id,
+    };
+    
     try {
-      if (typeof ticketsStore.createTicket === 'function') {
-        await ticketsStore.createTicket(ticketData);
-      } else if (typeof ticketsStore.create === 'function') {
-        await ticketsStore.create(ticketData);
+      if (foundCard) {
+        await kanbanServices.updateCard(cardId, cardData);
+      } else {
+        await kanbanServices.createCard(cardData);
       }
     } catch (e) {
-      console.warn("Ignorado: Falha ao tentar criar na listagem principal.");
+      console.error('Erro ao salvar card:', e);
     }
-
-    const targetBoardId = ticketData.boardId || kanbanStore.activeBoardId;
-    const targetBoard = kanbanStore.boards.find((b: any) => String(b.id) === String(targetBoardId));
-
-    if (targetBoard) {
-        if (!ticketData.status || !targetBoard.columns.some((c: any) => String(c.id) === String(ticketData.status))) {
-            ticketData.status = targetBoard.columns[0]?.id || 'todo';
-        }
-
-        const colIndex = targetBoard.columns.findIndex((c: any) => String(c.id) === String(ticketData.status));
-        if (colIndex !== -1) {
-            targetBoard.columns[colIndex].cards.push({ ...ticketData });
-        } else if (targetBoard.columns.length > 0) {
-            targetBoard.columns[0].cards.push({ ...ticketData });
-        }
-    }
-
-    kanbanStore.boards = [...kanbanStore.boards];
-    if (typeof kanbanStore.saveBoard === 'function') kanbanStore.saveBoard();
-    ElMessage.success('Novo ticket adicionado ao Kanban!');
+    
+    await kanbanStore.fetchKanbanData();
+    
+    ElMessage.success('Ticket salvo com sucesso!');
+  } else {
+    ElMessage.warning('Nenhuma coluna encontrada');
   }
 };
+
+const onTicketApproved = async (ticketData: any) => {
+  console.log('[onTicketApproved] ticketData:', ticketData);
+  console.log('[onTicketApproved] columns:', kanbanStore.columns);
+  
+  try {
+    const targetCol = kanbanStore.columns.find((c: any) => c.title.toLowerCase().includes('fazer'));
+    console.log('[onTicketApproved] targetCol:', targetCol);
+    
+    if (targetCol) {
+      ticketData.status = targetCol.title;
+      ticketData.columnId = targetCol.id;
+    }
+    
+    console.log('[onTicketApproved] ticketData after update:', ticketData);
+    
+    const formattedTags = (ticketData.tags || []).map((tag: any) => {
+      if (typeof tag === 'object' && tag !== null) {
+        return { label: tag.name || tag.label || String(tag), colorClass: tag.colorClass || 'bg-slate-100 text-slate-700' };
+      }
+      const label = String(tag);
+      return { label, colorClass: 'bg-slate-100 text-slate-700' };
+    });
+    ticketData.tags = formattedTags;
+    
+    if (ticketData.id) {
+      await kanbanServices.updateCard(ticketData.id, ticketData);
+    } else {
+      await kanbanServices.createCard(ticketData);
+    }
+    
+    await kanbanStore.fetchKanbanData();
+    isModalOpen.value = false;
+    ElMessage.success('Ticket aprovado e movido para "A Fazer"!');
+  } catch (e) {
+    console.error('Erro ao aprobar:', e);
+    ElMessage.error('Erro ao aprobar ticket');
+  }
+};
+
+onMounted(async () => {
+  await kanbanStore.fetchKanbanData();
+});
 </script>
 
 <style scoped>

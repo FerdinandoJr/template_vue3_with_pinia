@@ -91,9 +91,10 @@ export const useTicketsStore = defineStore('tickets', {
       this.currentPage = 1;
       await this._executeFetch();
     },
-    async createTicket(data: Omit<ITicket, 'id' | 'createdAt'>) {
-      await ticketServices.create(data);
+    async createTicket(data: Omit<ITicket, 'id' | 'createdAt'>): Promise<ITicket | undefined> {
+      const created = await ticketServices.create(data);
       await this._executeFetch();
+      return created;
     },
     async updateTicket(id: string, data: Partial<ITicket>) {
       const updatedTicket = await ticketServices.update(id, data);

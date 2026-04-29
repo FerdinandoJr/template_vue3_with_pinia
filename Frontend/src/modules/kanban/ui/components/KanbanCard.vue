@@ -1,8 +1,11 @@
 <template>
   <div
-    class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-grab hover:shadow-md hover:border-blue-300 active:cursor-grabbing transition-all relative group">
+    class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-blue-300 transition-all relative group"
+    :class="{ 'cursor-grab active:cursor-grabbing': draggable !== false, 'cursor-not-allowed opacity-60': draggable === false }"
+    :draggable="draggable !== false"
+    @dragstart="draggable !== false ? onDragStart($event) : null">
     <div class="flex justify-between items-start mb-2">
-      <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">#{{ ticket?.id || 'NOVO' }}</span>
+      <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ getDisplayId(ticket) }}</span>
       <el-tag size="small" :type="getPriorityType(ticket?.priority as string)" effect="plain"
         class="font-semibold border-none">
         {{ getPriorityLabel(ticket?.priority as string) }}
@@ -33,46 +36,80 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import type { ITicket } from '@/modules/tickets/domain/entities/Ticket';
+import { useCalendarStore } from '@/modules/calendar/ui/store/calendar.store';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 
-const props = defineProps<{ ticket: ITicket }>();
+const props = defineProps<{ ticket: ITicket; draggable?: boolean }>();
 
-const teamMembers = [
-  { id: '1', name: 'Admin (Você)' },
-  { id: '2', name: 'João Atendimento' },
-  { id: '3', name: 'Maria Vendas' }
-];
+const getDisplayId = (ticket: any) => {
+  if (ticket?.ticketNumber) return ticket.ticketNumber;
+  if (ticket?.ticketId) return 'TKT-' + ticket.ticketId.slice(0, 8).toUpperCase();
+  if (ticket?.id) return 'TKT-' + ticket.id.slice(0, 8).toUpperCase();
+  return 'Novo';
+};
+
+const calendarStore = useCalendarStore() as any;
+const authStore = useAuthStore() as any;
+
+onMounted(async () => {
+  if (!calendarStore.availableUsers || calendarStore.availableUsers.length === 0) {
+    await calendarStore.fetchAgendaData();
+  }
+});
+
+const getAllUsers = () => {
+  const users = calendarStore.availableUsers || [];
+  const currentUser = authStore.user;
+  if (currentUser && !users.find((u: any) => u.id === currentUser.id)) {
+    return [currentUser, ...users];
+  }
+  return users;
+};
 
 const displayAvatars = computed(() => {
   const assignees = (props.ticket as any)?.assignees;
-
-  // CORREÇÃO: Tipagem explícita para o TypeScript parar de acusar 'any[]'
   const avatarsList: { initial: string; title: string }[] = [];
+  
+  const allUsers = getAllUsers();
 
-  // 1. Lê a equipe salva ativamente via Modal (baseada em IDs numéricos)
   if (Array.isArray(assignees) && assignees.length > 0) {
-    assignees.forEach(uid => {
-      const member = teamMembers.find(m => String(m.id) === String(uid));
-      if (member) {
-        avatarsList.push({ initial: member.name.charAt(0).toUpperCase(), title: member.name });
-      } else {
-        avatarsList.push({ initial: 'U', title: 'User' });
+    assignees.forEach((uid: any) => {
+      const user = allUsers.find((u: any) => String(u.id) === String(uid));
+      if (user && user.name) {
+        avatarsList.push({ initial: user.name.charAt(0).toUpperCase(), title: user.name });
+      } else if (uid) {
+        avatarsList.push({ initial: String(uid).charAt(0).toUpperCase(), title: String(uid) });
       }
     });
-    return avatarsList;
   }
-
-  // 2. Fallback de Segurança: Lê as iniciais caso venha direto do mock inicial
-  const oldAvatars = (props.ticket as any)?.avatars;
-  if (Array.isArray(oldAvatars) && oldAvatars.length > 0) {
-    oldAvatars.forEach(av => {
-      avatarsList.push({ initial: String(av).charAt(0).toUpperCase(), title: 'User' });
-    });
+  
+  const customerId = (props.ticket as any)?.customerId;
+  if (customerId) {
+    const customer = (props.ticket as any)?.customer;
+    if (customer) {
+      const name = customer.name || customer.tradeName || customer.companyName || 'Cliente';
+      avatarsList.push({ initial: name.charAt(0).toUpperCase(), title: name });
+    }
   }
 
   return avatarsList;
 });
+
+const onDragStart = (event: DragEvent) => {
+  if (props.draggable === false) {
+    event.preventDefault();
+    return;
+  }
+  event.stopPropagation();
+  const idToSend = props.ticket?.ticketId || props.ticket?.id;
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('ticketId', String(idToSend));
+    event.dataTransfer.setData('type', 'card');
+    event.dataTransfer.effectAllowed = 'move';
+  }
+};
 
 const getPriorityType = (priority: string) => {
   const map: Record<string, string> = {

@@ -58,18 +58,18 @@ export const ticketServices = {
   },
 
   async getById(id: string): Promise<ITicket | undefined> {
-    const response = await httpClient.get<any>(`/tickets/${id}`);
-    return response?.data || response;
+    const response: ApiResponse<ITicket> = await httpClient.get(`/tickets/${id}`);
+    return response.data;
   },
 
-  async create(data: Partial<ITicket>): Promise<ITicket> {
-    const response = await httpClient.post<any>('/tickets', data);
-    return response?.data || response;
+  async create(data: Omit<ITicket, 'id' | 'createdAt'>): Promise<ITicket> {
+    const response: ApiResponse<ITicket> = await httpClient.post('/tickets', data);
+    return response.data;
   },
 
   async update(id: string, data: Partial<ITicket>): Promise<ITicket> {
-    const response = await httpClient.put<any>(`/tickets/${id}`, data);
-    return response?.data || response;
+    const response: ApiResponse<ITicket> = await httpClient.put(`/tickets/${id}`, data);
+    return response.data;
   },
 
   async delete(id: string): Promise<void> {

@@ -115,22 +115,21 @@ const availableTags = ref([
 const normalizedSelectedTags = computed(() => {
     if (!props.selectedTags) return [];
     return props.selectedTags.map(val => {
-        // Se for número
         if (typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val)))) {
             const found = availableTags.value.find(t => t.id === Number(val));
             if (found) return { ...found, originalValue: val };
         }
-        // Se for string (o Kanban envia assim)
         if (typeof val === 'string') {
             const found = availableTags.value.find(t => t.name.toLowerCase() === val.toLowerCase());
             if (found) return { ...found, originalValue: val };
             return { id: val, name: val, type: 'info', originalValue: val };
         }
-        // Se for objeto
         if (typeof val === 'object' && val !== null) {
-            return { id: val.id || val.label, name: val.label || val.name, type: val.type || 'info', originalValue: val };
+            const name = val.label || val.name || String(val);
+            const type = val.type || val.colorClass?.split(' ')[0]?.replace('bg-', '').replace('-100', '') || 'info';
+            return { id: val.id || name, name, type, originalValue: val };
         }
-        return { id: 'unknown', name: val, type: 'info', originalValue: val };
+        return { id: 'unknown', name: String(val), type: 'info', originalValue: val };
     });
 });
 

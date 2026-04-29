@@ -1,6 +1,6 @@
 <template>
   <el-dialog :model-value="isOpen" @update:model-value="!$event && handleClose()" width="95%" style="max-width: 1050px;"
-    align-center destroy-on-close :show-close="false" :close-on-click-modal="false" class="enterprise-ticket-dialog">
+    align-center destroy-on-close :show-close="false" :close-on-click-modal="false" class="enterprise-ticket-dialog" append-to-body>
     <template #header>
       <div
         class="flex flex-wrap lg:flex-nowrap justify-between items-center w-full px-4 lg:px-6 py-4 border-b border-slate-200 bg-white rounded-t-xl gap-4">
@@ -142,7 +142,7 @@
                     class="absolute -right-2 top-0 w-0 h-0 border-[8px] border-transparent border-t-[#d9fdd3] border-l-[#d9fdd3]">
                   </div>
                   <div v-if="!msg.isAgent" class="text-[11px] font-black text-emerald-600 mb-0.5 px-1 tracking-tight">
-                    {{ msg.sender || form.customer }}
+                    {{ msg.sender || getCustomerNameById(form.customerId) }}
                   </div>
                   <div class="text-[14px] text-[#111b21] leading-relaxed px-1 pb-3 whitespace-pre-wrap font-medium">
                     {{ msg.text }}
@@ -284,14 +284,14 @@
                     class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
                     Cliente / Contato <span v-if="formErrors.customer" class="text-red-500">* Requerido</span>
                   </label>
-                  <el-select v-model="form.customer" placeholder="Selecione o Cliente" filterable allow-create
+                  <el-select v-model="form.customerId" placeholder="Selecione o Cliente" filterable allow-create
                     class="w-full enterprise-select" @change="formErrors.customer = false">
                     <template #prefix><el-icon>
                         <User />
                       </el-icon></template>
                     <el-option v-for="customer in customerStore.items" :key="customer.id" 
                       :label="getCustomerLabel(customer)" 
-                      :value="customer.tradeName || customer.companyName || customer.name" />
+                      :value="customer.id" />
                   </el-select>
                 </div>
 
@@ -310,17 +310,11 @@
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Fila /
                     Status</label>
-                  <el-select v-model="form.status" class="w-full enterprise-select" :disabled="!isEditing">
+                  <el-select v-model="form.status" class="w-full enterprise-select" :disabled="!canApprove && props.isKanban">
                     <template #prefix>
                       <div class="w-2 h-2 rounded-full" :class="getStatusColor(form.status)"></div>
                     </template>
-                    <el-option v-if="form.status === 'pending_approval' || !hasPendingApprovalCol"
-                      value="pending_approval" label="Aprovação Pendente">
-                      <div class="flex items-center gap-2 font-medium">
-                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Aprovação Pendente
-                      </div>
-                    </el-option>
-                    <el-option v-for="col in availableColumns" :key="col.id" :label="col.title" :value="col.id">
+                    <el-option v-for="col in availableColumns" :key="col.id" :label="col.title" :value="col.title">
                       <div class="flex items-center gap-2 font-medium">
                         <span class="w-2 h-2 rounded-full" :class="col.color?.split(' ')[0] || 'bg-slate-400'"></span>
                         {{ col.title }}
@@ -399,35 +393,30 @@
 
         <div
           class="p-4 bg-white border-t border-slate-200 flex flex-col gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-30">
-          <div v-if="props.ticket && props.ticket.status === 'pending_approval'"
+          <div v-if="props.ticket && props.ticket.status === 'Pendente'"
             class="bg-amber-50 p-3 rounded-lg border border-amber-200 flex items-start gap-2 mb-1">
             <el-icon class="text-amber-500 mt-0.5">
               <Warning />
             </el-icon>
             <div>
-              <p class="text-xs font-bold text-amber-800">Este ticket precisa de aprovação</p>
-              <p class="text-[10px] text-amber-600 mt-0.5 leading-tight">Revise os campos de Quadro e Fila acima antes
-                de
-                mover para o Kanban.</p>
+              <p class="text-xs font-bold text-amber-800">Ticket Pendente</p>
+              <p class="text-[10px] text-amber-600 mt-0.5 leading-tight">Aguardando aprovação de um Desenvolvedor, Gerente ou Administrador.</p>
             </div>
           </div>
           <div class="flex flex-col sm:flex-row items-center gap-3 w-full">
             <el-button @click="handleClose" size="large" class="w-full sm:flex-1 !rounded-xl !h-12 !font-bold"> Cancelar
             </el-button>
-            <template v-if="props.ticket && props.ticket.status === 'pending_approval'">
-              <el-button type="warning" size="large" :loading="loading" @click="handleApproveKanban"
-                class="w-full sm:flex-1 !rounded-xl !h-12 !font-black tracking-wide shadow-md">
-                <el-icon class="mr-2"><Select /></el-icon> Aprovar ao Kanban
-              </el-button>
-            </template>
-            <template v-else>
-              <el-button type="primary" size="large" :loading="loading" @click="submit"
-                class="w-full sm:flex-1 !bg-blue-600 hover:!bg-blue-700 !border-none !rounded-xl !h-12 !font-black tracking-wide shadow-md shadow-blue-200">
-                <el-icon class="mr-2">
-                  <Check />
-                </el-icon> {{ isEditing ? 'Salvar Alterações' : 'Criar Ticket' }}
-              </el-button>
-            </template>
+            <el-button type="success" size="large" :loading="loading" @click="handleApproveKanban"
+              v-if="canApprove"
+              class="w-full sm:flex-1 !rounded-xl !h-12 !font-black tracking-wide shadow-md">
+              <el-icon class="mr-2"><Check /></el-icon> Aprovar
+            </el-button>
+            <el-button type="primary" size="large" :loading="loading" @click="submit"
+              class="w-full sm:flex-1 !bg-blue-600 hover:!bg-blue-700 !border-none !rounded-xl !h-12 !font-black tracking-wide shadow-md shadow-blue-200">
+              <el-icon class="mr-2">
+                <Check />
+              </el-icon> {{ isEditing ? 'Salvar' : 'Criar Ticket' }}
+            </el-button>
           </div>
         </div>
       </div>
@@ -444,6 +433,8 @@ import TicketChecklist from './TicketChecklist.vue';
 import TicketTagsSelector from './TicketTagsSelector.vue';
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
+import { useCalendarStore } from '@/modules/calendar/ui/store/calendar.store';
+import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import RichTextEditor from '@/components/RichTextEditor.vue';
 
 const props = defineProps<{
@@ -458,6 +449,10 @@ const emit = defineEmits(['close', 'save', 'switch-edit', 'approve-kanban']);
 
 const kanbanStore = useKanbanStore() as any;
 const customerStore = useCustomerStore() as any;
+const calendarStore = useCalendarStore() as any;
+const authStore = useAuthStore() as any;
+
+const canApprove = computed(() => authStore.hasRole(['Desenvolvedor', 'Gerente', 'Administrador']));
 
 const loading = ref(false);
 const activeTab = ref('main');
@@ -467,12 +462,11 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 const form = reactive<any>({
   boardId: '',
-  status: 'pending_approval',
+  status: 'Pendente',
   title: '',
-  description: '',
   priority: 'low',
   type: 'support',
-  customer: '',
+  customerId: '',
   assignees: [],
   tags: [],
   checklist: [],
@@ -481,26 +475,33 @@ const form = reactive<any>({
   whatsappHistory: [],
   startDate: '',
   endDate: '',
-  estimatedHours: 0
+  estimatedHours: 2
 });
 
 const formErrors = reactive({ title: false, description: false, customer: false, priority: false, type: false });
 
+const getDisplayId = (ticket: any) => {
+  if (ticket?.ticketNumber) return ticket.ticketNumber;
+  if (ticket?.id) return `TKT-${ticket.id.slice(0, 8).toUpperCase()}`;
+  return 'Novo';
+};
+
 const headerTitle = computed(() => {
-  if (props.ticket?.id) return `Ticket #${props.ticket.id}`;
+  if (props.ticket?.id) return getDisplayId(props.ticket);
   return 'Novo Chamado';
 });
 
 const isEditing = computed(() => !!props.ticket?.id);
 
-const teamMembers = [
-  { id: '1', name: 'Admin (Você)' },
-  { id: '2', name: 'João Atendimento' },
-  { id: '3', name: 'Maria Vendas' }
-];
+const teamMembers = computed(() => {
+  if (calendarStore.availableUsers && calendarStore.availableUsers.length > 0) {
+    return calendarStore.availableUsers;
+  }
+  return [];
+});
 
 const getTeamMemberName = (id: string | number) => {
-  const member = teamMembers.find(m => String(m.id) === String(id));
+  const member = teamMembers.value.find((m: any) => String(m.id) === String(id));
   return member ? member.name : String(id);
 };
 
@@ -511,22 +512,42 @@ const availableColumns = computed(() => {
 });
 
 const hasPendingApprovalCol = computed(() => {
-  return availableColumns.value.some((c: any) => c.id === 'pending_approval');
+  return availableColumns.value.some((c: any) => 
+    c.title?.toLowerCase().includes('pendente')
+  );
 });
 
 const onBoardChange = () => {
-  if (form.status !== 'pending_approval' && availableColumns.value.length > 0) {
-    form.status = availableColumns.value[0].id;
+  const cols = availableColumns.value;
+  let newStatus = form.status;
+  
+  if (!newStatus || !cols.some((c: any) => c.title === newStatus)) {
+    newStatus = canApprove 
+      ? (cols.find((c: any) => c.title.toLowerCase().includes('fazer'))?.title || cols[1]?.title || cols[0]?.title)
+      : (cols.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || cols[0]?.title);
   }
+  form.status = newStatus;
 };
 
-watch(() => props.isOpen, async (isOpen) => {
-  if (isOpen) {
+watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
+  if (isOpen && !prevIsOpen) {
     Object.keys(formErrors).forEach(k => (formErrors as any)[k] = false);
     activeTab.value = 'main';
     
+    const defaultStatus = canApprove 
+      ? (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('fazer'))?.title || kanbanStore.columns?.[1]?.title || kanbanStore.columns?.[0]?.title || 'A Fazer')
+      : (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || kanbanStore.columns?.[0]?.title || 'Pendente');
+    
     if (customerStore.items?.length === 0) {
       await customerStore.fetch();
+    }
+    
+    if (!calendarStore.availableUsers || calendarStore.availableUsers.length === 0) {
+      await calendarStore.fetchAgendaData();
+    }
+    
+    if (!kanbanStore.boards || kanbanStore.boards.length === 0) {
+      await kanbanStore.fetchKanbanData();
     }
     
     if (kanbanStore.boards && kanbanStore.boards.length > 0) {
@@ -534,7 +555,14 @@ watch(() => props.isOpen, async (isOpen) => {
     }
 
     if (props.ticket) {
-      Object.assign(form, JSON.parse(JSON.stringify(props.ticket)));
+      const ticketData = JSON.parse(JSON.stringify(props.ticket));
+      if (ticketData.customer && typeof ticketData.customer === 'object') {
+        ticketData.customerId = ticketData.customer.id;
+      } else if (ticketData.customerId) {
+        ticketData.customerId = ticketData.customerId;
+      }
+      delete ticketData.customer;
+      Object.assign(form, ticketData);
 
       if (!props.ticket.boardId && kanbanStore.boards) {
         let foundBoardId = form.boardId;
@@ -542,28 +570,37 @@ watch(() => props.isOpen, async (isOpen) => {
           for (const c of b.columns) {
             if (c.cards && c.cards.some((card: any) => String(card.id) === String(props.ticket!.id))) {
               foundBoardId = b.id;
-              form.status = c.id;
+              form.status = c.title;
             }
           }
         }
         form.boardId = foundBoardId;
+        
+        const colExists = availableColumns.value.some((c: any) => c.title === form.status);
+        if (!colExists && form.status) {
+          const hasPending = availableColumns.value.some((c: any) => c.title?.toLowerCase().includes('pendente'));
+          if (hasPending) {
+            form.status = 'Pendente';
+          }
+        }
       }
 
       if (!form.checklist) form.checklist = [];
       if (!form.internalNotes) form.internalNotes = [];
       if (!form.attachments) form.attachments = [];
       if (!form.whatsappHistory) form.whatsappHistory = [];
-      if (!form.estimatedHours) form.estimatedHours = 2; // Default seguro caso a edição de um ticket não possua horas
+      const hours = parseFloat(form.estimatedHours);
+      form.estimatedHours = isNaN(hours) || hours <= 0 ? 2 : hours;
     } else {
       Object.assign(form, {
         id: undefined,
-        status: 'pending_approval',
+        status: defaultStatus,
         title: '',
         description: '',
         priority: 'medium',
         type: 'support',
-        customer: '',
-        assignees: ['1'],
+        customerId: '',
+        assignees: [],
         tags: [],
         checklist: [],
         internalNotes: [],
@@ -571,19 +608,25 @@ watch(() => props.isOpen, async (isOpen) => {
         whatsappHistory: [],
         startDate: '',
         endDate: '',
-        estimatedHours: 2 // Iniciando criação de cards novos com 2h por padrão
+        estimatedHours: 2
       });
     }
   }
-}, { immediate: true }); // AQUI ESTÁ A CORREÇÃO DE PREENCHIMENTO E RECARRAGAMENTO DO MODAL
+}, { immediate: true });
 
 const getCustomerLabel = (customer: any) => {
   return customer.tradeName || customer.companyName || customer.name;
 };
 
+const getCustomerNameById = (id: string) => {
+  if (!id) return '';
+  const customer = customerStore.items?.find((c: any) => String(c.id) === String(id));
+  return customer ? getCustomerLabel(customer) : id;
+};
+
 const getStatusColor = (statusId: string) => {
-  if (statusId === 'pending_approval') return 'bg-amber-500';
-  const col = availableColumns.value.find((c: any) => String(c.id) === String(statusId));
+  if (statusId === 'Pendente' || statusId?.includes('Pendente')) return 'bg-amber-500';
+  const col = availableColumns.value.find((c: any) => c.title === statusId);
   if (col && col.color) return col.color.split(' ')[0];
   return 'bg-slate-400';
 };
@@ -629,7 +672,7 @@ const validateForm = () => {
   let isValid = true;
   if (!form.title || !form.title.trim()) { formErrors.title = true; isValid = false; }
   if (!form.description || form.description === '<p></p>') { formErrors.description = true; isValid = false; }
-  if (!form.customer) { formErrors.customer = true; isValid = false; }
+  if (!form.customerId) { formErrors.customer = true; isValid = false; }
   if (!form.priority) { formErrors.priority = true; isValid = false; }
   if (!form.type) { formErrors.type = true; isValid = false; }
 
@@ -639,16 +682,25 @@ const validateForm = () => {
 
 const submit = () => {
   if (validateForm()) {
-    const payload = { ...form };
-    if (!payload.boardId) delete payload.boardId;
+    const payload = {
+      title: form.title,
+      description: form.description || '',
+      status: form.status || 'open',
+      priority: form.priority || 'low',
+      type: form.type || 'support',
+      customerId: form.customerId,
+      assignees: form.assignees || [],
+      startDate: form.startDate || null,
+      endDate: form.endDate || null,
+      estimatedHours: typeof form.estimatedHours === 'number' ? form.estimatedHours : 2,
+      tags: form.tags || [],
+      checklist: form.checklist || [],
+      attachments: form.attachments || [],
+      boardId: form.boardId || null
+    };
     
-    const validStatuses = ['open', 'in_progress', 'waiting', 'resolved', 'closed'];
-    if (!validStatuses.includes(payload.status)) {
-      if (payload.status === 'pending_approval' || payload.status === 'todo') payload.status = 'open';
-      else if (payload.status === 'in-progress') payload.status = 'in_progress';
-      else if (payload.status === 'done') payload.status = 'resolved';
-      else payload.status = 'open';
-    }
+    console.log('[submit] emit save with payload:', payload);
+    console.log('[submit] form.status:', form.status);
     
     emit('save', payload);
   } else {
@@ -658,8 +710,15 @@ const submit = () => {
 
 const handleApproveKanban = () => {
   if (validateForm()) {
-    const payload = { ...form };
+    const targetCol = kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('fazer'));
+    const newStatus = targetCol?.title || 'A Fazer';
+    const payload = {
+      ...form,
+      status: newStatus
+    };
     if (!payload.boardId) delete payload.boardId;
+    if (!payload.startDate || payload.startDate === '') delete payload.startDate;
+    if (!payload.endDate || payload.endDate === '') delete payload.endDate;
     emit('approve-kanban', payload);
   } else {
     ElMessage.warning('Revise os detalhes pendentes do Ticket antes de enviar para o Kanban.');

@@ -2,27 +2,38 @@ import { defineStore } from 'pinia';
 import { kanbanServices } from '../../data/kanban.services';
 import { authServices } from '@/modules/auth/data/auth.services';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { ticketServices } from '@/modules/tickets/data/ticket.services';
 import { ElMessage } from 'element-plus';
 
 export const useKanbanStore = defineStore('kanban', {
   state: () => ({
     boards: [] as any[],
     activeBoardId: null as string | null,
-    loading: false
+    loading: false,
+    allTickets: [] as any[]
   }),
   getters: {
     columns: (state) => {
       const board = state.boards.find(b => b.id === state.activeBoardId);
       return board ? board.columns : [];
     },
-    activeBoard: (state) => state.boards.find(b => b.id === state.activeBoardId)
+    activeBoard: (state) => state.boards.find(b => b.id === state.activeBoardId),
+    getTicketById: (state) => (id: string) => state.allTickets.find(t => String(t.id) === String(id))
   },
   actions: {
     async fetchKanbanData() {
       this.loading = true;
       try {
+        console.log('[KanbanStore] fetchKanbanData starting...');
+        
+        const ticketsData = await ticketServices.list({ page: 1, pageSize: 1000 });
+        this.allTickets = ticketsData.items || [];
+        console.log('[KanbanStore] tickets loaded:', this.allTickets.length);
+        
         const data = await kanbanServices.fetchKanbanData();
+        console.log('[KanbanStore] data from API:', data);
         this.boards = data;
+        console.log('[KanbanStore] boards after assignment:', this.boards.length);
         
         if (this.boards.length === 0) {
           await this.createDefaultBoard();
@@ -118,15 +129,17 @@ export const useKanbanStore = defineStore('kanban', {
     },
 
     async removeBoard(id: string) {
+      console.log('[KanbanStore] removeBoard chamado para id:', id);
       try {
         await kanbanServices.deleteBoard(id);
+        console.log('[KanbanStore] deleteBoard executado');
         this.boards = this.boards.filter(b => b.id !== id);
         if (this.activeBoardId === id) {
           this.activeBoardId = this.boards.length > 0 ? this.boards[0].id : null;
         }
         ElMessage.success('Quadro removido com sucesso!');
       } catch (error) {
-        console.error("Erro ao remover quadro:", error);
+        console.error("[KanbanStore] Erro ao remover quadro:", error);
         ElMessage.error('Erro ao remover quadro');
       }
     },
@@ -183,15 +196,7 @@ export const useKanbanStore = defineStore('kanban', {
     async reorderColumns(columnIds: string[]) {
       try {
         await kanbanServices.reorderColumns(this.activeBoardId!, columnIds);
-        const board = this.boards.find(b => b.id === this.activeBoardId);
-        if (board && board.columns) {
-          const reorderedCols: any[] = [];
-          for (const id of columnIds) {
-            const col = board.columns.find((c: any) => c.id === id);
-            if (col) reorderedCols.push(col);
-          }
-          board.columns = reorderedCols;
-        }
+        await this.fetchKanbanData();
       } catch (error) {
         console.error("Erro ao reordenar colunas:", error);
       }

@@ -7,6 +7,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './modules/Auth/module/auth.module';
 import { AgendaModule } from './modules/Calendar/module/agenda.module';
 import { TicketsModule } from './modules/Tickets/module/tickets.module';
+import { ServiceRecordsModule } from './modules/ServiceRecords/module/service-records.module';
 import { CustomersModule } from './modules/Customer/module/customer.module';
 import { KanbanModule } from './modules/Kanban/module/kanban.module';
 import { ChatsModule } from './modules/Chats/module/chats.module';
@@ -29,17 +30,17 @@ import configuration from './config/configuration';
       {
         name: 'short',
         ttl: 1000,
-        limit: 3,
+        limit: 200,
       },
       {
         name: 'medium',
         ttl: 10000,
-        limit: 20,
+        limit: 1000,
       },
       {
         name: 'long',
         ttl: 60000,
-        limit: 100,
+        limit: 5000,
       },
     ]),
     ConfigModule.forRoot({
@@ -72,6 +73,7 @@ import configuration from './config/configuration';
     AuthModule,
     AgendaModule,
     TicketsModule,
+    ServiceRecordsModule,
     CustomersModule,
     KanbanModule,
     ChatsModule,

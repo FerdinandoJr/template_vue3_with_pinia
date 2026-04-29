@@ -5,8 +5,8 @@ import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import { notificationService } from '@/core/services/notification.service';
 
 export interface INotification {
-    id: number;
-    eventId: number | string;
+    id: string;
+    eventId: string;
     title: string;
     message: string;
     read: boolean;

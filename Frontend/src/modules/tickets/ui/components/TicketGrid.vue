@@ -14,7 +14,7 @@
             <div class="flex justify-between items-start mb-3">
                 <div class="flex flex-col pr-4">
                     <span class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-1">
-                        Ticket #{{ ticket.id }}
+                        {{ ticket.ticketNumber || ('TKT-' + (ticket.id || '').slice(0, 8).toUpperCase()) }}
                     </span>
                     <h3 class="text-base font-bold text-slate-800 leading-tight line-clamp-2" :title="ticket.title">
                         {{ ticket.title }}
@@ -50,9 +50,9 @@
 
             <div class="flex items-center gap-3 mb-4 mt-2">
                 <el-avatar :size="32" class="bg-blue-50 text-blue-600 font-bold text-sm">
-                    {{ ticket.customer.charAt(0).toUpperCase() }}
+                    {{ String(ticket.customer?.name || ticket.customer || '').charAt(0).toUpperCase() }}
                 </el-avatar>
-                <span class="text-sm font-medium text-slate-600 truncate">{{ ticket.customer }}</span>
+                <span class="text-sm font-medium text-slate-600 truncate">{{ ticket.customer?.name || ticket.customer }}</span>
             </div>
 
             <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
@@ -66,7 +66,7 @@
                     </el-tag>
                 </div>
                 <span class="text-xs text-slate-400 font-medium">
-                    {{ formatDate(ticket.createdAt) }}
+                    {{ formatDate(ticket.createdAt || new Date()) }}
                 </span>
             </div>
         </el-card>
@@ -86,7 +86,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'view', ticket: ITicket): void;
     (e: 'edit', ticket: ITicket): void;
-    (e: 'delete', id: number): void;
+    (e: 'delete', id: string | undefined): void;
 }>();
 
 const kanbanStore = useKanbanStore();
@@ -95,13 +95,14 @@ const handleCommand = (command: string, ticket: ITicket) => {
     if (command === 'view') emit('view', ticket);
     if (command === 'edit') emit('edit', ticket);
     if (command === 'delete') {
+        if (!ticket.id) return;
         ElMessageBox.confirm('Tem certeza que deseja excluir este ticket?', 'Atenção', {
             confirmButtonText: 'Sim, excluir',
             cancelButtonText: 'Cancelar',
             type: 'warning',
             confirmButtonClass: 'el-button--danger'
         }).then(() => {
-            emit('delete', ticket.id);
+            emit('delete', ticket.id!);
         }).catch(() => { });
     }
 };
@@ -113,12 +114,11 @@ const formatDate = (date: Date | string) => {
 const getStatusType = (status: string) => {
     const map: Record<string, string> = {
         'open': 'warning',
-        'in-progress': 'primary',
         'in_progress': 'primary',
         'waiting': 'warning',
-        'aguardando': 'warning',
         'resolved': 'success',
-        'done': 'success'
+        'done': 'success',
+        'closed': 'info'
     };
     return map[status] || 'info';
 };
@@ -129,12 +129,11 @@ const getStatusLabel = (status: string) => {
 
     const map: Record<string, string> = {
         'open': 'Aberto',
-        'in-progress': 'Em Andamento',
         'in_progress': 'Em Andamento',
         'waiting': 'Aguardando',
-        'aguardando': 'Aguardando',
         'resolved': 'Resolvido',
-        'done': 'Finalizado'
+        'done': 'Finalizado',
+        'closed': 'Fechado'
     };
     return map[status] || status;
 };

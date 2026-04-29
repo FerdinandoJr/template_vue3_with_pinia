@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { authServices } from '../../data/auth.services';
-import { isTokenValid } from '@/util/jwt';
+import { isTokenValid } from '@/utils/jwt';
 
 const STORAGE_KEY = 'datacrm_auth';
 
@@ -109,7 +109,7 @@ export const useAuthStore = defineStore('auth', () => {
     const modulePerm = perms[moduleId];
 
     if (!modulePerm) {
-      return false;
+      return hasRole(['Administrador', 'Gerente']);
     }
 
     if (modulePerm.active === false) {

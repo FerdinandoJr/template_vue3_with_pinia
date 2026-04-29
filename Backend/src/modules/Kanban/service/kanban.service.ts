@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KanbanColumn, KanbanCard, KanbanBoard } from '../data/kanban.entity';
@@ -6,6 +6,8 @@ import { CreateKanbanColumnDto, CreateKanbanCardDto, CreateKanbanBoardDto, Updat
 
 @Injectable()
 export class KanbanService {
+  private readonly logger = new Logger(KanbanService.name);
+
   constructor(
     @InjectRepository(KanbanBoard)
     private boardsRepository: Repository<KanbanBoard>,
@@ -24,10 +26,10 @@ export class KanbanService {
     const savedBoard = await this.boardsRepository.save(board);
 
     const defaultColumns = [
-      { title: 'A Fazer', order: 0, color: '#f59e0b', boardId: savedBoard.id, tenantId },
-      { title: 'Análise', order: 1, color: '#3b82f6', boardId: savedBoard.id, tenantId },
-      { title: 'Desenvolvimento', order: 2, color: '#8b5cf6', boardId: savedBoard.id, tenantId },
-      { title: 'Teste', order: 3, color: '#06b6d4', boardId: savedBoard.id, tenantId },
+      { title: 'Pendente', order: 0, color: '#ef4444', boardId: savedBoard.id, tenantId },
+      { title: 'A Fazer', order: 1, color: '#f59e0b', boardId: savedBoard.id, tenantId },
+      { title: 'Análise', order: 2, color: '#3b82f6', boardId: savedBoard.id, tenantId },
+      { title: 'Desenvolvimento', order: 3, color: '#8b5cf6', boardId: savedBoard.id, tenantId },
       { title: 'Finalizado', order: 4, color: '#22c55e', boardId: savedBoard.id, tenantId },
     ];
 
@@ -47,7 +49,23 @@ export class KanbanService {
   }
 
   async deleteBoard(id: string): Promise<void> {
+    this.logger.log(`Iniciando deleteBoard para id: ${id}`);
+    
+    const columns = await this.columnsRepository.find({ where: { boardId: id } });
+    this.logger.log(`Colunas encontradas: ${columns.length}`);
+    
+    for (const col of columns) {
+      this.logger.log(`Deletando cards da coluna: ${col.id}`);
+      await this.cardsRepository.delete({ columnId: col.id });
+    }
+    
+    this.logger.log(`Deletando colunas do board: ${id}`);
+    await this.columnsRepository.delete({ boardId: id });
+    
+    this.logger.log(`Deletando board: ${id}`);
     await this.boardsRepository.delete({ id });
+    
+    this.logger.log(`deleteBoard concluído para id: ${id}`);
   }
 
   async findAllColumns(tenantId: string): Promise<KanbanColumn[]> {
@@ -66,7 +84,7 @@ export class KanbanService {
   }
 
   async findAllCards(tenantId: string): Promise<KanbanCard[]> {
-    return this.cardsRepository.find({ order: { order: 'ASC' } });
+    return this.cardsRepository.find({ where: { tenantId }, order: { order: 'ASC' } });
   }
 
   async createColumn(tenantId: string, data: CreateKanbanColumnDto): Promise<KanbanColumn> {
@@ -107,5 +125,30 @@ export class KanbanService {
 
   async deleteCard(id: string): Promise<void> {
     await this.cardsRepository.delete({ id });
+  }
+
+  async moveCard(id: string, targetColumnId: string, targetOrder: number): Promise<KanbanCard> {
+    const card = await this.cardsRepository.findOne({ where: { id } });
+    if (!card) throw new NotFoundException('Card não encontrado');
+    
+    const targetColumn = await this.columnsRepository.findOne({ where: { id: targetColumnId } });
+    if (!targetColumn) throw new NotFoundException('Coluna de destino não encontrada');
+    
+    card.columnId = targetColumnId;
+    card.boardId = targetColumn.boardId;
+    card.order = targetOrder;
+    
+    const savedCard = await this.cardsRepository.save(card);
+    
+    this.logger.log(`Card ${id} movido para coluna ${targetColumnId} na posição ${targetOrder}`);
+    
+    return savedCard;
+  }
+
+  async reorderCardsInColumn(columnId: string, cardIds: string[]): Promise<void> {
+    const queries = cardIds.map((id, index) =>
+      this.cardsRepository.update(id, { order: index, columnId })
+    );
+    await Promise.all(queries);
   }
 }

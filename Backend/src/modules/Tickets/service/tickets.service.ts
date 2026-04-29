@@ -7,6 +7,7 @@ import { TicketChecklist } from '../data/ticket-checklist.entity';
 import { TicketAttachment } from '../data/ticket-attachment.entity';
 import { CreateTicketDto, UpdateTicketDto } from '../dto';
 import { TicketQueryDto } from '../dto/ticket-query.dto';
+import { KanbanService } from '../../Kanban/service/kanban.service';
 
 @Injectable()
 export class TicketsService {
@@ -19,6 +20,7 @@ export class TicketsService {
     private checklistRepository: Repository<TicketChecklist>,
     @InjectRepository(TicketAttachment)
     private attachmentsRepository: Repository<TicketAttachment>,
+    private kanbanService: KanbanService,
   ) {}
 
   async findAll(tenantId: string, query?: TicketQueryDto) {
@@ -26,6 +28,7 @@ export class TicketsService {
       .leftJoinAndSelect('ticket.customer', 'customer')
       .leftJoinAndSelect('ticket.assignee', 'assignee')
       .leftJoinAndSelect('ticket.tags', 'tags')
+      .leftJoinAndSelect('ticket.checklist', 'checklist')
       .where('ticket.tenantId = :tenantId', { tenantId });
     
     if (query?.status && query.status !== 'all') {
@@ -41,7 +44,7 @@ export class TicketsService {
       qb.andWhere('ticket.assignedTo = :assignedTo', { assignedTo: query.assignedTo });
     }
     if (query?.q) {
-      qb.andWhere('(ticket.title ILIKE :q OR ticket.description ILIKE :q)', { q: `%${query.q}%` });
+      qb.andWhere('(ticket.title ILIKE :q OR ticket.description ILIKE :q OR ticket.ticketNumber ILIKE :q)', { q: `%${query.q}%` });
     }
 
     const page = query?.page || 1;
@@ -54,44 +57,132 @@ export class TicketsService {
       .take(limit)
       .getManyAndCount();
 
+    // Garantir ticketNumber para todos
+    for (const ticket of items) {
+      if (!ticket.ticketNumber) {
+        ticket.ticketNumber = await this.generateTicketNumber(ticket.tenantId);
+        await this.ticketsRepository.save(ticket);
+      }
+    }
+
     return { items, total };
   }
 
   async findById(id: string): Promise<Ticket | null> {
-    return this.ticketsRepository.findOne({ 
+    const ticket = await this.ticketsRepository.findOne({ 
       where: { id },
-      relations: ['customer', 'assignee', 'tags']
+      relations: ['customer', 'assignee', 'tags', 'checklist', 'attachments']
     });
+    
+    if (ticket && !ticket.ticketNumber) {
+      ticket.ticketNumber = await this.generateTicketNumber(ticket.tenantId);
+      await this.ticketsRepository.save(ticket);
+    }
+    
+    return ticket;
+  }
+
+  private async generateTicketNumber(tenantId: string): Promise<string> {
+    console.log('[TicketsService] generateTicketNumber called for tenant:', tenantId);
+    
+    const lastTicket = await this.ticketsRepository.findOne({
+      where: { tenantId },
+      order: { createdAt: 'DESC' }
+    });
+    
+    let nextNumber = 1;
+    if (lastTicket && lastTicket.ticketNumber) {
+      console.log('[TicketsService] lastTicket.ticketNumber:', lastTicket.ticketNumber);
+      const match = lastTicket.ticketNumber.match(/(\d+)$/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    } else {
+      console.log('[TicketsService] No previous ticket found, starting at 1');
+    }
+    
+    const number = `TKT-${String(nextNumber).padStart(5, '0')}`;
+    console.log('[TicketsService] Generated ticket number:', number);
+    return number;
   }
 
   async create(tenantId: string, data: CreateTicketDto): Promise<Ticket> {
-    const { tags, checklist, attachments, ...ticketData } = data as any;
+    console.log('[TicketsService] Creating ticket with data:', JSON.stringify(data, null, 2));
+    
+    const { tags, checklist, tagLabels, checklistItems, attachments, assignees, boardId, ...ticketData } = data as any;
+    
+    console.log('[TicketsService] ticketData after destructuring:', JSON.stringify(ticketData, null, 2));
+    console.log('[TicketsService] assignees:', assignees);
+    console.log('[TicketsService] tags:', tags);
+    console.log('[TicketsService] checklist:', checklist);
+    
+    if (assignees && assignees.length > 0) {
+      ticketData.assignedTo = assignees[0];
+    }
+    
+    const ticketNumber = await this.generateTicketNumber(tenantId);
+    
+    const checklistSrc = checklist || checklistItems || [];
+    
+    console.log('[TicketsService] Creating ticket with:', {
+      title: ticketData.title,
+      priority: ticketData.priority,
+      type: ticketData.type,
+      customerId: ticketData.customerId,
+      assignees: ticketData.assignees,
+      estimatedHours: ticketData.estimatedHours,
+      tags: tags?.length,
+      checklist: checklistSrc?.length
+    });
     
     const ticket = this.ticketsRepository.create({
       ...ticketData,
+      ticketNumber,
       tenantId,
     } as Partial<Ticket>);
+    
     const savedTicket = await this.ticketsRepository.save(ticket);
+    console.log('[TicketsService] Ticket saved:', savedTicket.id, 'number:', ticketNumber, 'priority:', savedTicket.priority, 'customerId:', savedTicket.customerId);
 
-    if (tags && tags.length > 0) {
-      const tagEntities = tags.map((t: any) => this.tagsRepository.create({
-        name: t.name || t,
-        color: t.color || 'info',
+    const tagSource = tags || tagLabels || [];
+    if (tagSource.length > 0) {
+      const tagEntities = tagSource.map((t: any) => this.tagsRepository.create({
+        name: t.name || t.label || t,
+        color: t.color || t.colorClass?.split(' ')[0]?.replace('bg-', '') || 'info',
         ticketId: savedTicket.id,
         tenantId,
       }));
       await this.tagsRepository.save(tagEntities);
     }
 
-    if (checklist && checklist.length > 0) {
-      const checklistEntities = checklist.map((item: any, index: number) => this.checklistRepository.create({
-        title: item.title || item,
-        completed: item.completed || false,
+    const checklistSource = checklist || checklistItems || [];
+    if (checklistSource.length > 0) {
+      const checklistEntities = checklistSource.map((item: any, index: number) => this.checklistRepository.create({
+        title: item.title || item.text || item,
+        completed: item.completed ?? item.done ?? false,
         order: index,
         ticketId: savedTicket.id,
         tenantId,
       }));
       await this.checklistRepository.save(checklistEntities);
+    }
+
+    if (boardId) {
+      const columns = await this.kanbanService.findColumnsByBoard(boardId);
+      if (columns.length > 0) {
+        await this.kanbanService.createCard(tenantId, {
+          title: savedTicket.title,
+          description: savedTicket.description,
+          priority: savedTicket.priority,
+          type: savedTicket.type,
+          customerId: savedTicket.customerId,
+          assignees: savedTicket.assignedTo ? [savedTicket.assignedTo] : [],
+          estimatedHours: savedTicket.estimatedHours,
+          columnId: columns[0].id,
+          ticketId: savedTicket.id,
+          order: 0,
+        });
+      }
     }
 
     return this.findById(savedTicket.id) as Promise<Ticket>;
@@ -103,17 +194,22 @@ export class TicketsService {
       throw new NotFoundException('Ticket não encontrado');
     }
 
-    const { tags, checklist, attachments, ...ticketData } = data as any;
+    const { tags, checklist, tagLabels, checklistItems, attachments, assignees, ...ticketData } = data as any;
+    
+    if (assignees && assignees.length > 0) {
+      ticketData.assignedTo = assignees[0];
+    }
     
     Object.assign(ticket, ticketData);
     await this.ticketsRepository.save(ticket);
 
-    if (tags !== undefined) {
+    if (tags !== undefined || tagLabels !== undefined) {
       await this.tagsRepository.delete({ ticketId: id });
-      if (tags && tags.length > 0) {
-        const tagEntities = tags.map((t: any) => this.tagsRepository.create({
-          name: t.name || t,
-          color: t.color || 'info',
+      const tagSource = tags || tagLabels || [];
+      if (tagSource.length > 0) {
+        const tagEntities = tagSource.map((t: any) => this.tagsRepository.create({
+          name: t.name || t.label || t,
+          color: t.color || t.colorClass?.split(' ')[0]?.replace('bg-', '') || 'info',
           ticketId: id,
           tenantId: ticket.tenantId,
         }));
@@ -121,12 +217,13 @@ export class TicketsService {
       }
     }
 
-    if (checklist !== undefined) {
+    if (checklist !== undefined || checklistItems !== undefined) {
       await this.checklistRepository.delete({ ticketId: id });
-      if (checklist && checklist.length > 0) {
-        const checklistEntities = checklist.map((item: any, index: number) => this.checklistRepository.create({
-          title: item.title || item,
-          completed: item.completed || false,
+      const checklistSource = checklist || checklistItems || [];
+      if (checklistSource.length > 0) {
+        const checklistEntities = checklistSource.map((item: any, index: number) => this.checklistRepository.create({
+          title: item.title || item.text || item,
+          completed: item.completed ?? item.done ?? false,
           order: index,
           ticketId: id,
           tenantId: ticket.tenantId,

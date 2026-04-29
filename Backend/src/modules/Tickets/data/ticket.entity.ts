@@ -32,9 +32,13 @@ export enum TicketType {
 @Index('idx_tickets_tenant', ['tenantId'])
 @Index('idx_tickets_customer', ['customerId'])
 @Index('idx_tickets_assignee', ['assignedTo'])
+@Index('idx_tickets_number', ['tenantId', 'ticketNumber'])
 export class Ticket {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  ticketNumber: string;
 
   @Column({ type: 'varchar', length: 255 })
   title: string;

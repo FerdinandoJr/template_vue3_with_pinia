@@ -81,20 +81,20 @@
           <!-- Actions -->
           <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <el-button 
+              v-if="role.isAdmin !== true"
               circle
               size="small"
               class="!border-slate-200"
               @click="openEditModal(role)"
-              :disabled="role.name.toLowerCase() === 'admin'"
             >
               <el-icon><Edit /></el-icon>
             </el-button>
             <el-button 
+              v-if="role.isAdmin !== true"
               circle
               size="small"
               type="danger"
               @click="confirmDelete(role)"
-              :disabled="role.name.toLowerCase() === 'admin'"
             >
               <el-icon><Delete /></el-icon>
             </el-button>

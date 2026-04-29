@@ -33,6 +33,7 @@ export interface ICustomer {
 
 export interface ITicket {
   id?: string;
+  ticketNumber?: string;
   title: string;
   description?: string;
   customerId?: string;
