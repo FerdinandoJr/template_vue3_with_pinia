@@ -64,6 +64,11 @@ export class CreateKanbanCardDto {
   @IsUUID()
   ticketId?: string;
 
+  @ApiProperty({ example: 'TKT-00001', required: false })
+  @IsOptional()
+  @IsString()
+  ticketNumber?: string;
+
   @ApiProperty({ example: 0, required: false })
   @IsOptional()
   @IsNumber()
@@ -125,6 +130,11 @@ export class UpdateKanbanCardDto {
   @IsOptional()
   @IsUUID()
   boardId?: string;
+
+  @ApiProperty({ example: 'uuid-do-ticket', required: false })
+  @IsOptional()
+  @IsUUID()
+  ticketId?: string;
 
   @ApiProperty({ example: 'urgent', required: false })
   @IsOptional()

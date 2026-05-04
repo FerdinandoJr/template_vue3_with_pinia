@@ -16,4 +16,6 @@ export interface IKanbanCard {
   dateDisplay: string;
   avatars: string[];
   priority: 'low' | 'medium' | 'high';
+  ticketId?: string;
+  ticketNumber?: string;
 }

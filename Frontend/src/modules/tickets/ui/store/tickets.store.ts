@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import type { ITicket } from "../../domain/entities/Ticket";
 import { ticketServices, type TicketFilter, type Paginated } from "../../data/ticket.services";
 import { TicketStatus } from "../../domain/valueObjects/ticket-status.enum";
+import { useAuthStore } from "@/modules/auth/ui/store/auth.store";
 
 interface TicketsState {
   items: ITicket[];
@@ -77,17 +78,25 @@ export const useTicketsStore = defineStore('tickets', {
       
       try {
         const status = this.filter.status === 'all' ? undefined : this.filter.status;
+        const authStore = useAuthStore();
+        
         const currentFilter: TicketFilter = {
           status,
-          query: this.filter.query,
+          query: this.filter.query || undefined,
           page: this.currentPage,
           pageSize: this.pageSize,
           ownerOnly: this.filter.ownerOnly,
-          assignees: this.filter.assignees,
-          customers: this.filter.customers,
+          assignees: (this.filter.assignees && this.filter.assignees.length > 0) ? this.filter.assignees : undefined,
+          customers: (this.filter.customers && this.filter.customers.length > 0) ? this.filter.customers : undefined,
+          dateRange: this.filter.dateRange || undefined,
+          userId: this.filter.ownerOnly ? authStore.user?.id : undefined,
         };
         
+        console.log('[TicketsStore] Fetching with filter:', JSON.stringify(currentFilter));
+        
         const result: Paginated<ITicket> = await ticketServices.list(currentFilter);
+        
+        console.log('[TicketsStore] Result:', result?.total, 'tickets');
         
         this.total = result.total;
         this.filteredTotal = result.filteredTotal;

@@ -23,9 +23,11 @@ import { RolesModule } from './modules/Roles/module/roles.module';
 import { CoreAuthModule } from './core/guards/core-auth.module';
 import { AuthMiddleware } from './core/middleware/auth.middleware';
 import configuration from './config/configuration';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         name: 'short',

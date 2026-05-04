@@ -125,6 +125,12 @@ export class Ticket {
   @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  boardId: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  kanbanColumnId: string;
+
   @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tenantId' })
   tenant: Tenant;

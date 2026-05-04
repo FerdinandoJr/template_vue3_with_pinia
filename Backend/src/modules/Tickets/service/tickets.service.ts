@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, Logger, HttpCode, HttpStatus } from '@nestjs/common';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, MoreThanOrEqual, Between, In } from 'typeorm';
 import { Ticket, TicketStatus, TicketPriority, TicketType, TicketSource } from '../data/ticket.entity';
@@ -7,7 +8,7 @@ import { TicketChecklist } from '../data/ticket-checklist.entity';
 import { TicketAttachment } from '../data/ticket-attachment.entity';
 import { CreateTicketDto, UpdateTicketDto } from '../dto';
 import { TicketQueryDto } from '../dto/ticket-query.dto';
-import { KanbanService } from '../../Kanban/service/kanban.service';
+import { KanbanColumn } from '../../Kanban/data/kanban.entity';
 
 interface PaginatedResult<T> {
   items: T[];
@@ -38,7 +39,7 @@ export class TicketsService {
     private checklistRepository: Repository<TicketChecklist>,
     @InjectRepository(TicketAttachment)
     private attachmentsRepository: Repository<TicketAttachment>,
-    private kanbanService: KanbanService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async findAll(tenantId: string, query?: TicketQueryDto): Promise<PaginatedResult<Ticket>> {
@@ -64,6 +65,21 @@ export class TicketsService {
     }
     if (query?.q) {
       qb.andWhere('(ticket.title ILIKE :q OR ticket.description ILIKE :q OR ticket.ticketNumber ILIKE :q)', { q: `%${query.q}%` });
+    }
+    if (query?.ownerOnly && query?.userId && (!query.assignees || query.assignees.length === 0)) {
+      qb.andWhere('(ticket.createdBy = :userId OR ticket.assignedTo = :userId)', { userId: query.userId });
+    }
+    if (query?.assignees && query.assignees.length > 0) {
+      qb.andWhere('ticket.assignedTo IN (:...assignees)', { assignees: query.assignees });
+    }
+    if (query?.customers && query.customers.length > 0) {
+      qb.andWhere('ticket.customerId IN (:...customers)', { customers: query.customers });
+    }
+    if (query?.startDate && query?.endDate) {
+      qb.andWhere('ticket.createdAt BETWEEN :start AND :end', { 
+        start: new Date(query.startDate), 
+        end: new Date(query.endDate) 
+      });
     }
 
     const page = query?.page || 1;
@@ -115,6 +131,12 @@ export class TicketsService {
     
     if (ticket) {
       (ticket as any).assignees = ticket.assignedTo ? [ticket.assignedTo] : [];
+      this.logger.log(`[findById] Ticket ${id} loaded: checklist items = ${ticket.checklist?.length || 0}`);
+      if (ticket.checklist && ticket.checklist.length > 0) {
+        this.logger.log(`[findById]   - checklist:`, ticket.checklist.map(c => ({ id: c.id, title: c.title, completed: c.completed })));
+      }
+    } else {
+      this.logger.warn(`[findById] Ticket ${id} not found`);
     }
     
     return ticket;
@@ -148,13 +170,13 @@ export class TicketsService {
   }
 
   async create(tenantId: string, userId: string, data: CreateTicketDto): Promise<Ticket> {
-    const { tags, checklist, tagLabels, checklistItems, attachments, assignees, boardId, ...ticketData } = data as any;
+    const { tags, checklist, tagLabels, checklistItems, attachments, assignees, boardId, kanbanColumnId, ...ticketData } = data as any;
     
     this.logger.log(`[createTicket] checklist from data: ${JSON.stringify(checklist)}`);
     this.logger.log(`[createTicket] checklistItems from data: ${JSON.stringify(checklistItems)}`);
     
-    if (assignees && assignees.length > 0) {
-      ticketData.assignedTo = assignees[0];
+    if (assignees !== undefined) {
+      ticketData.assignedTo = assignees.length > 0 ? assignees[0] : null;
     }
     
     const ticketNumber = await this.generateTicketNumber(tenantId);
@@ -167,6 +189,8 @@ export class TicketsService {
       tenantId,
       createdBy: userId,
       source: ticketData.source || TicketSource.MANUAL,
+      boardId: boardId || null,
+      kanbanColumnId: kanbanColumnId || null,
     } as Partial<Ticket>);
     
     const savedTicket = await this.ticketsRepository.save(ticket);
@@ -194,7 +218,9 @@ export class TicketsService {
       await this.checklistRepository.save(checklistEntities);
     }
 
-    return this.findById(savedTicket.id) as Promise<Ticket>;
+    const finalTicket = await this.findById(savedTicket.id) as Ticket;
+    await this.eventEmitter.emitAsync('ticket.created', { ...finalTicket, boardId, assignees, kanbanColumnId });
+    return finalTicket;
   }
 
   async update(id: string, userId: string, data: UpdateTicketDto): Promise<Ticket> {
@@ -203,13 +229,40 @@ export class TicketsService {
       throw new NotFoundException(`Ticket #${id} não encontrado`);
     }
 
-    const { tags, checklist, tagLabels, checklistItems, attachments, assignees, ...ticketData } = data as any;
+    const { tags, checklist, tagLabels, checklistItems, attachments, assignees, boardId, kanbanColumnId, ...ticketData } = data as any;
     
     const previousStatus = ticket.status;
     const previousAssignee = ticket.assignedTo;
     
-    if (assignees && assignees.length > 0) {
-      ticketData.assignedTo = assignees[0];
+    this.logger.log(`[TicketsService.update] data received: ${JSON.stringify(data)}`);
+    this.logger.log(`[TicketsService.update] assignees received: ${JSON.stringify(assignees)}`);
+    this.logger.log(`[TicketsService.update] customerId received: ${data.customerId}`);
+    this.logger.log(`[TicketsService.update] kanbanColumnId received: ${kanbanColumnId}`);
+    
+    if (assignees !== undefined) {
+      ticketData.assignedTo = assignees.length > 0 ? assignees[0] : null;
+      if (ticketData.assignedTo !== previousAssignee) {
+        if (ticketData.assignedTo) {
+          ticket.assignee = { id: ticketData.assignedTo } as any;
+        } else {
+          ticket.assignee = null as any;
+        }
+      }
+    }
+    
+    if (data.customerId !== undefined) {
+      ticketData.customerId = data.customerId === '' ? null : data.customerId;
+      this.logger.log(`[TicketsService.update] Setting customerId to: ${ticketData.customerId}`);
+    }
+    
+    if (boardId !== undefined) {
+      ticketData.boardId = boardId;
+      this.logger.log(`[TicketsService.update] Setting boardId to: ${boardId}`);
+    }
+    
+    if (kanbanColumnId !== undefined) {
+      ticketData.kanbanColumnId = kanbanColumnId;
+      this.logger.log(`[TicketsService.update] Setting kanbanColumnId to: ${kanbanColumnId}`);
     }
     
     if (ticketData.status && ticketData.status !== previousStatus) {
@@ -219,12 +272,10 @@ export class TicketsService {
       if (!ticket.firstResponseAt && ticketData.assignedTo && ticketData.assignedTo !== previousAssignee) {
         ticketData.firstResponseAt = new Date();
       }
-      
-      await this.kanbanService.syncCardFromTicket(id, ticketData.status);
-      this.logger.log(`Sincronizando card do ticket ${id} para status ${ticketData.status}`);
     }
     
     Object.assign(ticket, ticketData);
+    this.logger.log(`[TicketsService.update] Saving ticket with customerId: ${ticket.customerId}, boardId: ${ticket.boardId}, kanbanColumnId: ${ticket.kanbanColumnId}`);
     await this.ticketsRepository.save(ticket);
 
     if (tags !== undefined || tagLabels !== undefined) {
@@ -256,7 +307,13 @@ export class TicketsService {
       }
     }
 
-    return this.findById(id);
+    const updatedTicket = await this.findById(id) as Ticket;
+    const emitPayload: any = { ...updatedTicket };
+    if (assignees !== undefined) {
+      emitPayload.assignees = assignees;
+    }
+    await this.eventEmitter.emitAsync('ticket.updated', emitPayload);
+    return updatedTicket;
   }
 
   async delete(id: string): Promise<void> {
@@ -269,7 +326,7 @@ export class TicketsService {
 
   async restore(id: string): Promise<Ticket> {
     const ticket = await this.findById(id, true);
-    if (!ticket || ticket.deletedAt) {
+    if (!ticket || !ticket.deletedAt) {
       throw new NotFoundException(`Ticket #${id} não encontrado ou não excluído`);
     }
     await this.ticketsRepository.restore(id);
@@ -289,7 +346,9 @@ export class TicketsService {
     }
     
     await this.ticketsRepository.save(ticket);
-    return this.findById(ticketId);
+    const updatedTicket = await this.findById(ticketId);
+    this.eventEmitter.emit('ticket.updated', updatedTicket);
+    return updatedTicket;
   }
 
   async changeStatus(ticketId: string, status: TicketStatus): Promise<Ticket> {
@@ -310,8 +369,7 @@ export class TicketsService {
     await this.ticketsRepository.save(ticket);
     
     if (previousStatus !== status) {
-      await this.kanbanService.syncCardFromTicket(ticketId, status);
-      this.logger.log(`Status alterado: ticket ${ticketId} → ${status}, card sincronizado`);
+      this.eventEmitter.emit('ticket.updated', ticket);
     }
     
     return this.findById(ticketId);
@@ -484,18 +542,155 @@ export class TicketsService {
     return counts;
   }
 
-  private mapStatusToColumnTitle(status: TicketStatus): string {
-    const mapping: Record<TicketStatus, string> = {
-      [TicketStatus.OPEN]: 'pendente',
-      [TicketStatus.IN_PROGRESS]: 'fazer',
-      [TicketStatus.WAITING]: 'análise',
-      [TicketStatus.RESOLVED]: 'desenvolvimento',
-      [TicketStatus.CLOSED]: 'finalizado',
-    };
-    return mapping[status] || 'pendente';
+  @OnEvent('kanban.card.created')
+  async handleKanbanCardCreated(card: any) {
+    if (card.ticketId) return;
+    this.logger.log(`Syncing new kanban card to ticket: ${card.id}`);
+
+    try {
+      const targetColumn = await this.ticketsRepository.manager
+        .getRepository(KanbanColumn)
+        .findOne({ where: { id: card.columnId } });
+      
+      let status = TicketStatus.OPEN;
+      if (targetColumn) {
+        status = (targetColumn as any).ticketStatus as TicketStatus;
+        if (!status) {
+          const title = targetColumn.title.toLowerCase();
+          if (title.includes('pendente') || title.includes('open')) status = TicketStatus.OPEN;
+          else if (title.includes('fazer') || title.includes('progress') || title.includes('desenvolvimento') || title.includes('andamento')) status = TicketStatus.IN_PROGRESS;
+          else if (title.includes('análise') || title.includes('analise') || title.includes('waiting')) status = TicketStatus.WAITING;
+          else if (title.includes('resolvido') || title.includes('resolved') || title.includes('finalizado')) status = TicketStatus.RESOLVED;
+          else if (title.includes('closed') || title.includes('concluído') || title.includes('concluido')) status = TicketStatus.CLOSED;
+          else status = TicketStatus.OPEN;
+        }
+      }
+
+      const checklistItems = (card.checklist || []).map((item: any, idx: number) => ({
+        title: item.title || item.text || String(item),
+        completed: item.completed ?? false,
+        order: idx
+      }));
+
+      const tags = (card.tags || []).map((t: any) => ({
+        name: t.label || t.name || String(t),
+        color: t.colorClass?.split(' ')[0]?.replace('bg-', '') || 'info'
+      }));
+
+      const ticketData = {
+        title: card.title || 'Sem Título',
+        description: card.description || '',
+        status,
+        priority: card.priority || TicketPriority.MEDIUM,
+        type: card.type || TicketType.SUPPORT,
+        customerId: card.customerId || null,
+        assignedTo: card.assignees && card.assignees.length > 0 ? card.assignees[0] : null,
+        estimatedHours: card.estimatedHours || 0,
+        tenantId: card.tenantId,
+        source: TicketSource.MANUAL,
+        boardId: card.boardId || null,
+        kanbanColumnId: card.columnId,
+      };
+
+      const ticketNumber = await this.generateTicketNumber(card.tenantId);
+      const ticket = this.ticketsRepository.create({
+        ...ticketData,
+        ticketNumber
+      } as Partial<Ticket>);
+
+      const savedTicket = await this.ticketsRepository.save(ticket);
+
+      if (tags.length > 0) {
+        const tagEntities = tags.map((t: any) => this.tagsRepository.create({ ...t, ticketId: savedTicket.id, tenantId: card.tenantId }));
+        await this.tagsRepository.save(tagEntities);
+      }
+
+      if (checklistItems.length > 0) {
+        const checklistEntities = checklistItems.map((c: any) => this.checklistRepository.create({ ...c, ticketId: savedTicket.id, tenantId: card.tenantId }));
+        await this.checklistRepository.save(checklistEntities);
+      }
+
+      // Update the card with the new ticket ID
+      await this.ticketsRepository.manager.update('kanban_cards', card.id, { 
+        ticketId: savedTicket.id,
+        ticketNumber: ticketNumber
+      });
+      
+    } catch (error) {
+      this.logger.warn(`Failed to create ticket from card ${card.id}: ${error.message}`);
+    }
   }
 
-  async syncKanbanCard(ticketId: string, ticketStatus: TicketStatus): Promise<void> {
-    await this.kanbanService.syncCardFromTicket(ticketId, ticketStatus);
+  @OnEvent('kanban.card.updated')
+  async handleKanbanCardUpdated(card: any) {
+    if (!card.ticketId) return;
+    if (card._skipTicketSync) return;
+    this.logger.log(`Syncing kanban card update to ticket: ${card.ticketId}`);
+    
+    try {
+      const ticket = await this.findById(card.ticketId);
+      if (!ticket) return;
+
+      const targetColumn = await this.ticketsRepository.manager
+        .getRepository(KanbanColumn)
+        .findOne({ where: { id: card.columnId } });
+      
+      if (targetColumn) {
+        let newStatus = (targetColumn as any).ticketStatus as TicketStatus;
+        
+        // Se a coluna não tem status mapeado, tenta inferir pelo título
+        if (!newStatus) {
+          const title = targetColumn.title.toLowerCase();
+          if (title.includes('pendente') || title.includes('open')) newStatus = TicketStatus.OPEN;
+          else if (title.includes('fazer') || title.includes('progress') || title.includes('desenvolvimento') || title.includes('andamento')) newStatus = TicketStatus.IN_PROGRESS;
+          else if (title.includes('análise') || title.includes('analise') || title.includes('waiting')) newStatus = TicketStatus.WAITING;
+          else if (title.includes('resolvido') || title.includes('resolved') || title.includes('finalizado')) newStatus = TicketStatus.RESOLVED;
+          else if (title.includes('closed') || title.includes('concluído') || title.includes('concluido')) newStatus = TicketStatus.CLOSED;
+        }
+
+        if (newStatus) {
+          // Normalizar para garantir que bate com o enum (lowercase)
+          const normalizedStatus = newStatus.toLowerCase() as TicketStatus;
+          
+          if (Object.values(TicketStatus).includes(normalizedStatus) && ticket.status !== normalizedStatus) {
+            this.logger.log(`[Sync] Updating ticket ${ticket.id} status from ${ticket.status} to ${normalizedStatus}`);
+            ticket.status = normalizedStatus;
+            ticket.resolvedAt = normalizedStatus === TicketStatus.RESOLVED ? new Date() : ticket.resolvedAt;
+            ticket.closedAt = normalizedStatus === TicketStatus.CLOSED ? new Date() : ticket.closedAt;
+          }
+        }
+        ticket.kanbanColumnId = card.columnId;
+      }
+
+      ticket.title = card.title;
+      ticket.description = card.description;
+      ticket.priority = card.priority || ticket.priority;
+      ticket.type = card.type || ticket.type;
+      if (card.assignees !== undefined) {
+        const newAssignedTo = (card.assignees && card.assignees.length > 0) ? card.assignees[0] : null;
+        if (ticket.assignedTo !== newAssignedTo) {
+          ticket.assignedTo = newAssignedTo;
+          if (newAssignedTo) {
+            ticket.assignee = { id: newAssignedTo } as any;
+          } else {
+            ticket.assignee = null as any;
+          }
+        }
+      }
+      ticket.customerId = card.customerId || ticket.customerId;
+      ticket.estimatedHours = card.estimatedHours || ticket.estimatedHours;
+      if (card.boardId) {
+        ticket.boardId = card.boardId;
+      }
+      if (card.columnId) {
+        ticket.kanbanColumnId = card.columnId;
+      }
+
+      const savedTicket = await this.ticketsRepository.save(ticket);
+      (savedTicket as any)._skipKanbanSync = true;
+      this.eventEmitter.emit('ticket.updated', savedTicket);
+    } catch (error) {
+      this.logger.warn(`Failed to update ticket from card ${card.id}: ${error.message}`);
+    }
   }
 }

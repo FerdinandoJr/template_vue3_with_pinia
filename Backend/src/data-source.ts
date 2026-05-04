@@ -46,8 +46,8 @@ export const AppDataSource = new DataSource({
     KbArticle,
     Settings,
   ],
-  // migrations: ['src/database/migrations/*{.ts,.js}'],
-  // migrationsTableName: 'migrations',
+  migrations: ['src/migrations/*{.ts,.js}'],
+  migrationsTableName: 'migrations',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   extra: {
     max: 20,

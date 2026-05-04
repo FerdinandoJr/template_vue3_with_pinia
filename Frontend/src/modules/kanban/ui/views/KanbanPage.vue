@@ -62,10 +62,8 @@
     </div>
 
     <TicketModal 
-      v-if="isModalOpen" 
       :is-open="isModalOpen" 
       :ticket="selectedTicket" 
-      :initial-data="selectedTicket || {}" 
       :is-kanban="true"
       append-to-body
       @close="isModalOpen = false" 
@@ -96,6 +94,7 @@ const canMoveColumns = computed(() => authStore.hasRole(['Desenvolvedor', 'Geren
 
 const isModalOpen = ref(false);
 const selectedTicket = ref<ITicket | null>(null);
+const selectedCard = ref<any>(null); // ← ADDED!
 const draggedIndex = ref<number | null>(null);
 
 const onDragStartColumn = (event: DragEvent, index: number) => {
@@ -161,28 +160,35 @@ const openNewTicketModal = () => {
 };
 
 const openTicketDetails = (ticket: any) => {
-  const ticketCopy = JSON.parse(JSON.stringify(ticket));
-
-  if (ticketCopy.tags && Array.isArray(ticketCopy.tags)) {
-    ticketCopy.tags = ticketCopy.tags.map((tag: any) => {
-      if (typeof tag === 'object' && tag !== null) {
-        if (tag.label === '[object Object]' || tag.name === '[object Object]' || (!tag.label && !tag.name)) {
-          return null;
-        }
-        return {
-          id: tag.id || tag.name,
-          name: tag.name || tag.label || '',
-          type: tag.type || tag.color || 'info',
-          colorClass: tag.colorClass || ''
-        };
-      }
-      return null;
-    }).filter((t: any) => t !== null);
+  console.log('[KanbanPage] ===== ABRINDO CARD =====');
+  console.log('[KanbanPage] ticket:', ticket);
+  
+  selectedCard.value = ticket;
+  const cardId = ticket?.id;
+  const ticketId = ticket?.ticketId;
+  
+  // Usar boardId do card se disponível, senão usar activeBoardId
+  const boardId = ticket?.boardId || kanbanStore.activeBoardId;
+  
+  if (ticketId) {
+    selectedTicket.value = {
+      ...ticket,
+      id: ticketId,
+      cardId: cardId,
+      boardId: boardId,
+      checklist: Array.isArray(ticket?.checklist) ? ticket.checklist : [],
+    };
   } else {
-    ticketCopy.tags = [];
+    selectedTicket.value = {
+      ...ticket,
+      id: undefined,
+      cardId: cardId,
+      boardId: boardId,
+      checklist: [],
+    };
   }
-
-  selectedTicket.value = ticketCopy;
+  
+  console.log('[KanbanPage] selectedTicket FINAL:', selectedTicket.value);
   isModalOpen.value = true;
 };
 
@@ -237,213 +243,31 @@ const handleRemoveColumn = async (columnId: string) => {
 
 const onTicketSaved = async (ticketData: any) => {
   isModalOpen.value = false;
-  
-  const cardId = ticketData.cardId || selectedTicket.value?.id;
-  const ticketId = (selectedTicket.value as any)?.ticketId || (ticketData as any)?.ticketId;
-  const canApprove = authStore.hasRole(['Desenvolvedor', 'Gerente', 'Administrador']);
-  
-  let selectedStatus = ticketData.status;
-  let selectedBoardId = ticketData.boardId;
+  const ticketId = selectedTicket.value?.id;
   
   try {
-    let ticketResult: any = null;
+    const ticketPayload = { ...ticketData };
+    delete ticketPayload.cardId;
+    delete ticketPayload.columnId;
+    delete ticketPayload.column;
     
-    if (ticketId && typeof ticketId === 'string' && ticketId.length > 0) {
-      try {
-        const ticketPayload = { ...ticketData };
-        ticketPayload.tags = (ticketData.tags || []).map((tag: any) => {
-          if (typeof tag === 'object' && tag !== null) {
-            return { name: tag.label || tag.name || tag, color: tag.colorClass?.split(' ')[0]?.replace('bg-', '') || 'info' };
-          }
-          return { name: String(tag), color: 'info' };
-        });
-        ticketResult = await ticketServices.update(ticketId, ticketPayload);
-      } catch (err: any) {
-        if (err?.message?.includes('não encontrado') || err?.status === 404) {
-          console.log('[onTicketSaved] Ticket não encontrado, criando novo...');
-          const ticketPayload = { ...ticketData };
-          ticketPayload.tags = (ticketData.tags || []).map((tag: any) => {
-            if (typeof tag === 'object' && tag !== null) {
-              return { name: tag.label || tag.name || tag, color: tag.colorClass?.split(' ')[0]?.replace('bg-', '') || 'info' };
-            }
-            return { name: String(tag), color: 'info' };
-          });
-          ticketResult = await ticketServices.create({
-            ...ticketPayload,
-            boardId: selectedBoardId || null
-          });
-        } else {
-          throw err;
-        }
-      }
-    } else {
-      const ticketPayload = { ...ticketData };
-      ticketPayload.tags = (ticketData.tags || []).map((tag: any) => {
-        if (typeof tag === 'object' && tag !== null) {
-          return { name: tag.label || tag.name || tag, color: tag.colorClass?.split(' ')[0]?.replace('bg-', '') || 'info' };
-        }
-        return { name: String(tag), color: 'info' };
-      });
-      ticketResult = await ticketServices.create({
-        ...ticketPayload,
-        boardId: selectedBoardId || null
-      });
-    }
-    
-    if (!ticketResult) {
-      throw new Error('Erro ao criar ticket');
-    }
-    
-    const newTicketId = ticketResult.id || ticketId;
-    
-    const kanbanFriendlyTags = (ticketData.tags || []).map((tag: any) => {
+    ticketPayload.tags = (ticketData.tags || []).map((tag: any) => {
       if (typeof tag === 'object' && tag !== null) {
-        let label = tag.label || tag.name || '';
-        if (label === '[object Object]' || label === '[Sem Tag]' || !label) {
-          label = 'Geral';
-        }
-        let colorClass = tag.colorClass || 'bg-slate-100 text-slate-700';
-        if (label === 'Bug') colorClass = 'bg-red-100 text-red-700';
-        else if (label === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
-        else if (label === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
-        else if (label === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
-        else if (label === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
-        return { label, colorClass };
+        return { name: tag.label || tag.name || tag, color: tag.colorClass?.split(' ')[0]?.replace('bg-', '') || 'info' };
       }
-      const label = String(tag);
-      if (label === '[object Object]' || label === '[Sem Tag]' || !label) {
-        return { label: 'Geral', colorClass: 'bg-slate-100 text-slate-700' };
-      }
-      let colorClass = 'bg-slate-100 text-slate-700';
-      if (label === 'Bug') colorClass = 'bg-red-100 text-red-700';
-      else if (label === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
-      else if (label === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
-      else if (label === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
-      else if (label === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
-      return { label, colorClass };
+      return { name: String(tag), color: 'info' };
     });
-    
-    let foundCard: any = null;
-    let foundBoard: any = null;
-    let foundCol: any = null;
-    const existingCardId = cardId;
-    const existingTicketId = (selectedTicket.value as any)?.ticketId;
-    
-    console.log('[onTicketSaved] existingCardId:', existingCardId);
-    console.log('[onTicketSaved] existingTicketId:', existingTicketId);
-    console.log('[onTicketSaved] newTicketId:', newTicketId);
-    
-    if (existingCardId || newTicketId) {
-      for (const b of kanbanStore.boards) {
-        for (const col of b.columns) {
-          const card = col.cards.find((c: any) => 
-            c.id === existingCardId || 
-            String(c.ticketId) === String(newTicketId) || 
-            String(c.ticketId) === String(existingTicketId) ||
-            c.id === newTicketId
-          );
-          if (card) {
-            foundCard = card;
-            foundBoard = b;
-            foundCol = col;
-            console.log('[onTicketSaved] foundCard:', card.id, 'ticketId:', card.ticketId);
-            break;
-          }
-        }
-        if (foundCard) break;
-      }
-    }
-    
-    let targetCol: any = null;
-    let targetBoard: any = null;
-    
-    let boardsToSearch = kanbanStore.boards;
-    if (selectedBoardId) {
-      const selectedBoard = kanbanStore.boards.find((b: any) => b.id === selectedBoardId);
-      if (selectedBoard) {
-        boardsToSearch = [selectedBoard];
-        targetBoard = selectedBoard;
-      }
-    }
-    
-    for (const b of boardsToSearch) {
-      const cols = b.columns || [];
-      let col: any = null;
-      
-      if (selectedStatus) {
-        col = cols.find((c: any) => c.title === selectedStatus || c.title.toLowerCase().includes(selectedStatus.toLowerCase()));
-      }
-      
-      if (!col) {
-        col = cols.find((c: any) => c.title.toLowerCase().includes('pendente')) || cols[0];
-      }
-      
-      if (col) {
-        targetCol = col;
-        targetBoard = b;
-        break;
-      }
-    }
-    
-    if (!targetCol && kanbanStore.boards.length > 0) {
-      const firstBoard = kanbanStore.boards[0];
-      targetCol = firstBoard.columns?.[0];
-      if (!targetCol) {
-        const allCols = Object.values(firstBoard)?.filter((c: any) => c.cards !== undefined);
-        if (allCols?.length > 0) targetCol = allCols[0];
-      }
-    }
-    
-    if (targetCol) {
-      const cardId = foundCard?.id || existingCardId || crypto.randomUUID();
-      
-      let ticketChecklist = ticketData.checklist || [];
-      if (!ticketChecklist.length && newTicketId) {
-        const ticket = kanbanStore.getTicketById(newTicketId);
-        if (ticket?.checklist) {
-          ticketChecklist = ticket.checklist;
-        }
-      }
-      
-      const formattedTags = (kanbanFriendlyTags || []).map((tag: any) => {
-        if (typeof tag === 'object' && tag !== null) {
-          return { label: tag.name || tag.label || String(tag), colorClass: tag.colorClass || 'bg-slate-100 text-slate-700' };
-        }
-        const label = String(tag);
-        return { label, colorClass: 'bg-slate-100 text-slate-700' };
-      });
-      
-      const cardData = {
-        id: cardId,
-        title: ticketData.title,
-        description: ticketData.description || '',
-        priority: ticketData.priority || 'medium',
-        type: ticketData.type || 'support',
-        customerId: ticketData.customerId,
-        assignees: ticketData.assignees || [],
-        estimatedHours: ticketData.estimatedHours,
-        tags: formattedTags,
-        checklist: ticketChecklist,
-        ticketId: newTicketId,
-        status: targetCol.title,
-        columnId: targetCol.id,
-        boardId: targetBoard?.id || selectedBoardId,
-      };
-      
-      const hasExistingCard = foundCard || existingCardId;
-      
-      if (hasExistingCard) {
-        await kanbanServices.updateCard(cardId, cardData);
-      } else {
-        try {
-          await kanbanServices.createCard(cardData);
-        } catch (e) {
-          console.log('Card será criado automaticamente pelo backend');
-        }
-      }
-    }
 
+    if (ticketId && typeof ticketId === 'string' && ticketId.length > 0) {
+      await ticketServices.update(ticketId, ticketPayload);
+    } else {
+      await ticketServices.create(ticketPayload);
+    }
+    
+    // O backend aguarda a sincronização ser concluída através do emitAsync.
+    // Basta recarregar os dados do Kanban para refletir as mudanças instantaneamente.
     await kanbanStore.fetchKanbanData();
+    
     ElMessage.success('Ticket salvo com sucesso!');
   } catch (e: any) {
     console.error('Erro ao salvar ticket:', e);
@@ -456,7 +280,8 @@ const onTicketApproved = async (ticketData: any) => {
   console.log('[onTicketApproved] columns:', kanbanStore.columns);
   
   try {
-    const targetCol = kanbanStore.columns.find((c: any) => c.title.toLowerCase().includes('fazer'));
+    const board = kanbanStore.boards?.find((b: any) => b.id === ticketData.boardId) || kanbanStore.boards?.[0];
+    const targetCol = board?.columns?.find((c: any) => c.title.toLowerCase().includes('fazer')) || kanbanStore.columns.find((c: any) => c.title.toLowerCase().includes('fazer'));
     console.log('[onTicketApproved] targetCol:', targetCol);
     
     if (targetCol) {
@@ -475,8 +300,8 @@ const onTicketApproved = async (ticketData: any) => {
     });
     ticketData.tags = formattedTags;
     
-    if (ticketData.id) {
-      await kanbanServices.updateCard(ticketData.id, ticketData);
+    if (ticketData.cardId) {
+      await kanbanServices.updateCard(ticketData.cardId, ticketData);
     } else {
       await kanbanServices.createCard(ticketData);
     }

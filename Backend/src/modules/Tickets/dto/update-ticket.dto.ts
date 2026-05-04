@@ -29,7 +29,6 @@ export class UpdateTicketDto {
   status?: TicketStatus;
 
   @ApiProperty({ required: false })
-  @IsUUID()
   @IsOptional()
   customerId?: string;
 
@@ -55,6 +54,11 @@ export class UpdateTicketDto {
   @IsUUID()
   @IsOptional()
   boardId?: string;
+
+  @ApiProperty({ required: false })
+  @IsUUID()
+  @IsOptional()
+  kanbanColumnId?: string;
 
   @ApiProperty({ required: false })
   @IsArray()

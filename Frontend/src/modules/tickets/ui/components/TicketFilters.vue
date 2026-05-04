@@ -49,7 +49,7 @@
               class="flex items-center justify-between bg-white px-4 py-1.5 rounded-lg border border-slate-200 shadow-sm h-[32px]">
               <span class="text-[13px] font-bold"
                 :class="localFilters.ownerOnly ? 'text-blue-600' : 'text-slate-600'">Apenas Meus Tickets</span>
-              <el-switch v-model="localFilters.ownerOnly" @change="onChangeFilter" />
+              <el-switch v-model="localFilters.ownerOnly" active-color="#3b82f6" @change="onChangeFilter" />
             </div>
           </div>
 
@@ -70,7 +70,7 @@
               class="block text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Responsável</label>
             <el-select v-model="localFilters.assignees" multiple collapse-tags collapse-tags-tooltip filterable
               placeholder="Qualquer" class="w-full enterprise-select" size="default" @change="onChangeFilter"
-              :disabled="localFilters.ownerOnly" :teleported="false" placement="bottom-start">
+              :teleported="false" placement="bottom-start">
               <template #prefix>
                 <el-icon>
                   <User />
@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { Search, Briefcase, User, Close, Filter } from '@element-plus/icons-vue';
 import type { TicketFilter } from '../../data/ticket.services';
 import { ticketServices } from '../../data/ticket.services';
@@ -120,11 +120,9 @@ const loadingCustomers = ref(false);
 const customersLoaded = ref(false);
 
 const loadOptions = async () => {
-  if (optionsLoaded.value && customersLoaded.value) return;
+  if (optionsLoaded.value) return;
   try {
-    console.log('[TicketFilters] Carregando opções...');
     const options = await ticketServices.getOptions();
-    console.log('[TicketFilters] Opções carregadas:', options);
     usersOptions.value = options.users;
     customersOptions.value = options.customers;
     optionsLoaded.value = true;
@@ -136,15 +134,15 @@ const loadOptions = async () => {
 
 const loadCustomersOnly = async () => {
   if (customersLoaded.value) return;
-  customersLoaded.value = true;
   try {
     const res = await httpClient.get<any>('/customers');
     const data = res.data?.data || res.data || [];
-const list = Array.isArray(data) ? data : (data.items || []);
-customersOptions.value = list.map((c: any) => ({
+    const list = Array.isArray(data) ? data : (data.items || []);
+    customersOptions.value = list.map((c: any) => ({
       id: String(c.id),
       name: formatCustomerNameFromList(c)
     }));
+    customersLoaded.value = true;
   } catch (e) {
     console.error('[TicketFilters] Erro ao buscar clientes:', e);
   }
@@ -215,8 +213,18 @@ const quantidadeFiltrosAtivos = computed(() => {
 });
 
 watch(() => props.filters, (newVal) => {
-  localFilters.value = { ...newVal };
-}, { deep: true });
+  if (newVal) {
+    localFilters.value = { 
+      ...newVal,
+      query: newVal.query || '',
+      status: newVal.status || 'all',
+      customers: newVal.customers || [],
+      assignees: newVal.assignees || [],
+      ownerOnly: newVal.ownerOnly ?? true,
+      dateRange: newVal.dateRange || localFilters.value.dateRange
+    };
+  }
+}, { deep: true, immediate: true });
 
 const hasActiveFilters = computed(() => {
   const cDates = localFilters.value.dateRange;
@@ -227,7 +235,7 @@ const hasActiveFilters = computed(() => {
 
   return localFilters.value.query !== '' ||
     localFilters.value.status !== 'all' ||
-    localFilters.value.ownerOnly === false ||
+    localFilters.value.ownerOnly === true ||
     (localFilters.value.assignees && localFilters.value.assignees.length > 0) ||
     (localFilters.value.customers && localFilters.value.customers.length > 0) ||
     isDateChanged;

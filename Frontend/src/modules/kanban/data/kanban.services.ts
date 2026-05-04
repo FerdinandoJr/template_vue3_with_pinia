@@ -20,6 +20,7 @@ export interface KanbanColumn {
   order: number;
   color: string;
   boardId: string;
+  ticketStatus?: string;
   cards?: IKanbanCard[];
 }
 

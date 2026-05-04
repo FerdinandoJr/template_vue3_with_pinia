@@ -154,6 +154,11 @@ export class CreateTicketDto {
   @IsOptional()
   boardId?: string;
 
+  @ApiProperty({ example: 'uuid-da-coluna-kanban', required: false })
+  @IsUUID()
+  @IsOptional()
+  kanbanColumnId?: string;
+
   @ApiProperty({ type: [CreateTagDto], required: false })
   @IsArray()
   @IsOptional()

@@ -5,7 +5,7 @@
     :draggable="draggable !== false"
     @dragstart="draggable !== false ? onDragStart($event) : null">
     <div class="flex justify-between items-start mb-2">
-      <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ getDisplayId(ticket) }}</span>
+      <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ displayId }}</span>
       <el-tag size="small" :type="getPriorityType(ticket?.priority as string)" effect="plain"
         class="font-semibold border-none">
         {{ getPriorityLabel(ticket?.priority as string) }}
@@ -24,7 +24,7 @@
         :type="getTagType(tag)"
         effect="plain"
         class="!text-[10px] !px-1.5 !py-0 font-medium border-none">
-        {{ tag.label || tag.name || tag }}
+        {{ (tag as any).label || (tag as any).name || tag }}
       </el-tag>
       <el-tag v-if="(ticket?.tags?.length || 0) > 3" size="small" type="info" effect="plain" class="!text-[10px] !px-1.5 !py-0 font-medium border-none">
         +{{ (ticket?.tags?.length || 0) - 3 }}
@@ -51,22 +51,33 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import type { ITicket } from '@/modules/tickets/domain/entities/Ticket';
+import { computed, onMounted } from 'vue';
+import type { IKanbanCard } from '../../domain/entities/kanban-card';
 import { useCalendarStore } from '@/modules/calendar/ui/store/calendar.store';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
+import { useKanbanStore } from '../store/kanban.store';
 
-const props = defineProps<{ ticket: ITicket; draggable?: boolean }>();
-
-const getDisplayId = (ticket: any) => {
-  if (ticket?.ticketNumber) return ticket.ticketNumber;
-  if (ticket?.ticketId) return 'TKT-' + ticket.ticketId.slice(0, 8).toUpperCase();
-  if (ticket?.id) return 'TKT-' + ticket.id.slice(0, 8).toUpperCase();
-  return 'Novo';
-};
+const props = defineProps<{ ticket: IKanbanCard; draggable?: boolean }>();
 
 const calendarStore = useCalendarStore() as any;
 const authStore = useAuthStore() as any;
+const kanbanStore = useKanbanStore() as any;
+
+const displayId = computed(() => {
+  const card = props.ticket as any;
+  if (!card) return 'Novo';
+  
+  if (card.ticketNumber) return card.ticketNumber;
+  
+  const searchId = card.ticketId || card.id;
+  if (searchId) {
+    const linkedTicket = kanbanStore.allTickets?.find((t: any) => String(t.id) === String(searchId));
+    if (linkedTicket?.ticketNumber) return linkedTicket.ticketNumber;
+  }
+  
+  if (card.id) return 'CARD-' + String(card.id).slice(0, 8).toUpperCase();
+  return 'Novo';
+});
 
 onMounted(async () => {
   if (!calendarStore.availableUsers || calendarStore.availableUsers.length === 0) {
@@ -74,97 +85,54 @@ onMounted(async () => {
   }
 });
 
-const getAllUsers = () => {
-  const users = calendarStore.availableUsers || [];
-  const currentUser = authStore.user;
-  if (currentUser && !users.find((u: any) => u.id === currentUser.id)) {
-    return [currentUser, ...users];
-  }
-  return users;
-};
-
-const getTagType = (tag: any) => {
-  if (!tag) return 'info';
-  const label = tag.label || tag.name || '';
-  const colorClass = tag.colorClass || '';
-  if (colorClass.includes('red') || label === 'Bug') return 'danger';
-  if (colorClass.includes('pink') || label === 'Crítico') return 'danger';
-  if (colorClass.includes('orange') || label === 'Urgente') return 'warning';
-  if (colorClass.includes('green') || label === 'Nova Funcionalidade') return 'success';
-  if (colorClass.includes('blue') || label === 'Melhoria') return 'primary';
-  return 'info';
-};
-
 const displayAvatars = computed(() => {
   const assignees = (props.ticket as any)?.assignees;
   const avatarsList: { initial: string; title: string }[] = [];
   
   const allUsers = getAllUsers();
-
+  
   if (Array.isArray(assignees) && assignees.length > 0) {
     assignees.forEach((uid: any) => {
       const user = allUsers.find((u: any) => String(u.id) === String(uid));
-      if (user && user.name) {
-        avatarsList.push({ initial: user.name.charAt(0).toUpperCase(), title: user.name });
-      } else if (uid) {
-        avatarsList.push({ initial: String(uid).charAt(0).toUpperCase(), title: String(uid) });
+      if (user) {
+        avatarsList.push({
+          initial: (user.name || '?').charAt(0).toUpperCase(),
+          title: user.name || 'Usuário'
+        });
       }
     });
   }
-  
-  const customerId = (props.ticket as any)?.customerId;
-  if (customerId) {
-    const customer = (props.ticket as any)?.customer;
-    if (customer) {
-      const name = customer.name || customer.tradeName || customer.companyName || 'Cliente';
-      avatarsList.push({ initial: name.charAt(0).toUpperCase(), title: name });
-    }
-  }
-
   return avatarsList;
 });
 
-const onDragStart = (event: DragEvent) => {
-  if (props.draggable === false) {
-    event.preventDefault();
-    return;
-  }
-  event.stopPropagation();
-  const idToSend = props.ticket?.ticketId || props.ticket?.id;
-  if (event.dataTransfer) {
-    event.dataTransfer.setData('ticketId', String(idToSend));
-    event.dataTransfer.setData('type', 'card');
-    event.dataTransfer.effectAllowed = 'move';
-  }
-};
+function getAllUsers(): any[] { const kanbanStore = useKanbanStore(); const all = kanbanStore.allUsers || []; const activeUsers = [...all.filter(u => u.isActive !== false)]; const authUser = authStore.user; if (authUser && !activeUsers.find((u) => String(u.id) === String(authUser.id))) { activeUsers.push({ ...authUser }); } return activeUsers; }
 
 const getPriorityType = (priority: string) => {
-  const map: Record<string, string> = {
-    low: 'info',
-    medium: 'primary',
-    high: 'warning',
-    urgent: 'danger'
-  };
+  const map: Record<string, string> = { low: 'info', medium: 'warning', high: 'danger', urgent: 'danger' };
   return map[priority] || 'info';
 };
 
 const getPriorityLabel = (priority: string) => {
-  const map: Record<string, string> = {
-    low: 'Baixa',
-    medium: 'Média',
-    high: 'Alta',
-    urgent: 'Urgente'
-  };
-  return map[priority] || priority || 'Baixa';
+  const map: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta', urgent: 'Urgente' };
+  return map[priority] || priority || 'Média';
+};
+
+const getTagType = (tag: any) => {
+  const label = tag?.label || tag?.name || String(tag);
+  if (label === 'Bug') return 'danger';
+  if (label === 'Crítico') return 'danger';
+  if (label === 'Urgente') return 'warning';
+  if (label === 'Nova Funcionalidade') return 'success';
+  if (label === 'Melhoria') return 'primary';
+  if (label === 'Geral') return 'info';
+  return 'info';
+};
+
+const onDragStart = (event: DragEvent) => {
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.dropEffect = 'move';
+    event.dataTransfer.setData('application/json', JSON.stringify(props.ticket));
+  }
 };
 </script>
-
-<style scoped>
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>

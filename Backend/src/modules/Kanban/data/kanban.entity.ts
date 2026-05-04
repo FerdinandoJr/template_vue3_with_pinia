@@ -10,6 +10,15 @@ export class KanbanBoard {
   @Column({ type: 'varchar', length: 255 })
   title: string;
 
+  @Column({ type: 'integer', default: 0 })
+  order: number;
+
+  @Column({ type: 'varchar', length: 7, nullable: true })
+  color: string;
+
+  @Column({ type: 'integer', nullable: true })
+  wipLimit: number;
+
   @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
@@ -25,8 +34,7 @@ export class KanbanBoard {
 }
 
 @Entity('kanban_columns')
-@Index('idx_kanban_columns_tenant', ['tenantId'])
-@Index('idx_kanban_columns_board_order', ['boardId', 'order'])
+@Index('idx_kanban_columns_board', ['boardId'])
 export class KanbanColumn {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -42,6 +50,9 @@ export class KanbanColumn {
 
   @Column({ type: 'integer', nullable: true })
   wipLimit: number;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  ticketStatus: string;
 
   @Column({ type: 'uuid', nullable: true })
   boardId: string;
@@ -108,6 +119,9 @@ export class KanbanCard {
 
   @Column({ type: 'uuid', nullable: true })
   customerId: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  ticketNumber: string;
 
   @Column({ type: 'simple-array', nullable: true })
   assignees: string[];

@@ -32,7 +32,7 @@
     </div>
 
     <TicketModal :is-open="isModalOpen" :ticket="selectedTicket" :initial-data="selectedTicket || {}"
-      @close="closeModal" @save="saveTicket" @approve-kanban="handleApproveKanban" />
+      @close="closeModal" @save="saveTicket" />
   </div>
 </template>
 
@@ -69,7 +69,7 @@ const currentFilters = ref<any>({
 
 const openTickets = computed(() => store.items.filter((t: any) => t.status === 'open' || t.status === 'pending_approval').length);
 const inProgressTickets = computed(() => store.items.filter((t: any) => t.status === 'in_progress').length);
-const resolvedTickets = computed(() => store.items.filter((t: any) => t.status === 'resolved').length);
+const resolvedTickets = computed(() => store.items.filter((t: any) => t.status === 'resolved' || t.status === 'closed').length);
 
 const handleFilter = (filters: any) => {
   store.applyFilters(filters);
@@ -87,29 +87,19 @@ const closeModal = () => {
 
 const saveTicket = async (ticketData: any) => {
   const kanbanStore = useKanbanStore();
-  
+
   try {
     const ticketId = ticketData.id;
     let savedTicket: any = null;
-    
+
     if (ticketId && typeof ticketId === 'string' && ticketId.length > 0) {
       savedTicket = await store.updateTicket(ticketId, ticketData);
-      
-      if (savedTicket) {
-        await syncKanbanCard(savedTicket, ticketData);
-      }
-      
       ElMessage.success('Ticket atualizado!');
     } else {
       savedTicket = await store.createTicket({ ...ticketData, createdAt: new Date() });
-      
-      if (savedTicket && ticketData.boardId) {
-        await createKanbanCard(savedTicket, ticketData);
-      }
-      
       ElMessage.success('Novo ticket criado!');
     }
-    
+
     await kanbanStore.fetchKanbanData();
   } catch (error) {
     console.error('[saveTicket] error:', error);
@@ -119,179 +109,18 @@ const saveTicket = async (ticketData: any) => {
   }
 };
 
-const syncKanbanCard = async (ticket: any, ticketData: any) => {
-  for (const board of kanbanStore.boards) {
-    for (const col of board.columns) {
-      const card = col.cards?.find((c: any) => c.ticketId === ticket.id);
-      if (card) {
-        const formattedChecklist = (ticketData.checklist || []).map((item: any) => ({
-          title: item.title || item.text || '',
-          completed: item.completed ?? item.done ?? false
-        }));
-        
-        const formattedTags = (ticketData.tags || []).map((tag: any) => {
-          if (typeof tag === 'object') {
-            let label = tag.label || tag.name || tag;
-            let colorClass = tag.colorClass || tag.color || 'bg-slate-100 text-slate-700';
-            if (label === 'Bug') colorClass = 'bg-red-100 text-red-700';
-            else if (label === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
-            else if (label === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
-            else if (label === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
-            else if (label === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
-            return { label, colorClass };
-          }
-          const label = String(tag);
-          let colorClass = 'bg-slate-100 text-slate-700';
-          if (label === 'Bug') colorClass = 'bg-red-100 text-red-700';
-          else if (label === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
-          else if (label === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
-          else if (label === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
-          else if (label === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
-          return { label, colorClass };
-        });
-        
-        await kanbanServices.updateCard(card.id, {
-          title: ticketData.title,
-          description: ticketData.description,
-          priority: ticketData.priority,
-          type: ticketData.type,
-          customerId: ticketData.customerId,
-          assignees: ticketData.assignees || [],
-          estimatedHours: ticketData.estimatedHours,
-          checklist: formattedChecklist,
-          tags: formattedTags,
-        });
-        return;
-      }
-    }
-  }
-};
 
-const createKanbanCard = async (ticket: any, ticketData: any) => {
-  const board = kanbanStore.boards.find((b: any) => b.id === ticketData.boardId);
-  if (board && board.columns?.length > 0) {
-    const statusMap: Record<string, string> = {
-      'open': 'Pendente',
-      'in_progress': 'A Fazer',
-      'waiting': 'Análise',
-      'resolved': 'Desenvolvimento',
-      'closed': 'Finalizado'
-    };
-    const columnTitle = ticketData.status ? statusMap[ticketData.status] || 'Pendente' : 'Pendente';
-    const column = board.columns.find((c: any) => c.title === columnTitle) || board.columns[0];
-    
-    const formattedChecklist = (ticket.checklist || []).map((item: any) => ({
-      title: item.title || item.text || '',
-      completed: item.completed ?? item.done ?? false
-    }));
-    
-    const formattedTags = (ticket.tags || []).map((tag: any) => {
-      if (typeof tag === 'object') {
-        let label = tag.label || tag.name || tag;
-        let colorClass = tag.colorClass || tag.color || 'bg-slate-100 text-slate-700';
-        if (label === 'Bug') colorClass = 'bg-red-100 text-red-700';
-        else if (label === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
-        else if (label === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
-        else if (label === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
-        else if (label === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
-        return { label, colorClass };
-      }
-      const label = String(tag);
-      let colorClass = 'bg-slate-100 text-slate-700';
-      if (label === 'Bug') colorClass = 'bg-red-100 text-red-700';
-      else if (label === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
-      else if (label === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
-      else if (label === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
-      else if (label === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
-      return { label, colorClass };
-    });
-    
-    await kanbanServices.createCard({
-      title: ticket.title,
-      description: ticket.description,
-      priority: ticket.priority,
-      type: ticket.type,
-      customerId: ticket.customerId,
-      assignees: ticketData.assignees || [],
-      estimatedHours: ticket.estimatedHours,
-      checklist: formattedChecklist,
-      tags: formattedTags,
-      ticketId: ticket.id,
-      columnId: column.id,
-    });
-  }
-};
-
-const handleApproveKanban = async (ticket: any) => {
-  try {
-    const confirmation = await ElMessageBox.confirm(
-      'Mover para o Kanban?',
-      'Confirmação',
-      { type: 'warning' }
-    );
-
-    if (confirmation === 'confirm') {
-      const board = kanbanStore.boards[0];
-      const column = board?.columns?.find((c: any) => c.title.toLowerCase().includes('pendente')) || board?.columns?.[0];
-      
-      const formattedChecklist = (ticket.checklist || []).map((item: any) => ({
-        title: item.title || item.text || '',
-        completed: item.completed ?? item.done ?? false
-      }));
-      
-      const formattedTags = (ticket.tags || []).map((tag: any) => {
-        if (typeof tag === 'object') {
-          let label = tag.label || tag.name || tag;
-          let colorClass = tag.colorClass || tag.color || 'bg-slate-100 text-slate-700';
-          if (label === 'Bug') colorClass = 'bg-red-100 text-red-700';
-          else if (label === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
-          else if (label === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
-          else if (label === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
-          else if (label === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
-          return { label, colorClass };
-        }
-        const label = String(tag);
-        let colorClass = 'bg-slate-100 text-slate-700';
-        if (label === 'Bug') colorClass = 'bg-red-100 text-red-700';
-        else if (label === 'Crítico') colorClass = 'bg-pink-100 text-pink-700';
-        else if (label === 'Urgente') colorClass = 'bg-orange-100 text-orange-700';
-        else if (label === 'Nova Funcionalidade') colorClass = 'bg-green-100 text-green-700';
-        else if (label === 'Melhoria') colorClass = 'bg-blue-100 text-blue-700';
-        return { label, colorClass };
-      });
-      
-      const kanbanCard = {
-        title: ticket.title,
-        description: ticket.description,
-        status: 'todo',
-        priority: ticket.priority,
-        type: ticket.type,
-        customerId: ticket.customerId,
-        assignees: [],
-        estimatedHours: ticket.estimatedHours,
-        checklist: formattedChecklist,
-        tags: formattedTags,
-        ticketId: ticket.id,
-        columnId: column?.id,
-      };
-      await kanbanStore.addCard(kanbanCard);
-      await store.updateTicket(Number(ticket.id), { status: 'in_progress' });
-      ElMessage.success('Enviado ao Kanban!');
-      closeModal();
-    }
-  } catch (error) {
-    // Cancelamento silencioso
-  }
-};
 
 onMounted(() => {
   customerStore.fetch?.();
   store.fetch?.();
+  if (!kanbanStore.boards || kanbanStore.boards.length === 0) {
+    kanbanStore.fetchKanbanData?.();
+  }
 });
 </script>
 
 <style scoped>
-/* Estilização da barra única para não ficar grossa e feia */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -309,7 +138,6 @@ onMounted(() => {
   background-color: transparent;
 }
 
-/* Garante que a tabela use o máximo de largura sem scroll horizontal desnecessário */
 :deep(.el-table) {
   width: 100% !important;
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, Inject, forwardRef } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, Inject, forwardRef, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { KanbanService } from '../service/kanban.service';
 import { AuthGuard } from '../../../core/guards/auth.guard';
@@ -11,11 +11,13 @@ import { TicketStatus } from '../../Tickets/data/ticket.entity';
 @UseGuards(AuthGuard)
 @ApiBearerAuth()
 export class KanbanController {
+  private readonly logger = new Logger(KanbanController.name);
+
   constructor(
     private readonly kanbanService: KanbanService,
     @Inject(forwardRef(() => TicketsService))
     private readonly ticketsService: TicketsService,
-  ) {}
+  ) { }
 
   @Get('boards')
   @ApiOperation({ summary: 'Listar quadros' })
@@ -99,18 +101,10 @@ export class KanbanController {
   @Put('cards/:id/move')
   @ApiOperation({ summary: 'Mover card para outra coluna (sincroniza ticket)' })
   async moveCard(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() data: { targetColumnId: string; targetOrder: number }
   ) {
     const card = await this.kanbanService.moveCard(id, data.targetColumnId, data.targetOrder);
-    
-    if (card.ticketId) {
-      const syncData = await this.kanbanService.syncTicketFromCard(id);
-      if (syncData) {
-        await this.ticketsService.changeStatus(syncData.ticketId, syncData.status);
-      }
-    }
-    
     return card;
   }
 
@@ -118,14 +112,6 @@ export class KanbanController {
   @ApiOperation({ summary: 'Atualizar card (sincroniza ticket se houver)' })
   async updateCard(@Param('id') id: string, @Body() data: UpdateKanbanCardDto) {
     const card = await this.kanbanService.updateCard(id, data);
-    
-    if (card.ticketId && data.columnId) {
-      const syncData = await this.kanbanService.syncTicketFromCard(id);
-      if (syncData) {
-        await this.ticketsService.changeStatus(syncData.ticketId, syncData.status);
-      }
-    }
-    
     return card;
   }
 

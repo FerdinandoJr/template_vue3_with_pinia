@@ -50,9 +50,11 @@
 
             <div class="flex items-center gap-3 mb-4 mt-2">
                 <el-avatar :size="32" class="bg-blue-50 text-blue-600 font-bold text-sm">
-                    {{ String(ticket.customer?.name || ticket.customer || '').charAt(0).toUpperCase() }}
+                    {{ ticket.customer?.name?.charAt(0)?.toUpperCase() || '?' }}
                 </el-avatar>
-                <span class="text-sm font-medium text-slate-600 truncate">{{ ticket.customer?.name || ticket.customer }}</span>
+                <span class="text-sm font-medium text-slate-600 truncate">
+                    {{ ticket.customer?.name || ticket.customer?.tradeName || 'Sem cliente' }}
+                </span>
             </div>
 
             <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
@@ -124,13 +126,13 @@ const getStatusType = (status: string) => {
 };
 
 const getStatusLabel = (status: string) => {
-    const col = kanbanStore.columns?.find((c: any) => String(c.id) === String(status));
+    const col = kanbanStore.columns?.find((c: any) => String(c.id) === String(status) || c.ticketStatus === status);
     if (col && col.title) return col.title;
 
     const map: Record<string, string> = {
-        'open': 'Aberto',
-        'in_progress': 'Em Andamento',
-        'waiting': 'Aguardando',
+        'open': 'Pendente',
+        'in_progress': 'Desenvolvimento',
+        'waiting': 'Análise',
         'resolved': 'Resolvido',
         'done': 'Finalizado',
         'closed': 'Fechado'

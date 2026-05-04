@@ -4,13 +4,21 @@ import { authServices } from '@/modules/auth/data/auth.services';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import { ticketServices } from '@/modules/tickets/data/ticket.services';
 import { ElMessage } from 'element-plus';
+import type { ITicket } from '@/modules/tickets/domain/entities/Ticket';
+import type { KanbanBoard, KanbanColumn } from '../../data/kanban.services';
+import type { UserProfile } from '@/modules/settings/data/settings.services';
+
+export interface IKanbanBoardWithColumns extends KanbanBoard {
+  columns: KanbanColumn[];
+}
 
 export const useKanbanStore = defineStore('kanban', {
   state: () => ({
-    boards: [] as any[],
+    boards: [] as IKanbanBoardWithColumns[],
     activeBoardId: null as string | null,
     loading: false,
-    allTickets: [] as any[]
+    allTickets: [] as ITicket[],
+    allUsers: [] as UserProfile[]
   }),
   getters: {
     columns: (state) => {
@@ -29,6 +37,14 @@ export const useKanbanStore = defineStore('kanban', {
         const ticketsData = await ticketServices.list({ page: 1, pageSize: 1000 });
         this.allTickets = ticketsData.items || [];
         console.log('[KanbanStore] tickets loaded:', this.allTickets.length);
+        
+        try {
+          const { httpClient } = await import('@/core/infra/HttpClient');
+          const usersResp = await httpClient.get<any>('/users');
+          this.allUsers = usersResp?.data?.data || usersResp?.data || [];
+        } catch (e) {
+          console.error('[KanbanStore] Failed to load users', e);
+        }
         
         const data = await kanbanServices.fetchKanbanData();
         console.log('[KanbanStore] data from API:', data);
@@ -50,13 +66,12 @@ export const useKanbanStore = defineStore('kanban', {
             this.activeBoardId = defaultBoardId;
           } else if (!this.activeBoardId && this.boards.length > 0) {
             this.activeBoardId = this.boards[0].id;
-            localStorage.setItem('lastBoardId', this.activeBoardId);
+            localStorage.setItem('lastBoardId', this.activeBoardId as string);
           }
           console.log('[KanbanStore] activeBoardId set to:', this.activeBoardId);
         }
       } catch (error) {
         console.error("Erro ao carregar dados do Kanban:", error);
-        this.createDefaultBoard();
       } finally {
         this.loading = false;
       }
@@ -76,18 +91,8 @@ export const useKanbanStore = defineStore('kanban', {
 
     async createDefaultBoard() {
       try {
-        const newBoard = await kanbanServices.createBoard({ title: 'Meu Quadro' });
-        this.boards = [{
-          ...newBoard,
-          columns: [
-            { id: 'col-todo', title: 'A Fazer', order: 0, color: '#f59e0b', boardId: newBoard.id, cards: [] },
-            { id: 'col-analysis', title: 'Análise', order: 1, color: '#3b82f6', boardId: newBoard.id, cards: [] },
-            { id: 'col-dev', title: 'Desenvolvimento', order: 2, color: '#8b5cf6', boardId: newBoard.id, cards: [] },
-            { id: 'col-test', title: 'Teste', order: 3, color: '#06b6d4', boardId: newBoard.id, cards: [] },
-            { id: 'col-done', title: 'Finalizado', order: 4, color: '#22c55e', boardId: newBoard.id, cards: [] }
-          ]
-        }];
-        this.activeBoardId = newBoard.id;
+        await kanbanServices.createBoard({ title: 'Meu Quadro' });
+        await this.fetchKanbanData();
       } catch (error) {
         console.error("Erro ao criar quadro padrão:", error);
       }

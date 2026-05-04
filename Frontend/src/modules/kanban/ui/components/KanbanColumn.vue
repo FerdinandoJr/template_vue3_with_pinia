@@ -71,6 +71,7 @@ import { useKanbanStore } from '../store/kanban.store';
 import { useCalendarStore } from '@/modules/calendar/ui/store/calendar.store';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import { kanbanServices } from '../../data/kanban.services';
+import { useTicketsStore } from '@/modules/tickets/ui/store/tickets.store';
 import { ticketServices } from '@/modules/tickets/data/ticket.services';
 
 let titleUpdateDebounce: any = null;
@@ -154,12 +155,49 @@ const syncTicketBackend = async (ticketId: string, newColumnId: string) => {
   
   try {
     const targetColumn = kanbanStore.columns.find((c: any) => c.id === newColumnId);
-    const newStatus = targetColumn?.title || 'Pendente';
+    let newStatus = targetColumn?.ticketStatus || 'open';
     
+    // Normalização local para garantir consistência imediata
+    const title = (targetColumn?.title || '').toLowerCase();
+    if (title.includes('resolvido') || title.includes('resolved') || title.includes('finalizado')) {
+      newStatus = 'resolved';
+    } else if (title.includes('closed') || title.includes('concluído') || title.includes('concluido')) {
+      newStatus = 'closed';
+    } else if (title.includes('fazer') || title.includes('progress') || title.includes('desenvolvimento') || title.includes('andamento')) {
+      newStatus = 'in_progress';
+    } else if (title.includes('análise') || title.includes('analise') || title.includes('waiting')) {
+      newStatus = 'waiting';
+    }
+
     await ticketServices.update(ticketId, { status: newStatus });
     console.log('[KanbanColumn] Ticket atualizado para status:', newStatus);
-  } catch (error) {
-    console.error('[KanbanColumn] Erro ao sincronizar ticket:', error);
+    
+    // Atualiza o store de tickets em tempo real (compartilhado via Pinia)
+    try {
+      const ticketsStore = useTicketsStore();
+      await ticketsStore.fetch();
+      console.log('[KanbanColumn] TicketsStore atualizado em tempo real');
+    } catch (e) {
+      console.error('[KanbanColumn] Erro ao atualizar TicketsStore:', e);
+    }
+    
+  } catch (error: any) {
+    if (error?.status === 404 || error?.message?.includes('não encontrado')) {
+      console.warn('[KanbanColumn] Ticket não encontrado, limpando referência órfã no card');
+      const card = kanbanStore.columns
+        ?.flatMap((col: any) => col.cards)
+        ?.find((c: any) => c.ticketId === ticketId);
+      
+      if (card) {
+        try {
+          await kanbanStore.updateCard(card.id, { ticketId: null });
+        } catch (e) {
+          console.error('[KanbanColumn] Erro ao limpar referência órfã:', e);
+        }
+      }
+    } else {
+      console.error('[KanbanColumn] Erro ao sincronizar ticket:', error);
+    }
   }
 };
 
@@ -293,6 +331,11 @@ const onDropColumn = async (event: DragEvent) => {
     try {
       await kanbanServices.moveCard(draggedCard.id, targetCol.id, targetCol.cards.length - 1);
       console.log('[KanbanColumn] Card movido com sucesso para:', targetCol.title);
+      
+      // Sincroniza o ticket associado se houver
+      if (draggedCard.ticketId) {
+        await syncTicketBackend(draggedCard.ticketId, props.columnId);
+      }
     } catch (error) {
       console.error('[KanbanColumn] Erro ao mover card:', error);
       sourceCol.cards.splice(draggedIndex, 0, draggedCard);
@@ -339,15 +382,16 @@ const onDropCard = async (event: DragEvent, targetTicket: any) => {
       targetCol.cards.map((c: any) => c.id)
     );
     console.log('[KanbanColumn] Card movido para posição específica com sucesso');
+
+    // Sincroniza o ticket associado se houver
+    if (draggedCard.ticketId) {
+      await syncTicketBackend(draggedCard.ticketId, props.columnId);
+    }
   } catch (error) {
     console.error('[KanbanColumn] Erro ao mover card:', error);
   }
 
   if (typeof kanbanStore.saveBoard === 'function') kanbanStore.saveBoard();
-
-  if (draggedCard.ticketId) {
-    syncTicketBackend(draggedCard.ticketId, props.columnId);
-  }
 
   const userId = authStore.user?.id || draggedCard.assignedTo || draggedCard.userId || '1';
   smartScheduleQueue(String(userId));

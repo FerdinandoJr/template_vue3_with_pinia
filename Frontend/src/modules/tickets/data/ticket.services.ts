@@ -1,5 +1,5 @@
 import type { ITicket } from "../domain/entities/Ticket";
-import { httpClient, type ApiError } from "@/core/infra/HttpClient";
+import { httpClient } from "@/core/infra/HttpClient";
 import { formatCustomerNameFromList } from '@/utils/customer';
 
 export interface TicketFilter {
@@ -11,6 +11,7 @@ export interface TicketFilter {
   dateRange?: [Date, Date];
   ownerOnly?: boolean;
   assignees?: string[];
+  userId?: string;
   page?: number;
   pageSize?: number;
 }
@@ -40,10 +41,8 @@ export interface TicketStats {
 
 class TicketService {
   private handleError(error: unknown): never {
-    if (error && typeof error === 'object' && 'response' in error) {
-      const apiError = error as ApiError;
-      const message = apiError.response?.data?.message || 'Erro na requisição';
-      throw new Error(message);
+    if (error && typeof error === 'object' && 'message' in error) {
+      throw new Error((error as any).message || 'Erro na requisição');
     }
     throw error;
   }
@@ -51,14 +50,42 @@ class TicketService {
   async list(filter: TicketFilter = {}): Promise<Paginated<ITicket>> {
     try {
       const params = new URLSearchParams();
+      
+      // Filtros básicos
       if (filter.status && filter.status !== 'all') params.append('status', filter.status);
       if (filter.priority) params.append('priority', filter.priority);
       if (filter.type) params.append('type', filter.type);
       if (filter.query) params.append('q', filter.query);
+      
+      // Filtros avançados - só adiciona se tiver valor
+      if (filter.ownerOnly !== undefined && filter.ownerOnly !== null) {
+        params.append('ownerOnly', String(filter.ownerOnly));
+      }
+      if (filter.userId) params.append('userId', String(filter.userId));
+      
+      // Arrays: múltiplos parâmetros
+      if (filter.assignees && filter.assignees.length > 0) {
+        filter.assignees.forEach(a => params.append('assignees', String(a)));
+      }
+      if (filter.customers && filter.customers.length > 0) {
+        filter.customers.forEach(c => params.append('customers', String(c)));
+      }
+      
+      // Paginação
       if (filter.page) params.append('page', String(filter.page));
       if (filter.pageSize) params.append('limit', String(filter.pageSize));
       
+      // Data range
+      if (filter.dateRange && filter.dateRange.length === 2) {
+        const [start, end] = filter.dateRange;
+        if (start && end) {
+          params.append('startDate', start.toISOString());
+          params.append('endDate', end.toISOString());
+        }
+      }
+      
       const endpoint = `/tickets${params.toString() ? '?' + params.toString() : ''}`;
+      console.log('[ticket.services] Fetching:', endpoint);
       const response = await httpClient.get<any>(endpoint);
       
       const data = response?.data?.data || response?.data || response;
@@ -80,9 +107,15 @@ class TicketService {
   async getById(id: string): Promise<ITicket | null> {
     try {
       const response: any = await httpClient.get(`/tickets/${id}`);
-      return response?.data || null;
+      const data = response?.data?.data || response?.data || response;
+      if (!data) {
+        console.warn('[TicketService] getById retornou vazio para:', id);
+        return null;
+      }
+      return data;
     } catch (error) {
-      this.handleError(error);
+      console.error('[TicketService] Erro no getById:', error);
+      return null;
     }
   }
 
@@ -107,7 +140,7 @@ class TicketService {
   async update(id: string, data: Partial<ITicket>): Promise<ITicket> {
     try {
       const response: any = await httpClient.put(`/tickets/${id}`, data);
-      return response?.data;
+      return response?.data || response;
     } catch (error) {
       this.handleError(error);
     }

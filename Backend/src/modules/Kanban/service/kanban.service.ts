@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { KanbanColumn, KanbanCard, KanbanBoard } from '../data/kanban.entity';
 import { CreateKanbanColumnDto, CreateKanbanCardDto, CreateKanbanBoardDto, UpdateKanbanBoardDto } from '../dto/create-kanban.dto';
-import { Ticket, TicketStatus } from '../../Tickets/data/ticket.entity';
+import { TicketStatus } from '../../Tickets/data/ticket.entity';
 
 @Injectable()
 export class KanbanService {
@@ -16,8 +18,10 @@ export class KanbanService {
     private columnsRepository: Repository<KanbanColumn>,
     @InjectRepository(KanbanCard)
     private cardsRepository: Repository<KanbanCard>,
-  ) {}
+    private eventEmitter: EventEmitter2,
+  ) { }
 
+  // ==================== BOARDS ====================
   async findAllBoards(tenantId: string): Promise<KanbanBoard[]> {
     return this.boardsRepository.find({ where: { tenantId }, order: { createdAt: 'ASC' } });
   }
@@ -27,11 +31,12 @@ export class KanbanService {
     const savedBoard = await this.boardsRepository.save(board);
 
     const defaultColumns = [
-      { title: 'Pendente', order: 0, color: '#ef4444', boardId: savedBoard.id, tenantId },
-      { title: 'A Fazer', order: 1, color: '#f59e0b', boardId: savedBoard.id, tenantId },
-      { title: 'Análise', order: 2, color: '#3b82f6', boardId: savedBoard.id, tenantId },
-      { title: 'Desenvolvimento', order: 3, color: '#8b5cf6', boardId: savedBoard.id, tenantId },
-      { title: 'Finalizado', order: 4, color: '#22c55e', boardId: savedBoard.id, tenantId },
+      { title: 'Pendente', order: 0, color: '#ef4444', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.OPEN },
+      { title: 'A Fazer', order: 1, color: '#f59e0b', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.IN_PROGRESS },
+      { title: 'Análise', order: 2, color: '#3b82f6', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.WAITING },
+      { title: 'Desenvolvimento', order: 3, color: '#8b5cf6', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.IN_PROGRESS },
+      { title: 'Resolvido', order: 4, color: '#10b981', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.RESOLVED },
+      { title: 'Finalizado', order: 5, color: '#22c55e', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.CLOSED },
     ];
 
     for (const colData of defaultColumns) {
@@ -50,42 +55,20 @@ export class KanbanService {
   }
 
   async deleteBoard(id: string): Promise<void> {
-    this.logger.log(`Iniciando deleteBoard para id: ${id}`);
-    
     const columns = await this.columnsRepository.find({ where: { boardId: id } });
-    this.logger.log(`Colunas encontradas: ${columns.length}`);
-    
     for (const col of columns) {
-      this.logger.log(`Deletando cards da coluna: ${col.id}`);
       await this.cardsRepository.delete({ columnId: col.id });
     }
-    
-    this.logger.log(`Deletando colunas do board: ${id}`);
     await this.columnsRepository.delete({ boardId: id });
-    
-    this.logger.log(`Deletando board: ${id}`);
     await this.boardsRepository.delete({ id });
-    
-    this.logger.log(`deleteBoard concluído para id: ${id}`);
   }
 
   async findAllColumns(tenantId: string): Promise<KanbanColumn[]> {
-    const columns = await this.columnsRepository.find({ 
-      where: { tenantId }, 
-      order: { order: 'ASC' } 
-    });
-    return columns;
+    return this.columnsRepository.find({ where: { tenantId }, order: { order: 'ASC' } });
   }
 
   async findColumnsByBoard(boardId: string): Promise<KanbanColumn[]> {
-    return this.columnsRepository.find({ 
-      where: { boardId }, 
-      order: { order: 'ASC' } 
-    });
-  }
-
-  async findAllCards(tenantId: string): Promise<KanbanCard[]> {
-    return this.cardsRepository.find({ where: { tenantId }, order: { order: 'ASC' } });
+    return this.columnsRepository.find({ where: { boardId }, order: { order: 'ASC' } });
   }
 
   async createColumn(tenantId: string, data: CreateKanbanColumnDto): Promise<KanbanColumn> {
@@ -101,15 +84,56 @@ export class KanbanService {
   }
 
   async deleteColumn(id: string): Promise<void> {
+    const column = await this.columnsRepository.findOne({
+      where: { id },
+      relations: ['board']
+    });
+    if (!column) return;
+
+    const remainingColumns = await this.columnsRepository.find({
+      where: { boardId: column.boardId },
+      order: { order: 'ASC' }
+    });
+
+    if (remainingColumns.length <= 1) {
+      throw new BadRequestException('Cannot delete the last column of a board');
+    }
+
+    const currentIndex = remainingColumns.findIndex(c => c.id === id);
+    let targetColumn: KanbanColumn;
+
+    if (currentIndex < remainingColumns.length - 1) {
+      targetColumn = remainingColumns[currentIndex + 1];
+    } else {
+      targetColumn = remainingColumns[currentIndex - 1];
+    }
+
+    await this.cardsRepository.update(
+      { columnId: id },
+      { columnId: targetColumn.id }
+    );
+
     await this.columnsRepository.delete({ id });
+
+    const updatedColumns = await this.columnsRepository.find({
+      where: { boardId: column.boardId },
+      order: { order: 'ASC' }
+    });
+    for (let i = 0; i < updatedColumns.length; i++) {
+      await this.columnsRepository.update(updatedColumns[i].id, { order: i });
+    }
   }
 
   async reorderColumns(boardId: string, columnIds: string[]): Promise<KanbanColumn[]> {
-    const queries = columnIds.map((id, index) => 
+    const queries = columnIds.map((id, index) =>
       this.columnsRepository.update(id, { order: index })
     );
     await Promise.all(queries);
     return this.findColumnsByBoard(boardId);
+  }
+
+  async findAllCards(tenantId: string): Promise<KanbanCard[]> {
+    return this.cardsRepository.find({ where: { tenantId }, order: { order: 'ASC' } });
   }
 
   async createCard(tenantId: string, data: CreateKanbanCardDto): Promise<KanbanCard> {
@@ -124,13 +148,15 @@ export class KanbanService {
       });
     }
     const card = this.cardsRepository.create({ ...data, tenantId });
-    return this.cardsRepository.save(card);
+    const savedCard = await this.cardsRepository.save(card);
+    this.eventEmitter.emit('kanban.card.created', savedCard);
+    return savedCard;
   }
 
   async updateCard(id: string, data: Partial<CreateKanbanCardDto>): Promise<KanbanCard> {
     const card = await this.cardsRepository.findOne({ where: { id } });
-    if (!card) throw new NotFoundException('Card não encontrado');
-    
+    if (!card) throw new NotFoundException(`Card #${id} não encontrado`);
+
     if (data.tags) {
       data.tags = data.tags.map((tag: any) => {
         if (typeof tag === 'object' && tag !== null) {
@@ -144,9 +170,23 @@ export class KanbanService {
         return { label: label === '[object Object]' ? 'Geral' : label, colorClass: 'bg-slate-100 text-slate-700' };
       });
     }
-    
+
+    const oldBoardId = card.boardId;
     Object.assign(card, data);
-    return this.cardsRepository.save(card);
+
+    if (data.boardId && data.boardId !== oldBoardId) {
+      const firstCol = await this.columnsRepository.findOne({
+        where: { boardId: data.boardId },
+        order: { order: 'ASC' }
+      });
+      if (firstCol) {
+        card.columnId = firstCol.id;
+      }
+    }
+
+    const updatedCard = await this.cardsRepository.save(card);
+    await this.eventEmitter.emitAsync('kanban.card.updated', updatedCard);
+    return updatedCard;
   }
 
   async deleteCard(id: string): Promise<void> {
@@ -156,18 +196,18 @@ export class KanbanService {
   async moveCard(id: string, targetColumnId: string, targetOrder: number): Promise<KanbanCard> {
     const card = await this.cardsRepository.findOne({ where: { id } });
     if (!card) throw new NotFoundException('Card não encontrado');
-    
+
     const targetColumn = await this.columnsRepository.findOne({ where: { id: targetColumnId } });
     if (!targetColumn) throw new NotFoundException('Coluna de destino não encontrada');
-    
+
+    const oldColumnId = card.columnId;
     card.columnId = targetColumnId;
     card.boardId = targetColumn.boardId;
     card.order = targetOrder;
-    
+
     const savedCard = await this.cardsRepository.save(card);
-    
-    this.logger.log(`Card ${id} movido para coluna ${targetColumnId} na posição ${targetOrder}`);
-    
+    await this.eventEmitter.emitAsync('kanban.card.updated', savedCard);
+
     return savedCard;
   }
 
@@ -178,62 +218,24 @@ export class KanbanService {
     await Promise.all(queries);
   }
 
-  async syncCardFromTicket(ticketId: string, ticketStatus: TicketStatus): Promise<KanbanCard | null> {
-    const card = await this.cardsRepository.findOne({ where: { ticketId } });
-    if (!card) {
-      this.logger.warn(`Card não encontrado para ticketId: ${ticketId}`);
-      return null;
-    }
-
-    const column = await this.columnsRepository.findOne({ where: { id: card.columnId } });
-    if (!column) return card;
-
-    const newStatus = this.mapTicketStatusToColumnTitle(ticketStatus);
-    
-    if (column.title !== newStatus) {
-      const targetColumn = await this.columnsRepository.findOne({
-        where: { boardId: card.boardId, title: newStatus }
-      });
-      
-      if (targetColumn) {
-        card.columnId = targetColumn.id;
-        await this.cardsRepository.save(card);
-        this.logger.log(`Card sincronizado: ticket ${ticketId} → coluna ${newStatus}`);
-      }
-    }
-
-    return card;
-  }
-
-  async syncTicketFromCard(cardId: string): Promise<{ ticketId: string; status: TicketStatus } | null> {
-    const card = await this.cardsRepository.findOne({ where: { id: cardId } });
-    if (!card || !card.ticketId) {
-      return null;
-    }
-
-    const column = await this.columnsRepository.findOne({ where: { id: card.columnId } });
-    if (!column) {
-      return null;
-    }
-
-    const ticketStatus = this.mapColumnTitleToTicketStatus(column.title);
-    
-    return {
-      ticketId: card.ticketId,
-      status: ticketStatus,
-    };
-  }
-
-  async findCardByTicketId(ticketId: string): Promise<KanbanCard | null> {
-    return this.cardsRepository.findOne({ where: { ticketId } });
+  // ==================== STATUS MAPPING ====================
+  static normalizeStatus(status: string): TicketStatus {
+    if (!status) return TicketStatus.OPEN;
+    const s = status.toLowerCase().trim();
+    if (s === 'open' || s.includes('pendente')) return TicketStatus.OPEN;
+    if (s === 'in_progress' || s.includes('fazer') || s.includes('progress') || s.includes('desenvolvimento')) return TicketStatus.IN_PROGRESS;
+    if (s === 'waiting' || s.includes('análise') || s.includes('analise')) return TicketStatus.WAITING;
+    if (s === 'resolved' || s.includes('resolvido') || s.includes('finalizado')) return TicketStatus.RESOLVED;
+    if (s === 'closed' || s.includes('concluído') || s.includes('concluido')) return TicketStatus.CLOSED;
+    return TicketStatus.OPEN;
   }
 
   private mapTicketStatusToColumnTitle(ticketStatus: TicketStatus): string {
     const mapping: Record<TicketStatus, string> = {
       [TicketStatus.OPEN]: 'Pendente',
-      [TicketStatus.IN_PROGRESS]: 'A Fazer',
+      [TicketStatus.IN_PROGRESS]: 'Desenvolvimento',
       [TicketStatus.WAITING]: 'Análise',
-      [TicketStatus.RESOLVED]: 'Desenvolvimento',
+      [TicketStatus.RESOLVED]: 'Resolvido',
       [TicketStatus.CLOSED]: 'Finalizado',
     };
     return mapping[ticketStatus] || 'Pendente';
@@ -241,13 +243,145 @@ export class KanbanService {
 
   private mapColumnTitleToTicketStatus(columnTitle: string): TicketStatus {
     const title = columnTitle.toLowerCase();
-    
     if (title.includes('pendente') || title.includes('open')) return TicketStatus.OPEN;
-    if (title.includes('fazer') || title.includes('progress')) return TicketStatus.IN_PROGRESS;
-    if (title.includes('análise') || title.includes('waiting')) return TicketStatus.WAITING;
-    if (title.includes('desenvolvimento') || title.includes('resolved')) return TicketStatus.RESOLVED;
-    if (title.includes('finalizado') || title.includes('closed')) return TicketStatus.CLOSED;
-    
+    if (title.includes('fazer') || title.includes('progress') || title.includes('desenvolvimento')) return TicketStatus.IN_PROGRESS;
+    if (title.includes('análise') || title.includes('analise') || title.includes('waiting')) return TicketStatus.WAITING;
+    if (title.includes('resolvido') || title.includes('resolved') || title.includes('finalizado')) return TicketStatus.RESOLVED;
+    if (title.includes('closed') || title.includes('concluído') || title.includes('concluido')) return TicketStatus.CLOSED;
     return TicketStatus.OPEN;
+  }
+
+  @OnEvent('ticket.created')
+  async handleTicketCreated(ticket: any) {
+    this.logger.log(`Syncing new ticket to kanban card: ${ticket.id}`);
+    try {
+      const existing = await this.cardsRepository.findOne({ where: { ticketId: ticket.id } });
+      if (existing) return;
+
+      let boardId = ticket.boardId;
+      if (!boardId) {
+        const boards = await this.boardsRepository.find({ where: { tenantId: ticket.tenantId }, order: { order: 'ASC' } });
+        if (boards.length === 0) return;
+        boardId = boards[0].id;
+      }
+
+      const cols = await this.columnsRepository.find({ where: { boardId } });
+      let col = cols.find(c => c.ticketStatus === ticket.status);
+      if (!col) col = cols[0];
+      if (!col) return;
+
+      const formattedTags = (ticket.tags || []).map((t: any) => ({
+        label: t.name || t.label || 'Geral',
+        colorClass: t.color || 'bg-slate-100 text-slate-700'
+      }));
+
+      const card = this.cardsRepository.create({
+        title: ticket.title,
+        description: ticket.description,
+        tenantId: ticket.tenantId,
+        boardId,
+        columnId: col.id,
+        ticketId: ticket.id,
+        ticketNumber: ticket.ticketNumber,
+        customerId: ticket.customerId,
+        priority: ticket.priority,
+        type: ticket.type,
+        assignees: ticket.assignees || [],
+        estimatedHours: ticket.estimatedHours,
+        tags: formattedTags,
+        checklist: ticket.checklist || []
+      });
+
+      await this.cardsRepository.save(card);
+    } catch (e) {
+      this.logger.warn(`Failed to create card from ticket ${ticket.id}: ${e.message}`);
+    }
+  }
+
+  @OnEvent('ticket.updated')
+  async handleTicketUpdated(ticket: any) {
+    if (ticket._skipKanbanSync) return;
+    this.logger.log(`Syncing ticket update to kanban card: ${ticket.id}`);
+    try {
+      const card = await this.cardsRepository.findOne({ where: { ticketId: ticket.id } });
+      if (!card) return;
+
+      const formattedTags = (ticket.tags || []).map((t: any) => ({
+        label: t.name || t.label || 'Geral',
+        colorClass: t.color || 'bg-slate-100 text-slate-700'
+      }));
+
+      // Determinar o boardId alvo
+      const targetBoardId = ticket.boardId || card.boardId;
+      const boardChanged = targetBoardId !== card.boardId;
+
+      if (boardChanged) {
+        card.boardId = targetBoardId;
+        this.logger.log(`Board changed to: ${targetBoardId}`);
+      }
+
+      // Determinar a coluna correta
+      let targetColumnId = null;
+
+      if (ticket.kanbanColumnId) {
+        const targetCol = await this.columnsRepository.findOne({ where: { id: ticket.kanbanColumnId } });
+        if (targetCol && targetCol.boardId === card.boardId) {
+          targetColumnId = targetCol.id;
+          this.logger.log(`Using provided kanbanColumnId: ${targetCol.id}`);
+        }
+      }
+
+      if (!targetColumnId) {
+        const newCol = await this.columnsRepository.findOne({
+          where: { boardId: card.boardId, ticketStatus: ticket.status }
+        });
+        if (newCol) {
+          targetColumnId = newCol.id;
+          this.logger.log(`Using column by status: ${newCol.title}`);
+        }
+      }
+
+      if (!targetColumnId) {
+        const fallbackCol = await this.columnsRepository.findOne({
+          where: { boardId: card.boardId },
+          order: { order: 'ASC' }
+        });
+        if (fallbackCol) {
+          targetColumnId = fallbackCol.id;
+          this.logger.log(`Using fallback column: ${fallbackCol.title}`);
+        }
+      }
+
+      if (targetColumnId) {
+        card.columnId = targetColumnId;
+      }
+
+      // Se não mudou o board nem a coluna, verificar se o status mudou
+      if (!boardChanged && !targetColumnId) {
+        const col = await this.columnsRepository.findOne({ where: { id: card.columnId } });
+        if (col && col.ticketStatus !== ticket.status) {
+          const newCol = await this.columnsRepository.findOne({
+            where: { boardId: card.boardId, ticketStatus: ticket.status }
+          });
+          if (newCol) {
+            card.columnId = newCol.id;
+          }
+        }
+      }
+
+      card.title = ticket.title;
+      card.description = ticket.description;
+      card.customerId = ticket.customerId;
+      card.priority = ticket.priority;
+      card.type = ticket.type;
+      card.assignees = ticket.assignees || [];
+      card.estimatedHours = ticket.estimatedHours;
+      card.tags = formattedTags;
+      card.checklist = ticket.checklist || [];
+
+      await this.cardsRepository.save(card);
+    } catch (e) {
+      this.logger.warn(`Failed to update card from ticket ${ticket.id}: ${e.message}`);
+    }
   }
 }

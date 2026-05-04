@@ -1,6 +1,7 @@
 <template>
   <el-dialog :model-value="isOpen" @update:model-value="!$event && handleClose()" width="95%" style="max-width: 1050px;"
-    align-center destroy-on-close :show-close="false" :close-on-click-modal="false" class="enterprise-ticket-dialog" append-to-body>
+    align-center destroy-on-close :show-close="false" :close-on-click-modal="false" class="enterprise-ticket-dialog"
+    append-to-body>
     <template #header>
       <div
         class="flex flex-wrap lg:flex-nowrap justify-between items-center w-full px-4 lg:px-6 py-4 border-b border-slate-200 bg-white rounded-t-xl gap-4">
@@ -88,75 +89,11 @@
         </el-tabs>
 
         <div class="flex-1 overflow-y-auto custom-scroll p-0 bg-[#f8fafc]">
-          <div v-show="activeTab === 'main'" class="h-full flex flex-col p-4 lg:p-6 animate-in fade-in duration-300">
-            <div class="flex flex-col gap-4 max-w-4xl mx-auto w-full">
-              <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm"
-                :class="{ 'ring-1 ring-red-500 border-red-500 bg-red-50': formErrors.title }">
-                <label
-                  class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                  <el-icon>
-                    <EditPen />
-                  </el-icon> Título Breve <span v-if="formErrors.title" class="text-red-500">* Requerido</span>
-                </label>
-                <el-input v-model="form.title" placeholder="Descreva em poucas palavras..."
-                  class="!text-lg font-medium enterprise-input" @input="formErrors.title = false" />
-              </div>
-              <div class="bg-white p-0 rounded-2xl border border-slate-200 shadow-sm flex flex-col"
-                :class="{ 'ring-1 ring-red-500 border-red-500': formErrors.description }">
-                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
-                  <label
-                    class="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <el-icon>
-                      <Document />
-                    </el-icon> Descrição Detalhada <span v-if="formErrors.description" class="text-red-500">* Requerido</span>
-                  </label>
-                </div>
-                <div class="p-2 flex-1">
-                  <RichTextEditor v-model="form.description"
-                    placeholder="Descreva todos os detalhes, anexe prints e organize em tópicos..."
-                    @update:modelValue="formErrors.description = false" />
-                </div>
-              </div>
-            </div>
-          </div>
+          <TicketModalMainTab v-show="activeTab === 'main'" :form="form" :formErrors="formErrors"
+            @update-error="handleUpdateError" />
 
-          <div v-show="activeTab === 'chat'" class="h-full flex flex-col w-full bg-[#efeae2] relative overflow-hidden">
-            <div class="absolute inset-0 opacity-[0.06] pointer-events-none"
-              style="background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat;">
-            </div>
-            <div
-              class="flex-1 overflow-y-auto p-4 custom-scroll space-y-3 relative z-10 flex flex-col max-w-4xl mx-auto w-full">
-              <div class="flex justify-center mb-4 mt-2">
-                <span class="bg-white/80 text-slate-500 text-[11px] font-bold px-3 py-1 rounded-lg shadow-sm">Histórico
-                  do
-                  Atendimento</span>
-              </div>
-              <div v-for="(msg, index) in form.whatsappHistory" :key="index" class="flex"
-                :class="msg.isAgent ? 'justify-end' : 'justify-start'">
-                <div class="max-w-[85%] md:max-w-[65%] p-2 rounded-lg shadow-sm relative"
-                  :class="msg.isAgent ? 'bg-[#d9fdd3] rounded-tr-none' : 'bg-white rounded-tl-none'">
-                  <div v-if="!msg.isAgent"
-                    class="absolute -left-2 top-0 w-0 h-0 border-[8px] border-transparent border-t-white border-r-white">
-                  </div>
-                  <div v-if="msg.isAgent"
-                    class="absolute -right-2 top-0 w-0 h-0 border-[8px] border-transparent border-t-[#d9fdd3] border-l-[#d9fdd3]">
-                  </div>
-                  <div v-if="!msg.isAgent" class="text-[11px] font-black text-emerald-600 mb-0.5 px-1 tracking-tight">
-                    {{ msg.sender || getCustomerNameById(form.customerId) }}
-                  </div>
-                  <div class="text-[14px] text-[#111b21] leading-relaxed px-1 pb-3 whitespace-pre-wrap font-medium">
-                    {{ msg.text }}
-                  </div>
-                  <div class="text-[10px] text-slate-400 absolute bottom-1 right-2 flex items-center gap-1 font-bold">
-                    {{ msg.time }}
-                    <el-icon v-if="msg.isAgent" class="text-blue-500 text-[12px]">
-                      <Check />
-                    </el-icon>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <TicketModalChatTab v-show="activeTab === 'chat'" :whatsappHistory="form.whatsappHistory"
+            :customerName="getCustomerNameById(form.customerId)" />
 
           <div v-show="activeTab === 'checklist'"
             class="h-full flex flex-col p-4 lg:p-6 animate-in fade-in duration-300">
@@ -172,234 +109,33 @@
             </div>
           </div>
 
-          <div v-show="activeTab === 'notes'" class="h-full flex flex-col p-4 lg:p-6">
-            <div
-              class="h-full flex flex-col max-w-4xl mx-auto w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div class="p-3 border-b border-slate-100 bg-amber-50/50 flex items-center gap-2">
-                <el-icon class="text-amber-500 text-lg">
-                  <Notebook />
-                </el-icon>
-                <span class="text-xs font-bold text-amber-700">Área restrita. O cliente não visualiza as notas
-                  adicionadas
-                  aqui.</span>
-              </div>
-              <div class="flex-1 overflow-y-auto p-4 custom-scroll space-y-4 bg-slate-50/50">
-                <div v-for="(note, index) in form.internalNotes" :key="index"
-                  class="flex gap-3 max-w-[85%] ml-auto flex-row-reverse">
-                  <el-avatar :size="32" class="bg-amber-500 text-white shrink-0 font-bold shadow-sm">
-                    {{ note.sender.charAt(0).toUpperCase() }}
-                  </el-avatar>
-                  <div class="flex flex-col items-end">
-                    <div class="flex items-center gap-2 mb-1 px-1">
-                      <span class="text-xs font-bold text-slate-700">{{ note.sender }}</span>
-                      <span class="text-[10px] font-black text-slate-400">{{ note.time }}</span>
-                    </div>
-                    <div
-                      class="p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm bg-amber-100/50 border border-amber-200 text-amber-900 rounded-tr-none font-medium">
-                      {{ note.text }}
-                    </div>
-                  </div>
-                </div>
-                <div v-if="form.internalNotes.length === 0"
-                  class="h-full flex flex-col items-center justify-center text-slate-400 gap-3">
-                  <el-icon class="text-5xl opacity-50">
-                    <EditPen />
-                  </el-icon>
-                  <p class="font-medium text-sm">Nenhuma nota interna registrada.</p>
-                </div>
-              </div>
-              <div class="p-3 bg-white border-t border-slate-200">
-                <div class="flex gap-2 items-end">
-                  <el-input v-model="newNoteMessage" type="textarea" :rows="2"
-                    placeholder="Adicionar uma nota de resolução interna..." class="custom-transparent-select"
-                    resize="none" @keyup.enter.prevent="addInternalNote" />
-                  <el-button type="warning" circle
-                    class="mb-1 !w-10 !h-10 !bg-amber-500 hover:!bg-amber-600 !border-none shadow-md"
-                    @click="addInternalNote" :disabled="!newNoteMessage.trim()">
-                    <el-icon>
-                      <Position />
-                    </el-icon>
-                  </el-button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <TicketModalNotesTab v-show="activeTab === 'notes'" :internalNotes="form.internalNotes"
+            @add-note="addInternalNote" />
 
-          <div v-show="activeTab === 'attachments'" class="p-4 lg:p-6 animate-in fade-in duration-300">
-            <div class="max-w-4xl mx-auto w-full">
-              <div
-                class="border-2 border-dashed border-blue-200 bg-blue-50/50 rounded-2xl p-8 text-center cursor-pointer hover:bg-blue-50 transition-colors mb-6 group"
-                @click="triggerFileUpload" @dragover.prevent @drop.prevent="handleFileDrop">
-                <el-icon class="text-4xl text-blue-400 mb-3 group-hover:scale-110 transition-transform">
-                  <UploadFilled />
-                </el-icon>
-                <h3 class="font-bold text-slate-700 mb-1">Clique para anexar ou arraste arquivos</h3>
-                <input type="file" ref="fileInput" class="hidden" multiple @change="handleFileSelected" />
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" v-if="form.attachments.length > 0">
-                <div v-for="(file, idx) in form.attachments" :key="idx"
-                  class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-blue-300 transition-colors group">
-                  <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                      <el-icon class="text-slate-500 text-lg">
-                        <Document />
-                      </el-icon>
-                    </div>
-                    <div class="truncate">
-                      <p class="text-sm font-bold text-slate-700 truncate">{{ file.name }}</p>
-                    </div>
-                  </div>
-                  <el-button type="danger" circle plain size="small"
-                    class="opacity-0 group-hover:opacity-100 transition-opacity" @click="removeAttachment(idx)">
-                    <el-icon>
-                      <Delete />
-                    </el-icon>
-                  </el-button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <TicketModalAttachmentsTab v-show="activeTab === 'attachments'" :attachments="form.attachments"
+            @add-files="handleFileSelected" @remove-attachment="removeAttachment" />
         </div>
       </div>
 
       <div
         class="w-full lg:w-[340px] xl:w-[380px] bg-slate-50 border-l border-slate-200 flex flex-col h-[50vh] lg:h-full shrink-0 relative z-20">
-        <div class="flex-1 overflow-y-auto custom-scroll p-4 lg:p-5">
-          <el-collapse v-model="activeCollapses" class="enterprise-collapse border-none gap-4 flex flex-col">
-            <el-collapse-item name="routing"
-              class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/50 [&_.el-collapse-item\_\_header]:px-4 [&_.el-collapse-item\_\_wrap]:border-none">
-              <template #title>
-                <div class="font-black text-slate-700 uppercase tracking-widest flex items-center gap-2 text-[11px]">
-                  <el-icon>
-                    <Guide />
-                  </el-icon> Roteamento & Status
-                  <div v-if="formErrors.customer || formErrors.priority || formErrors.type"
-                    class="w-2 h-2 rounded-full bg-red-500 ml-2 animate-pulse"></div>
-                </div>
-              </template>
-              <div class="p-4 space-y-4">
-                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm"
-                  :class="{ 'ring-1 ring-red-500 border-red-500 bg-red-50': formErrors.customer }">
-                  <label
-                    class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
-                    Cliente / Contato <span v-if="formErrors.customer" class="text-red-500">* Requerido</span>
-                  </label>
-                  <el-select v-model="form.customerId" placeholder="Selecione o Cliente" filterable allow-create
-                    class="w-full enterprise-select" @change="formErrors.customer = false">
-                    <template #prefix><el-icon>
-                        <User />
-                      </el-icon></template>
-                    <el-option v-for="customer in customerStore.items" :key="customer.id" 
-                      :label="getCustomerLabel(customer)" 
-                      :value="customer.id" />
-                  </el-select>
-                </div>
-
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Quadro
-                    Kanban</label>
-                  <el-select v-model="form.boardId" class="w-full enterprise-select" @change="onBoardChange">
-                    <template #prefix><el-icon>
-                        <DataBoard />
-                      </el-icon></template>
-                    <el-option v-for="board in kanbanStore.boards" :key="board.id" :label="board.title"
-                      :value="board.id" />
-                  </el-select>
-                </div>
-
-                <div>
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Fila /
-                    Status</label>
-                  <el-select v-model="form.status" class="w-full enterprise-select" :disabled="!canApprove && props.isKanban">
-                    <template #prefix>
-                      <div class="w-2 h-2 rounded-full" :class="getStatusColor(form.status)"></div>
-                    </template>
-                    <el-option v-for="col in availableColumns" :key="col.id" :label="col.title" :value="col.title">
-                      <div class="flex items-center gap-2 font-medium">
-                        <span class="w-2 h-2 rounded-full" :class="col.color?.split(' ')[0] || 'bg-slate-400'"></span>
-                        {{ col.title }}
-                      </div>
-                    </el-option>
-                  </el-select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label
-                      class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
-                      Prioridade </label>
-                    <el-select v-model="form.priority" class="w-full enterprise-select"
-                      @change="formErrors.priority = false">
-                      <el-option label="Baixa" value="low"> <span class="font-medium text-slate-500">Baixa</span>
-                      </el-option>
-                      <el-option label="Média" value="medium"> <span class="font-bold text-blue-500">Média</span>
-                      </el-option>
-                      <el-option label="Alta" value="high"> <span class="font-bold text-orange-500">Alta</span>
-                      </el-option>
-                      <el-option label="Urgente" value="urgent"> <span class="font-black text-red-600">Urgente</span>
-                      </el-option>
-                    </el-select>
-                  </div>
-                  <div>
-                    <label
-                      class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
-                      Categoria </label>
-                    <el-select v-model="form.type" class="w-full enterprise-select" @change="formErrors.type = false">
-                      <el-option label="Suporte" value="support" />
-                      <el-option label="Bug" value="bug" />
-                      <el-option label="Melhoria" value="feature" />
-                      <el-option label="Interno" value="internal" />
-                    </el-select>
-                  </div>
-                </div>
-
-                <div class="mt-4 pt-4 border-t border-slate-100">
-                  <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Tempo
-                    Estimado
-                    (Horas)</label>
-                  <el-input-number v-model="form.estimatedHours" :min="0.5" :step="0.5" class="w-full enterprise-input"
-                    placeholder="Ex: 2.0" />
-                </div>
-
-              </div>
-            </el-collapse-item>
-
-            <el-collapse-item name="assignment"
-              class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm [&_.el-collapse-item\_\_header]:bg-slate-50/50 [&_.el-collapse-item\_\_header]:px-4 [&_.el-collapse-item\_\_wrap]:border-none">
-              <template #title>
-                <span class="font-black text-slate-700 uppercase tracking-widest flex items-center gap-2 text-[11px]">
-                  <el-icon>
-                    <Avatar />
-                  </el-icon> Equipe
-                </span>
-              </template>
-              <div class="p-4">
-                <el-select v-model="form.assignees" multiple filterable placeholder="Atribuir membros..."
-                  class="w-full enterprise-select mb-3">
-                  <el-option v-for="user in teamMembers" :key="user.id" :label="user.name" :value="user.id">
-                    <div class="flex items-center gap-2 font-medium">
-                      <el-avatar :size="20" class="bg-slate-200 text-slate-600 text-[10px]">{{ user.name.charAt(0)
-                        }}</el-avatar>
-                      <span>{{ user.name }}</span>
-                    </div>
-                  </el-option>
-                </el-select>
-              </div>
-            </el-collapse-item>
-
-            <TicketTagsSelector v-model:selectedTags="form.tags" :readonly="false" class="px-2" />
-          </el-collapse>
-        </div>
+        <TicketModalSidebar :form="form" :formErrors="formErrors" :customers="customerStore.items"
+          :boards="kanbanStore.boards" :availableColumns="availableColumns" :teamMembers="teamMembers"
+          :canApprove="canApprove" :isKanban="props.isKanban" :getStatusColor="getStatusColor"
+          :getCustomerLabel="getCustomerLabel" @update-error="handleUpdateError" @board-change="onBoardChange"
+          @status-change="onStatusChange" />
 
         <div
           class="p-4 bg-white border-t border-slate-200 flex flex-col gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-30">
           <div class="flex flex-col sm:flex-row items-center gap-3 w-full">
             <el-button @click="handleClose" size="large" class="w-full sm:flex-1 !rounded-xl !h-12 !font-bold"> Cancelar
             </el-button>
-            <el-button type="success" size="large" :loading="loading" @click="handleApprove"
-              v-if="canApprove && (ticket?.status === 'Pendente' || ticket?.status === 'open' || form.status === 'Pendente')"
+            <el-button type="success" size="large" :loading="loading"
+              @click="props.isKanban ? handleApproveKanban() : handleApprove()" v-if="canApprove && isPending"
               class="w-full sm:flex-1 !rounded-xl !h-12 !font-black tracking-wide shadow-md">
-              <el-icon class="mr-2"><Check /></el-icon> Aprovar
+              <el-icon class="mr-2">
+                <Check />
+              </el-icon> Aprovar
             </el-button>
             <el-button type="primary" size="large" :loading="loading" @click="submit"
               class="w-full sm:flex-1 !bg-blue-600 hover:!bg-blue-700 !border-none !rounded-xl !h-12 !font-black tracking-wide shadow-md shadow-blue-200">
@@ -426,7 +162,12 @@ import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 import { useCalendarStore } from '@/modules/calendar/ui/store/calendar.store';
 import { useAuthStore } from '@/modules/auth/ui/store/auth.store';
 import RichTextEditor from '@/components/RichTextEditor.vue';
-
+import TicketModalMainTab from './TicketModalMainTab.vue';
+import TicketModalChatTab from './TicketModalChatTab.vue';
+import TicketModalNotesTab from './TicketModalNotesTab.vue';
+import TicketModalAttachmentsTab from './TicketModalAttachmentsTab.vue';
+import TicketModalSidebar from './TicketModalSidebar.vue';
+import { ticketServices } from '../../data/ticket.services';
 const props = defineProps<{
   isOpen: boolean;
   ticket?: ITicket | null | any;
@@ -436,6 +177,10 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['close', 'save', 'switch-edit', 'approve-kanban']);
+
+watch(() => props.ticket, (newTicket) => {
+  console.log('[TicketModal] props.ticket mudou:', newTicket);
+}, { immediate: true });
 
 const kanbanStore = useKanbanStore() as any;
 const customerStore = useCustomerStore() as any;
@@ -452,6 +197,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 const form = reactive<any>({
   boardId: '',
+  kanbanColumnId: null,
   status: 'Pendente',
   title: '',
   priority: 'low',
@@ -470,6 +216,10 @@ const form = reactive<any>({
 
 const formErrors = reactive({ title: false, description: false, customer: false, priority: false, type: false });
 
+const handleUpdateError = (field: keyof typeof formErrors, value: boolean) => {
+  formErrors[field] = value;
+};
+
 const getDisplayId = (ticket: any) => {
   if (ticket?.ticketNumber) return ticket.ticketNumber;
   if (ticket?.id) return `TKT-${ticket.id.slice(0, 8).toUpperCase()}`;
@@ -484,10 +234,13 @@ const headerTitle = computed(() => {
 const isEditing = computed(() => !!props.ticket?.id);
 
 const teamMembers = computed(() => {
-  if (calendarStore.availableUsers && calendarStore.availableUsers.length > 0) {
-    return calendarStore.availableUsers;
+  const all = kanbanStore.allUsers || [];
+  const activeUsers = all.filter((u: any) => u.isActive !== false);
+  const authUser = authStore.user;
+  if (authUser && !activeUsers.find((u: any) => String(u.id) === String(authUser.id))) {
+    activeUsers.push({ ...authUser });
   }
-  return [];
+  return activeUsers;
 });
 
 const getTeamMemberName = (id: string | number) => {
@@ -501,8 +254,24 @@ const availableColumns = computed(() => {
   return board ? board.columns : (kanbanStore.columns || []);
 });
 
+const isPending = computed(() => {
+  if (props.isKanban) {
+    const colId = props.ticket?.columnId || form.columnId;
+    const allCols = kanbanStore.boards?.flatMap((b: any) => b.columns) || kanbanStore.columns || [];
+    const col = allCols.find((c: any) => c.id === colId);
+    if (col && col.title.toLowerCase().includes('pendente')) return true;
+    if (form.status && String(form.status).toLowerCase().includes('pendente')) return true;
+    return false;
+  }
+
+  if (props.ticket?.status === 'open' || props.ticket?.status === 'Pendente') return true;
+  if (form.status === 'open' || form.status === 'Pendente' || String(form.status).toLowerCase().includes('pendente')) return true;
+
+  return false;
+});
+
 const hasPendingApprovalCol = computed(() => {
-  return availableColumns.value.some((c: any) => 
+  return availableColumns.value.some((c: any) =>
     c.title?.toLowerCase().includes('pendente')
   );
 });
@@ -510,57 +279,119 @@ const hasPendingApprovalCol = computed(() => {
 const onBoardChange = () => {
   const cols = availableColumns.value;
   let newStatus = form.status;
-  
+
   if (!newStatus || !cols.some((c: any) => c.title === newStatus)) {
-    newStatus = canApprove 
+    newStatus = canApprove
       ? (cols.find((c: any) => c.title.toLowerCase().includes('fazer'))?.title || cols[1]?.title || cols[0]?.title)
       : (cols.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || cols[0]?.title);
   }
   form.status = newStatus;
+
+  const targetCol = cols.find((c: any) => c.title === newStatus);
+  form.kanbanColumnId = targetCol?.id || cols[0]?.id || null;
 };
 
 watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
+  console.log('[TicketModal] isOpen changed:', isOpen, 'prev:', prevIsOpen);
+  console.log('[TicketModal] props.ticket (on isOpen change):', props.ticket);
+
   if (isOpen && !prevIsOpen) {
     Object.keys(formErrors).forEach(k => (formErrors as any)[k] = false);
     activeTab.value = 'main';
-    
-    const defaultStatus = canApprove 
+
+    const defaultStatus = canApprove
       ? (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('fazer'))?.title || kanbanStore.columns?.[1]?.title || kanbanStore.columns?.[0]?.title || 'A Fazer')
       : (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || kanbanStore.columns?.[0]?.title || 'Pendente');
-    
+
     if (customerStore.items?.length === 0) {
       await customerStore.fetch();
     }
-    
+
     if (!calendarStore.availableUsers || calendarStore.availableUsers.length === 0) {
       await calendarStore.fetchAgendaData();
     }
-    
+
     if (!kanbanStore.boards || kanbanStore.boards.length === 0) {
       await kanbanStore.fetchKanbanData();
     }
-    
-    if (kanbanStore.boards && kanbanStore.boards.length > 0) {
-      form.boardId = kanbanStore.activeBoardId || kanbanStore.boards[0].id;
-    }
 
     if (props.ticket) {
-      const ticketData = JSON.parse(JSON.stringify(props.ticket));
+      let ticketData: any = null;
+      const ticketIdToFetch = props.isKanban ? props.ticket.ticketId : props.ticket.id;
+
+      if (ticketIdToFetch) {
+        console.log('[TicketModal] Buscando dados do banco para:', ticketIdToFetch);
+        const freshTicket = await ticketServices.getById(ticketIdToFetch);
+        if (freshTicket) {
+          ticketData = JSON.parse(JSON.stringify(freshTicket));
+        }
+      }
+
+      if (!ticketData) {
+        console.log('[TicketModal] Usando dados locais');
+        ticketData = JSON.parse(JSON.stringify(props.ticket));
+      }
+
       if (ticketData.customer && typeof ticketData.customer === 'object') {
         ticketData.customerId = ticketData.customer.id;
-      } else if (ticketData.customerId) {
-        ticketData.customerId = ticketData.customerId;
+        delete ticketData.customer;
       }
-      delete ticketData.customer;
+
       Object.assign(form, ticketData);
-      
+
+      if (ticketData.boardId) {
+        form.boardId = ticketData.boardId;
+      } else if (props.ticket?.boardId) {
+        form.boardId = props.ticket.boardId;
+      } else {
+        form.boardId = kanbanStore.activeBoardId || '';
+      }
+
+      if (props.isKanban && props.ticket?.columnId) {
+        form.kanbanColumnId = props.ticket.columnId;
+        const allCols = kanbanStore.boards?.flatMap((b: any) => b.columns) || kanbanStore.columns || [];
+        const col = allCols.find((c: any) => String(c.id) === String(props.ticket.columnId));
+        if (col) {
+          form.status = col.title;
+          if (col.boardId) form.boardId = col.boardId;
+        } else {
+          const mapped = mapEnumToStatusTitle(ticketData.status, form.boardId);
+          form.status = mapped.title;
+          if (mapped.boardId) form.boardId = mapped.boardId;
+        }
+      } else if (ticketData.kanbanColumnId) {
+        form.kanbanColumnId = ticketData.kanbanColumnId;
+        const allCols = kanbanStore.boards?.flatMap((b: any) => b.columns) || kanbanStore.columns || [];
+        const col = allCols.find((c: any) => String(c.id) === String(ticketData.kanbanColumnId));
+        if (col) {
+          form.status = col.title;
+          if (col.boardId) form.boardId = col.boardId;
+        } else {
+          const mapped = mapEnumToStatusTitle(ticketData.status, form.boardId);
+          form.status = mapped.title;
+          if (mapped.boardId) form.boardId = mapped.boardId;
+        }
+      }
+
+      if (!form.status && ticketData.status) {
+        const { title, boardId } = mapEnumToStatusTitle(ticketData.status, ticketData.boardId);
+        if (title) form.status = title;
+        if (boardId && !form.boardId) form.boardId = boardId;
+      }
+
+      if (!form.priority) {
+        form.priority = 'medium';
+      }
+
       if (ticketData.checklist && Array.isArray(ticketData.checklist)) {
         form.checklist = ticketData.checklist.map((item: any) => ({
           title: item.title || item.text || '',
           completed: item.completed ?? item.done ?? false
         }));
+      } else {
+        form.checklist = [];
       }
-      
+
       if (ticketData.tags && Array.isArray(ticketData.tags)) {
         form.tags = ticketData.tags.map((tag: any) => {
           if (typeof tag === 'object' && tag !== null) {
@@ -573,42 +404,25 @@ watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
           }
           return { name: String(tag), type: 'info' };
         });
+      } else {
+        form.tags = [];
       }
-      
+
       if (ticketData.assignees && Array.isArray(ticketData.assignees)) {
         form.assignees = ticketData.assignees.map((a: any) => typeof a === 'object' ? a.id : a);
-      }
-      if (ticketData.assignee && ticketData.assignee.id && !form.assignees.includes(ticketData.assignee.id)) {
+      } else if (ticketData.assignee && ticketData.assignee.id) {
         form.assignees = [ticketData.assignee.id];
+      } else {
+        form.assignees = [];
       }
 
-      if (!props.ticket.boardId && kanbanStore.boards) {
-        let foundBoardId = form.boardId;
-        for (const b of kanbanStore.boards) {
-          for (const c of b.columns) {
-            if (c.cards && c.cards.some((card: any) => String(card.id) === String(props.ticket!.id))) {
-              foundBoardId = b.id;
-              form.status = c.title;
-            }
-          }
-        }
-        form.boardId = foundBoardId;
-        
-        const colExists = availableColumns.value.some((c: any) => c.title === form.status);
-        if (!colExists && form.status) {
-          const hasPending = availableColumns.value.some((c: any) => c.title?.toLowerCase().includes('pendente'));
-          if (hasPending) {
-            form.status = 'Pendente';
-          }
-        }
-      }
-
-      if (!form.checklist) form.checklist = [];
       if (!form.internalNotes) form.internalNotes = [];
       if (!form.attachments) form.attachments = [];
       if (!form.whatsappHistory) form.whatsappHistory = [];
+
       const hours = parseFloat(form.estimatedHours);
       form.estimatedHours = isNaN(hours) || hours <= 0 ? 2 : hours;
+
     } else {
       Object.assign(form, {
         id: undefined,
@@ -701,31 +515,67 @@ const validateForm = () => {
 const mapStatusToEnum = (status: string): string => {
   const s = String(status).toLowerCase();
   if (s.includes('pendente') || s === 'open') return 'open';
-  if (s.includes('fazer') || s.includes('progress')) return 'in_progress';
+  if (s.includes('fazer')) return 'in_progress';
   if (s.includes('análise') || s.includes('waiting')) return 'waiting';
-  if (s.includes('desenvolvimento') || s.includes('resolved')) return 'resolved';
+  if (s.includes('resolvido') || s.includes('resolved')) return 'resolved';
   if (s.includes('finalizado') || s.includes('closed')) return 'closed';
+  if (s.includes('progress') || s.includes('desenvolvimento')) return 'in_progress';
   return 'open';
+};
+
+const onStatusChange = (statusTitle: string) => {
+  const col = availableColumns.value.find((c: any) => c.title === statusTitle);
+  if (col) {
+    form.kanbanColumnId = col.id;
+  }
+};
+
+const mapEnumToStatusTitle = (statusEnum: string, boardId?: string): { title: string, boardId?: string } => {
+  if (boardId) {
+    const board = kanbanStore.boards?.find((b: any) => String(b.id) === String(boardId));
+    if (board && board.columns) {
+      const col = board.columns.find((c: any) => c.ticketStatus === statusEnum);
+      if (col) return { title: col.title, boardId: col.boardId };
+    }
+  }
+
+  if (kanbanStore.columns) {
+    const col = kanbanStore.columns.find((c: any) => c.ticketStatus === statusEnum);
+    if (col) return { title: col.title, boardId: col.boardId };
+  }
+
+  const allCols = kanbanStore.boards?.flatMap((b: any) => b.columns) || [];
+  const col = allCols.find((c: any) => c.ticketStatus === statusEnum);
+  if (col) return { title: col.title, boardId: col.boardId };
+  const s = String(statusEnum).toLowerCase();
+  if (s === 'open' || s.includes('pendente')) return { title: 'Pendente' };
+  if (s === 'in_progress') return { title: 'A Fazer' };
+  if (s === 'waiting' || s.includes('análise') || s.includes('analise')) return { title: 'Análise' };
+  if (s === 'resolved') return { title: 'Resolvido' };
+  if (s === 'closed') return { title: 'Finalizado' };
+  if (s === 'pending_approval') return { title: 'Aprovação' };
+  return { title: statusEnum };
 };
 
 const submit = () => {
   if (validateForm()) {
     const statusEnum = mapStatusToEnum(form.status);
-    
+
     const formattedTags = (form.tags || []).map((tag: any) => {
       if (typeof tag === 'object' && tag !== null) {
         return { name: tag.name || tag.label || String(tag), color: tag.color || tag.colorClass?.split(' ')[0]?.replace('bg-', '') || 'info' };
       }
       return { name: String(tag), color: 'info' };
     });
-    
+
     const formattedChecklist = (form.checklist || []).map((item: any) => {
       if (typeof item === 'object') {
         return { title: String(item.title || item.text || '').slice(0, 200), completed: item.completed || false };
       }
       return { title: String(item).slice(0, 200), completed: false };
     });
-    
+
+    const targetColumn = availableColumns.value.find((c: any) => c.title === form.status);
     const payload = {
       ...(form.id ? { id: form.id } : {}),
       ...(props.isKanban ? { cardId: form.id } : {}),
@@ -734,19 +584,20 @@ const submit = () => {
       status: statusEnum,
       priority: form.priority || 'medium',
       type: form.type || 'support',
-      customerId: form.customerId,
+      customerId: form.customerId || null,
       assignees: form.assignees || [],
       startDate: form.startDate || null,
       endDate: form.endDate || null,
       estimatedHours: typeof form.estimatedHours === 'number' ? form.estimatedHours : 2,
       tags: formattedTags,
       checklist: formattedChecklist,
-      boardId: form.boardId || null
+      boardId: form.boardId || null,
+      kanbanColumnId: targetColumn?.id || form.kanbanColumnId || undefined
     };
-    
+
     console.log('[submit] checklist formattedChecklist:', formattedChecklist);
     console.log('[submit] full payload:', JSON.stringify(payload));
-    
+
     emit('save', payload);
   } else {
     ElMessage.warning('Preencha todos os campos obrigatórios marcados em vermelho.');
@@ -755,9 +606,9 @@ const submit = () => {
 
 const handleApprove = () => {
   if (validateForm()) {
-    const targetCol = kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('fazer'));
+    const targetCol = availableColumns.value.find((c: any) => c.title.toLowerCase().includes('fazer')) || availableColumns.value[1] || availableColumns.value[0];
     form.status = targetCol?.title || 'A Fazer';
-    
+
     submit();
   } else {
     ElMessage.warning('Revise os detalhes pendentes do Ticket antes de aprovar.');
@@ -766,7 +617,7 @@ const handleApprove = () => {
 
 const handleApproveKanban = () => {
   if (validateForm()) {
-    const targetCol = kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('fazer'));
+    const targetCol = availableColumns.value.find((c: any) => c.title.toLowerCase().includes('fazer')) || availableColumns.value[1] || availableColumns.value[0];
     const newStatus = targetCol?.title || 'A Fazer';
     const payload = {
       ...form,
