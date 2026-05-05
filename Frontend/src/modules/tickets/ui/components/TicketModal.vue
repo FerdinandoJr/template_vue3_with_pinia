@@ -335,7 +335,7 @@ watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
 
     // Set defaults for new tickets
     if (!props.ticket) {
-      form.boardId = kanbanStore.activeBoardId || kanbanStore.boards?.[0]?.id || '';
+      form.boardId = '';
     }
 
     if (props.ticket) {
@@ -449,7 +449,7 @@ watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
       if (!form.whatsappHistory) form.whatsappHistory = [];
 
       const hours = parseFloat(form.estimatedHours);
-      form.estimatedHours = isNaN(hours) || hours <= 0 ? 2 : hours;
+      form.estimatedHours = isNaN(hours) || hours <= 0 ? 1 : hours;
 
     } else {
       Object.assign(form, {
@@ -468,7 +468,7 @@ watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
         whatsappHistory: [],
         startDate: '',
         endDate: '',
-        estimatedHours: 2
+        estimatedHours: 1
       });
     }
   }
@@ -617,7 +617,7 @@ const submit = () => {
       assignees: form.assignees || [],
       startDate: form.startDate || null,
       endDate: form.endDate || null,
-      estimatedHours: typeof form.estimatedHours === 'number' ? form.estimatedHours : 2,
+      estimatedHours: typeof form.estimatedHours === 'number' ? form.estimatedHours : 1,
       tags: formattedTags,
       checklist: formattedChecklist,
       boardId: form.boardId || null,
