@@ -251,10 +251,18 @@ const getTeamMemberName = (id: string | number) => {
 };
 
 const availableColumns = computed(() => {
-  if (!kanbanStore.boards || kanbanStore.boards.length === 0) return kanbanStore.columns || [];
+  if (!kanbanStore.boards || kanbanStore.boards.length === 0) {
+    return kanbanStore.columns || [];
+  }
   const board = kanbanStore.boards.find((b: any) => String(b.id) === String(form.boardId));
-  return board ? board.columns : (kanbanStore.columns || []);
+  const cols = board ? board.columns : getAllColumns();
+  return cols.length > 0 ? cols : getAllColumns();
 });
+
+const getAllColumns = () => {
+  const allCols = kanbanStore.boards?.flatMap((b: any) => b.columns || []) || [];
+  return allCols.length > 0 ? allCols : (kanbanStore.columns || []);
+};
 
 const isPending = computed(() => {
   if (props.isKanban) {
