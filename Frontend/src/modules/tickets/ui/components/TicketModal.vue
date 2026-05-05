@@ -288,13 +288,9 @@ const hasPendingApprovalCol = computed(() => {
 
 const onBoardChange = () => {
   const cols = availableColumns.value;
-  let newStatus = form.status;
 
-  if (!newStatus || !cols.some((c: any) => c.title === newStatus)) {
-    newStatus = canApprove
-      ? (cols.find((c: any) => c.title.toLowerCase().includes('fazer'))?.title || cols[1]?.title || cols[0]?.title)
-      : (cols.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || cols[0]?.title);
-  }
+  // Always default to 'Pendente' when switching boards (or first column if not available)
+  const newStatus = cols.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || cols[0]?.title || 'Pendente';
   form.status = newStatus;
 
   const targetCol = cols.find((c: any) => c.title === newStatus);
@@ -305,13 +301,16 @@ watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
   console.log('[TicketModal] isOpen changed:', isOpen, 'prev:', prevIsOpen);
   console.log('[TicketModal] props.ticket (on isOpen change):', props.ticket);
 
-  if (isOpen && !prevIsOpen) {
+    if (isOpen && !prevIsOpen) {
     Object.keys(formErrors).forEach(k => (formErrors as any)[k] = false);
     activeTab.value = 'main';
 
-    const defaultStatus = canApprove
-      ? (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('fazer'))?.title || kanbanStore.columns?.[1]?.title || kanbanStore.columns?.[0]?.title || 'A Fazer')
-      : (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || kanbanStore.columns?.[0]?.title || 'Pendente');
+    // Always default to 'Pendente' for new tickets, use board logic for editing
+    const defaultStatus = props.ticket
+      ? (canApprove
+        ? (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('fazer'))?.title || kanbanStore.columns?.[1]?.title || kanbanStore.columns?.[0]?.title || 'A Fazer')
+        : (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || kanbanStore.columns?.[0]?.title || 'Pendente')
+      : 'Pendente';
 
     if (customerStore.items?.length === 0) {
       await customerStore.fetch();
@@ -560,9 +559,8 @@ const mapEnumToStatusTitle = (statusEnum: string, boardId?: string): { title: st
   const s = String(statusEnum).toLowerCase();
   if (s === 'open' || s.includes('pendente')) return { title: 'Pendente' };
   if (s === 'in_progress') return { title: 'A Fazer' };
-  if (s === 'waiting' || s.includes('análise') || s.includes('analise')) return { title: 'Análise' };
-  if (s === 'resolved') return { title: 'Resolvido' };
-  if (s === 'closed') return { title: 'Finalizado' };
+  if (s === 'waiting') return { title: 'Análise' };
+  if (s === 'resolved' || s === 'closed') return { title: 'Finalizado' };
   if (s === 'pending_approval') return { title: 'Aprovação' };
   return { title: statusEnum };
 };

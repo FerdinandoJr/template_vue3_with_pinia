@@ -8,9 +8,6 @@
                 @cell-click="handleCellClick">
             <el-table-column type="index" label="#" width="50" align="center" class-name="font-bold text-slate-400 text-[10px]" />
 
-                <el-table-column type="index" label="#" width="50" align="center"
-                    class-name="font-bold text-slate-400 text-[10px]" />
-
                 <el-table-column prop="ticketNumber" label="Nº Ticket" width="130" align="center" fixed="left">
                     <template #default="scope">
                         <el-tooltip :content="scope.row.id || ''" placement="top" :disabled="!scope.row.id">
@@ -166,7 +163,7 @@ defineProps<{
     pageSize: number;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
     (e: 'view', ticket: ITicket): void;
     (e: 'edit', ticket: ITicket): void;
     (e: 'delete', id: string): void;

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index, OneToMany, DeleteDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index, OneToMany } from 'typeorm';
 import { Tenant } from '../../../database/postgres/tenant.entity';
 import { Customer } from '../../Customer/data/customer.entity';
 import { User } from '../../../database/postgres/user.entity';
@@ -149,7 +149,4 @@ export class Ticket {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
-
-  @DeleteDateColumn({ type: 'timestamp' })
-  deletedAt: Date;
 }
