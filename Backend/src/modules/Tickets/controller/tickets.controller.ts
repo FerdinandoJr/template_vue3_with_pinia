@@ -87,13 +87,6 @@ export class TicketsController {
     return this.ticketsService.changeStatus(id, status);
   }
 
-  @Post(':id/restore')
-  @ApiOperation({ summary: 'Restaurar ticket excluído' })
-  @HttpCode(HttpStatus.OK)
-  async restore(@Param('id') id: string) {
-    return this.ticketsService.restore(id);
-  }
-
   @Delete(':id')
   @ApiOperation({ summary: 'Excluir ticket (soft delete)' })
   @HttpCode(HttpStatus.NO_CONTENT)
