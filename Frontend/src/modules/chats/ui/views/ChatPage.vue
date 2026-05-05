@@ -156,14 +156,11 @@ const finishRules = {
 const toggleProfile = () => {
   isProfileOpen.value = !isProfileOpen.value;
 };
-
-// ==========================================
-// CORREÇÕES DE TYPESCRIPT
-// ==========================================
+
 
 const handleSelectContact = (contact: IContact) => {
   selectedContact.value = contact;
-  store.selectContact(contact as any); // Passa o contato para evitar o erro de type null/string
+  store.selectContact(contact as any);
   isProfileOpen.value = false;
 };
 
@@ -177,12 +174,11 @@ const handleBackToList = () => {
 
 const handleAssumirChat = () => {
   if (selectedContact.value) {
-    store.assumirChat(selectedContact.value.id as any); // Apenas o ID é passado, sem o segundo argumento
+    store.assumirChat(selectedContact.value.id as any);
     ElMessage.success('Você assumiu este atendimento!');
   }
 };
-
-// ==========================================
+
 
 const handleSendMessage = (payload: Omit<SendMessageDTO, 'contactId'>) => {
   if (selectedContact.value) {

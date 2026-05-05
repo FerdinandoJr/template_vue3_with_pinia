@@ -253,7 +253,7 @@ const formatServiceTime = (chat: any) => {
     color: #64748b;
 }
 
-/* Scrollbar refinada, transparente e perfeitamente encostada na borda com espaçamento interno */
+
 .custom-scroll {
     scrollbar-width: thin;
     scrollbar-color: rgba(148, 163, 184, 0.4) transparent;

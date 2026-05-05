@@ -188,7 +188,7 @@ const promptDelete = async (article: any) => {
     );
     await store.removeArticle(article.id);
   } catch {
-    // Ação cancelada pelo utilizador
+   
   }
 };
 

@@ -224,8 +224,7 @@ import {
   ChatDotRound, Ticket, CircleCheck, Timer, TopRight, BottomRight, 
   DataLine, PieChart, Download, ArrowRight, Trophy, WarningFilled, Clock 
 } from '@element-plus/icons-vue';
-
-// Setup e Permissões
+
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();
 
@@ -243,8 +242,7 @@ const isAdminOrManager = computed(() => {
 onMounted(() => {
   dashboardStore.fetchDashboardData();
 });
-
-// KPIs
+
 const kpiData = computed(() => {
   const stats = dashboardStore.stats;
   if (!stats) {
@@ -262,8 +260,7 @@ const kpiData = computed(() => {
     return { chatsAtivos: 0, ticketsPendentes: 0, taxaResolucao: 0, tma: 0, chatsVariation: null };
   }
 });
-
-// Tickets Recentes
+
 const allRecentTickets = computed(() => {
   const tickets = dashboardStore.stats?.recentTickets || [];
   return tickets.map((t: any) => ({
@@ -290,16 +287,14 @@ const getPriorityColors = (priority: string) => {
     default: return 'bg-slate-100 text-slate-600';
   }
 };
-
-// NOVO: Dados de Alertas de SLA (vem do backend)
+
 const allSlaAlerts = ref<any[]>([]);
 
 const filteredAlerts = computed(() => {
   if (isAdminOrManager.value) return allSlaAlerts.value;
   return allSlaAlerts.value.filter(a => a.assignee === authStore.user?.name);
 });
-
-// Gráficos (dados do banco ou vazio se não houver histórico)
+
 const chartPeriod = ref('7d');
 
 const areaChartSeries = computed(() => {

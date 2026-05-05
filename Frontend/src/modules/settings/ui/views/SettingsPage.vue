@@ -1,9 +1,9 @@
 <template>
   <div class="h-[calc(100vh-4rem)] overflow-hidden custom-scrollbar bg-gradient-to-br from-slate-50 via-white to-slate-100">
     <div class="h-full flex">
-      <!-- Sidebar -->
+      
       <aside class="w-72 bg-white border-r border-slate-200/60 flex flex-col shadow-lg shadow-slate-200/30">
-        <!-- Header -->
+        
         <div class="p-6 border-b border-slate-100">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
@@ -16,10 +16,10 @@
           </div>
         </div>
 
-        <!-- Navigation -->
+        
         <nav class="flex-1 p-4 overflow-y-auto">
           <div class="space-y-1">
-            <!-- Seção Geral -->
+            
             <div class="mb-6">
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-3">GERAL</p>
               
@@ -41,7 +41,7 @@
               </button>
             </div>
 
-            <!-- Seção Administração -->
+            
             <div v-if="authStore.hasFeature('admin', 'user_access') || authStore.hasFeature('admin', 'roles')" class="mb-6">
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-3">ADMINISTRAÇÃO</p>
               
@@ -64,7 +64,7 @@
               </button>
             </div>
 
-            <!-- Seção Integrações -->
+            
             <div v-if="authStore.hasFeature('admin', 'whatsapp')" class="mb-6">
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-3">INTEGRAÇÕES</p>
               
@@ -81,7 +81,7 @@
 
       </aside>
 
-      <!-- Main Content -->
+      
       <main class="flex-1 overflow-y-auto custom-scrollbar">
         <div v-if="store.loading" class="h-full flex items-center justify-center">
           <div class="flex flex-col items-center gap-4">
@@ -92,7 +92,7 @@
         
         <template v-else>
           <div class="p-8">
-            <!-- Transitions -->
+            
             <Transition name="fade" mode="out-in">
               <ProfileSettings v-if="store.activeTab === SettingsTab.PROFILE" :profile="store.profile" />
               <UserAccessSettings v-else-if="store.activeTab === SettingsTab.USER_ACCESS && authStore.hasFeature('admin', 'user_access')" />
@@ -125,7 +125,7 @@ const authStore = useAuthStore();
 onMounted(async () => {
   store.setTab(SettingsTab.PROFILE);
   
-  // Esperar auth carregar se necessário
+ 
   if (!authStore.isReady && authStore.token) {
     await authStore.initAuth();
   }

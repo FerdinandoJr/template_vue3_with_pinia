@@ -610,7 +610,7 @@ export class TicketsService {
         await this.checklistRepository.save(checklistEntities);
       }
 
-      // Update the card with the new ticket ID
+     
       await this.ticketsRepository.manager.update('kanban_cards', card.id, { 
         ticketId: savedTicket.id,
         ticketNumber: ticketNumber
@@ -638,7 +638,7 @@ export class TicketsService {
       if (targetColumn) {
         let newStatus = (targetColumn as any).ticketStatus as TicketStatus;
         
-        // Se a coluna não tem status mapeado, tenta inferir pelo título
+       
         if (!newStatus) {
           const title = targetColumn.title.toLowerCase();
           if (title.includes('pendente') || title.includes('open')) newStatus = TicketStatus.OPEN;
@@ -649,7 +649,7 @@ export class TicketsService {
         }
 
         if (newStatus) {
-          // Normalizar para garantir que bate com o enum (lowercase)
+         
           const normalizedStatus = newStatus.toLowerCase() as TicketStatus;
           
           if (Object.values(TicketStatus).includes(normalizedStatus) && ticket.status !== normalizedStatus) {

@@ -209,7 +209,7 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
                 
                 console.log('[submitForm] form.userId:', form.userId, 'form.date:', form.date, 'form.time:', form.time);
 
-                // Montar startDate e endDate no formato ISO 8601
+               
                 try {
                     let dateStr = form.date as any;
                     if (dateStr instanceof Date) {
@@ -218,14 +218,14 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
                         dateStr = new Date().toISOString().split('T')[0];
                     }
 
-                    // Força a criação do startDate mesmo se form.time estiver vazio
+                   
                     const tStart = form.time || '00:00';
                     const [hStart = '0', mStart = '0'] = tStart.split(':');
                     const d1 = new Date(`${dateStr}T00:00:00`);
                     d1.setHours(parseInt(hStart, 10), parseInt(mStart, 10), 0, 0);
                     payload.startDate = d1.toISOString();
 
-                    // Força a criação do endDate mesmo se form.endTime estiver vazio
+                   
                     const tEnd = form.endTime || '23:59';
                     const [hEnd = '23', mEnd = '59'] = tEnd.split(':');
                     const d2 = new Date(`${dateStr}T00:00:00`);
@@ -240,7 +240,7 @@ export function useEventModal(props: { isOpen: boolean, eventData?: Partial<ICal
 
                 console.log('[submitForm] FINAL PAYLOAD:', JSON.stringify(payload));
 
-                // Remove temp fields and empty optional fields to not pollute DB
+               
                 delete payload.date;
                 delete payload.time;
                 delete payload.endTime;

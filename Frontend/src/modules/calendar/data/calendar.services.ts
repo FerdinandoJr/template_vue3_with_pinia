@@ -10,7 +10,7 @@ interface ApiResponse<T> {
 const mapBackendToFrontend = (apiEvent: any): ICalendarEvent => {
   if (!apiEvent) return apiEvent;
   
-  // Se já estiver mapeado, não faz de novo
+ 
   if (apiEvent.date && apiEvent.time) return apiEvent;
 
   let startDateStr = '';

@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-5xl">
-    <!-- Header -->
+    
     <div class="mb-8">
       <div class="flex items-center gap-4 mb-2">
         <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <!-- Stats Cards -->
+    
     <div class="grid grid-cols-4 gap-4 mb-8">
       <div class="bg-gradient-to-br from-violet-50 to-white rounded-2xl p-5 border border-violet-200/60">
         <div class="text-3xl font-black text-violet-600">{{ users.length }}</div>
@@ -33,7 +33,7 @@
       </div>
     </div>
 
-    <!-- User Selection -->
+    
     <div class="bg-white rounded-3xl border border-slate-200/60 p-6 mb-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="font-bold text-slate-700">Selecionar Usuário</h3>
@@ -91,7 +91,7 @@
       </div>
     </div>
 
-    <!-- Empty State -->
+    
     <div v-if="!selectedUserId" class="bg-white rounded-3xl border-2 border-dashed border-slate-200 p-16 text-center">
       <div class="w-24 h-24 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-violet-50 to-purple-50 flex items-center justify-center">
         <span class="text-5xl">👤</span>
@@ -100,9 +100,9 @@
       <p class="text-sm text-slate-500 max-w-md mx-auto">Escolha um usuário acima para gerenciar suas permissões de acesso aos módulos do sistema</p>
     </div>
 
-    <!-- Permissions Panel -->
+    
     <div v-else class="bg-white rounded-3xl border border-slate-200/60 overflow-hidden">
-      <!-- Global Toggle -->
+      
       <div class="p-6 border-b border-slate-100" :class="form.useCustomPermissions ? 'bg-slate-50/50' : 'bg-white'">
         <div class="flex items-center justify-between p-5 rounded-2xl transition-colors border" 
              :class="form.useCustomPermissions ? 'bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200 shadow-sm' : 'bg-slate-50 border-slate-200'">

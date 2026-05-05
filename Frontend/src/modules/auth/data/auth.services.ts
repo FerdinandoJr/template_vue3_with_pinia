@@ -44,7 +44,7 @@ export const authServices = {
     },
 
     async logout(): Promise<void> {
-        // O logout é feito localmente no store
+       
     },
 
     async requestVerification(email: string): Promise<any> {

@@ -5,7 +5,7 @@
             <el-form-item label="Cliente / Contato" prop="customerName">
                 <el-select v-model="form.customerName" filterable placeholder="Selecione o Cliente..." size="large"
                     class="w-full">
-                    <el-option v-for="client in customerStore.items" :key="client.uuid"
+                    <el-option v-for="client in customerStore.items" :key="client.id"
                         :label="client.tradeName || client.companyName || client.name"
                         :value="client.tradeName || client.companyName || client.name" />
                 </el-select>
@@ -43,13 +43,12 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue';
 import type { FormInstance } from 'element-plus';
-import { useCustomerStore } from '@/modules/customer/ui/store/customer.store'; // Importando a Store
+import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
 
 defineProps<{ isOpen: boolean }>();
 const emit = defineEmits(['close', 'create']);
 const formRef = ref<FormInstance>();
-
-// Inicializando a store de clientes
+
 const customerStore = useCustomerStore();
 
 onMounted(() => {

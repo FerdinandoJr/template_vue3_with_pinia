@@ -284,8 +284,7 @@ import { useCustomerStore } from '../store/customer.store';
 import CustomerFormModal from '../components/CustomerFormModal.vue';
 import { ElMessage } from 'element-plus';
 import { serviceServices, type IServiceItem } from '@/modules/service/data/service.services';
-
-// Importando todos os ícones necessários para esse layout top
+
 import {
     ArrowLeft, Edit, Message, Location, Document,
     MapLocation, ChatDotRound, Link, Connection, UserFilled, User, Loading
@@ -296,7 +295,7 @@ const router = useRouter();
 const store = useCustomerStore();
 
 const customer = ref<any>(null);
-const activeTab = ref('overview'); // Começa na aba de Visão Geral
+const activeTab = ref('overview');
 const isModalOpen = ref(false);
 const services = ref<IServiceItem[]>([]);
 const loadingServices = ref(false);

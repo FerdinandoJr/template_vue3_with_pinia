@@ -39,7 +39,7 @@ const calendarOptions = computed(() => ({
     dayMaxEvents: true,
     allDaySlot: false,
     
-    // Configurações Técnicas Originais
+   
     slotMinTime: '00:00:00',
     slotMaxTime: '24:00:00',
     slotDuration: '00:30:00',
@@ -50,7 +50,7 @@ const calendarOptions = computed(() => ({
     slotLabelFormat: { hour: '2-digit' as const, minute: '2-digit' as const, omitZeroMinute: false, hour12: false },
     eventTimeFormat: { hour: '2-digit' as const, minute: '2-digit' as const, omitZeroMinute: false, hour12: false },
 
-    // Lógica Complexa de Mapeamento de Eventos e Recorrência Original
+   
     events: store.filteredEvents.flatMap((e: any): any[] => {
         const user = store.availableUsers.find(u => u.id === e.userId);
         const theme = user?.theme || { primary: '#3b82f6', light: '#eff6ff', dark: '#1e40af' };
@@ -77,7 +77,7 @@ const calendarOptions = computed(() => ({
         };
 
         if (e.isRecurring) {
-            // Lógica de Recorrência Mensal Original
+           
             if (e.recurrenceType === 'monthly') {
                 const monthlyEvents: any[] = [];
                 let currentDate = new Date(`${e.date}T12:00:00`);
@@ -94,7 +94,7 @@ const calendarOptions = computed(() => ({
                 }
                 return monthlyEvents;
             } else {
-                // Lógica Diária/Semanal Original
+               
                 let daysOfWeek: number[] = [];
                 if (e.recurrenceType === 'daily') daysOfWeek = [0, 1, 2, 3, 4, 5, 6];
                 else if (e.recurrenceType === 'weekly' && e.recurrenceDays?.length) daysOfWeek = e.recurrenceDays;
@@ -131,7 +131,7 @@ const handleEventDropOrResize = (calendarEvent: any) => {
 </script>
 
 <style>
-/* Estilização Premium para o FullCalendar */
+
 .custom-premium-calendar .fc-event {
     cursor: pointer !important;
     border-radius: 8px !important;

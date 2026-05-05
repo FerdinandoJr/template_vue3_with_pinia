@@ -12,7 +12,7 @@ export class SystemPermissionsService {
     if (setting?.value) {
       return JSON.parse(setting.value);
     }
-    // Retornar padrão: todos ativos
+   
     return {
       customer: { active: true, features: { create: true, edit: true, delete: true } },
       atendimentos: { active: true, features: { create_ticket: true, edit_ticket: true, delete_ticket: true } },

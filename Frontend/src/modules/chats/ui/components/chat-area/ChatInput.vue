@@ -176,12 +176,12 @@ import { Plus, Document, Close, Picture, Position, Microphone, UploadFilled, Del
 import { MessageType } from '../../../domain/valueObjects/chat-enums';
 import EmojiPicker from 'vue3-emoji-picker';
 import 'vue3-emoji-picker/css';
-import { useChatStore } from '../../store/chat.store'; // 👇 IMPORTANDO A STORE AQUI
+import { useChatStore } from '../../store/chat.store';
 
 defineProps<{ contactStatus?: string; }>();
 const emit = defineEmits<{ (e: 'send', text: string, type: MessageType, file?: File): void; }>();
 
-const store = useChatStore(); // 👇 INSTANCIANDO A STORE
+const store = useChatStore();
 
 const text = ref('');
 const isInternalNote = ref(false);

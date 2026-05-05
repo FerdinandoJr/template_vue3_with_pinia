@@ -5,13 +5,7 @@ import { ElMessage } from 'element-plus';
 export function useCepLocator() {
     const loadingCep = ref(false);
 
-    /**
-     * Formata o CEP (adicionando o hífen) e se completar 9 caracteres,
-     * busca automaticamente o endereço via ViaCEP.
-     * @param val O valor digitado pelo usuário no input
-     * @param onComplete Callback chamado quando o endereço é encontrado com sucesso.
-     * @returns A string do CEP já formatada para atualizar o model
-     */
+    
     const formatAndSearchCep = async (
         val: string, 
         onComplete?: (address: string) => void

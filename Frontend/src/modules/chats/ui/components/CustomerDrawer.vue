@@ -406,12 +406,10 @@ const props = defineProps<{
 }>();
 
 defineEmits(['close']);
-
-// Controle da aba atual
+
 const activeTab = ref('overview');
 const activeCollapses = ref(['fiscal', 'address', 'contact_main', 'contact_whatsapp']);
-
-// Reseta a aba para "overview" toda vez que abre o drawer para um novo cliente
+
 watch(() => props.isOpen, (newVal) => {
     if (newVal) activeTab.value = 'overview';
 });

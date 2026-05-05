@@ -51,19 +51,19 @@ class TicketService {
     try {
       const params = new URLSearchParams();
       
-      // Filtros básicos
+     
       if (filter.status && filter.status !== 'all') params.append('status', filter.status);
       if (filter.priority) params.append('priority', filter.priority);
       if (filter.type) params.append('type', filter.type);
       if (filter.query) params.append('q', filter.query);
       
-      // Filtros avançados - só adiciona se tiver valor
+     
       if (filter.ownerOnly !== undefined && filter.ownerOnly !== null) {
         params.append('ownerOnly', String(filter.ownerOnly));
       }
       if (filter.userId) params.append('userId', String(filter.userId));
       
-      // Arrays: múltiplos parâmetros
+     
       if (filter.assignees && filter.assignees.length > 0) {
         filter.assignees.forEach(a => params.append('assignees', String(a)));
       }
@@ -71,11 +71,11 @@ class TicketService {
         filter.customers.forEach(c => params.append('customers', String(c)));
       }
       
-      // Paginação
+     
       if (filter.page) params.append('page', String(filter.page));
       if (filter.pageSize) params.append('limit', String(filter.pageSize));
       
-      // Data range
+     
       if (filter.dateRange && filter.dateRange.length === 2) {
         const [start, end] = filter.dateRange;
         if (start && end) {

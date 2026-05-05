@@ -94,7 +94,7 @@ const canMoveColumns = computed(() => authStore.hasRole(['Desenvolvedor', 'Geren
 
 const isModalOpen = ref(false);
 const selectedTicket = ref<ITicket | null>(null);
-const selectedCard = ref<any>(null); // ← ADDED!
+const selectedCard = ref<any>(null);
 const draggedIndex = ref<number | null>(null);
 
 const onDragStartColumn = (event: DragEvent, index: number) => {
@@ -167,7 +167,7 @@ const openTicketDetails = (ticket: any) => {
   const cardId = ticket?.id;
   const ticketId = ticket?.ticketId;
   
-  // Usar boardId do card se disponível, senão usar activeBoardId
+ 
   const boardId = ticket?.boardId || kanbanStore.activeBoardId;
   
   if (ticketId) {
@@ -264,8 +264,8 @@ const onTicketSaved = async (ticketData: any) => {
       await ticketServices.create(ticketPayload);
     }
     
-    // O backend aguarda a sincronização ser concluída através do emitAsync.
-    // Basta recarregar os dados do Kanban para refletir as mudanças instantaneamente.
+   
+   
     await kanbanStore.fetchKanbanData();
     
     ElMessage.success('Ticket salvo com sucesso!');

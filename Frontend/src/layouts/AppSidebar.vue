@@ -75,7 +75,7 @@ const chatStore = useChatStore()
 const chatsQueueCount = ref(0)
 
 onMounted(async () => {
-  // Garantir que auth está inicializado
+ 
   if (!authStore.isReady && authStore.token) {
     await authStore.initAuth();
   }

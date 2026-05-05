@@ -4,7 +4,7 @@ export class AddTicketNumber1714392000000 {
   name = 'AddTicketNumber1714392000000';
 
   async up(queryRunner: QueryRunner): Promise<void> {
-    // Adicionar coluna ticketNumber
+   
     await queryRunner.addColumn(
       'tickets',
       new TableColumn({
@@ -15,7 +15,7 @@ export class AddTicketNumber1714392000000 {
       }),
     );
 
-    // Criar índice único por tenant
+   
     await queryRunner.createIndex(
       'tickets',
       new TableIndex({
@@ -25,7 +25,7 @@ export class AddTicketNumber1714392000000 {
       }),
     );
 
-    // Popular existentes com números sequenciais
+   
     const tickets = await queryRunner.query(`
       SELECT id, "tenantId", "createdAt" 
       FROM tickets 
@@ -46,7 +46,7 @@ export class AddTicketNumber1714392000000 {
       );
     }
 
-    // Tornar não nulo após popular
+   
     await queryRunner.changeColumn(
       'tickets',
       'ticketNumber',

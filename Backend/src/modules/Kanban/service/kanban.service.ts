@@ -21,7 +21,7 @@ export class KanbanService {
     private eventEmitter: EventEmitter2,
   ) { }
 
-  // ==================== BOARDS ====================
+ 
   async findAllBoards(tenantId: string): Promise<KanbanBoard[]> {
     return this.boardsRepository.find({ where: { tenantId }, order: { createdAt: 'ASC' } });
   }
@@ -218,7 +218,7 @@ export class KanbanService {
     await Promise.all(queries);
   }
 
-  // ==================== STATUS MAPPING ====================
+ 
   static normalizeStatus(status: string): TicketStatus {
     if (!status) return TicketStatus.OPEN;
     const s = status.toLowerCase().trim();
@@ -311,7 +311,7 @@ export class KanbanService {
         colorClass: t.color || 'bg-slate-100 text-slate-700'
       }));
 
-      // Determinar o boardId alvo
+     
       const targetBoardId = ticket.boardId || card.boardId;
       const boardChanged = targetBoardId !== card.boardId;
 
@@ -320,7 +320,7 @@ export class KanbanService {
         this.logger.log(`Board changed to: ${targetBoardId}`);
       }
 
-      // Determinar a coluna correta
+     
       let targetColumnId = null;
 
       if (ticket.kanbanColumnId) {
@@ -356,7 +356,7 @@ export class KanbanService {
         card.columnId = targetColumnId;
       }
 
-      // Se não mudou o board nem a coluna, verificar se o status mudou
+     
       if (!boardChanged && !targetColumnId) {
         const col = await this.columnsRepository.findOne({ where: { id: card.columnId } });
         if (col && col.ticketStatus !== ticket.status) {

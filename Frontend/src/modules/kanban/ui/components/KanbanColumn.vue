@@ -57,9 +57,7 @@
   </div>
 </template>
 
-<script lang="ts">
-// Variável global para compartilhar o timer entre todas as instâncias de KanbanColumn.
-// Isso resolve o problema de duplicação impedindo que as colunas rodem a mesma função em paralelo.
+<script lang="ts">
 let scheduleDebounceTimer: any = null;
 </script>
 
@@ -157,7 +155,7 @@ const syncTicketBackend = async (ticketId: string, newColumnId: string) => {
     const targetColumn = kanbanStore.columns.find((c: any) => c.id === newColumnId);
     let newStatus = targetColumn?.ticketStatus || 'open';
     
-    // Normalização local para garantir consistência imediata
+   
     const title = (targetColumn?.title || '').toLowerCase();
     if (title.includes('resolvido') || title.includes('resolved') || title.includes('finalizado')) {
       newStatus = 'resolved';
@@ -172,7 +170,7 @@ const syncTicketBackend = async (ticketId: string, newColumnId: string) => {
     await ticketServices.update(ticketId, { status: newStatus });
     console.log('[KanbanColumn] Ticket atualizado para status:', newStatus);
     
-    // Atualiza o store de tickets em tempo real (compartilhado via Pinia)
+   
     try {
       const ticketsStore = useTicketsStore();
       await ticketsStore.fetch();
@@ -202,14 +200,14 @@ const syncTicketBackend = async (ticketId: string, newColumnId: string) => {
 };
 
 const smartScheduleQueue = (userId: string) => {
-  // Cancela qualquer agendamento em andamento para rodar apenas UMA VEZ
+ 
   clearTimeout(scheduleDebounceTimer);
 
   scheduleDebounceTimer = setTimeout(() => {
     try {
       const now = new Date();
 
-      // Limpa os eventos gerados automaticamente na agenda ANTES de inserir os novos
+     
       const cleanEvents = calendarStore.allEvents
         ? calendarStore.allEvents.filter((e: any) => !(e.isKanbanAuto && String(e.userId) === String(userId)))
         : [];
@@ -289,15 +287,14 @@ const smartScheduleQueue = (userId: string) => {
         }
       });
 
-      // Substitui os eventos no calendário em uma única operação para evitar duplicações
+     
       calendarStore.allEvents = [...cleanEvents, ...novosEventos];
     } catch (error) {
       console.error("Falha no Smart Schedule:", error);
     }
-  }, 300); // 300ms de margem de segurança para o processamento em lote
+  }, 300);
 };
-
-// Observador para reagir instantaneamente quando um Card for salvo/modificado 
+
 watch(() => kanbanStore.columns, () => {
   const userId = authStore.user?.id || '1';
   smartScheduleQueue(String(userId));
@@ -332,7 +329,7 @@ const onDropColumn = async (event: DragEvent) => {
       await kanbanServices.moveCard(draggedCard.id, targetCol.id, targetCol.cards.length - 1);
       console.log('[KanbanColumn] Card movido com sucesso para:', targetCol.title);
       
-      // Sincroniza o ticket associado se houver
+     
       if (draggedCard.ticketId) {
         await syncTicketBackend(draggedCard.ticketId, props.columnId);
       }
@@ -383,7 +380,7 @@ const onDropCard = async (event: DragEvent, targetTicket: any) => {
     );
     console.log('[KanbanColumn] Card movido para posição específica com sucesso');
 
-    // Sincroniza o ticket associado se houver
+   
     if (draggedCard.ticketId) {
       await syncTicketBackend(draggedCard.ticketId, props.columnId);
     }

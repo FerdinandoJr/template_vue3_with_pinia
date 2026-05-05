@@ -110,8 +110,7 @@ const availableTags = ref([
     { id: 7, name: 'Melhoria', type: 'primary' },
     { id: 8, name: 'Sugestão', type: 'info' }
 ]);
-
-// MÁGICA: Normaliza qualquer coisa (String, Objeto, ID) para renderizar corretamente
+
 const normalizedSelectedTags = computed(() => {
     if (!props.selectedTags) return [];
     return props.selectedTags.map(val => {

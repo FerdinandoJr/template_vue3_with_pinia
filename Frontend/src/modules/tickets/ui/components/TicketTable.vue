@@ -157,8 +157,7 @@
 import { View, Edit, Delete, UserFilled, Notebook, DocumentDelete, OfficeBuilding } from '@element-plus/icons-vue';
 import type { ITicket } from '../../domain/entities/Ticket';
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
-
-// Props necessárias para o funcionamento da paginação e lista
+
 defineProps<{
     tickets: ITicket[];
     total: number;
@@ -181,7 +180,7 @@ const kanbanStore = useKanbanStore();
     const status = ticket.status ? ticket.status.toLowerCase() : '';
     const allCols = kanbanStore.boards?.flatMap((b: any) => b.columns) || kanbanStore.columns || [];
     
-    // Se temos o kanbanColumnId, tentamos pegar o status mapeado na coluna para a cor
+   
     if (ticket.kanbanColumnId) {
       const col = allCols.find((c: any) => String(c.id) === String(ticket.kanbanColumnId));
       if (col && col.ticketStatus) {
@@ -207,27 +206,27 @@ const kanbanStore = useKanbanStore();
 
   const getStatusDotClass = (ticket: any) => {
     const allCols = kanbanStore.boards?.flatMap((b: any) => b.columns) || kanbanStore.columns || [];
-    // Prioriza o kanbanColumnId para achar a cor exata da coluna
+   
     if (ticket.kanbanColumnId) {
       const col = allCols.find((c: any) => String(c.id) === String(ticket.kanbanColumnId));
       if (col && col.color) return col.color.split(' ')[0] || 'bg-slate-400';
     }
-    // Fallback: procura pela coluna com o ticketStatus igual no board específico
+   
     if (ticket.boardId) {
       const boardCols = kanbanStore.boards?.find((b: any) => b.id === ticket.boardId)?.columns || [];
       const col = boardCols.find((c: any) => c.ticketStatus?.toLowerCase() === ticket.status?.toLowerCase());
       if (col && col.color) return col.color.split(' ')[0] || 'bg-slate-400';
     }
-    // Fallback pelo active board
+   
     const activeCols = kanbanStore.columns || [];
     const activeCol = activeCols.find((c: any) => c.ticketStatus?.toLowerCase() === ticket.status?.toLowerCase());
     if (activeCol && activeCol.color) return activeCol.color.split(' ')[0] || 'bg-slate-400';
 
-    // Fallback geral nas colunas
+   
     const col = allCols.find((c: any) => c.ticketStatus?.toLowerCase() === ticket.status?.toLowerCase());
     if (col && col.color) return col.color.split(' ')[0] || 'bg-slate-400';
 
-    // Fallback absoluto pelo status enum
+   
     const map: Record<string, string> = {
         'open': 'bg-yellow-400',
         'in_progress': 'bg-blue-500',
@@ -261,23 +260,23 @@ const getPriorityTextClass = (priority: string) => {
 
   const getStatusLabel = (ticket: any) => {
     const allCols = kanbanStore.boards?.flatMap((b: any) => b.columns) || kanbanStore.columns || [];
-    // Prioriza o kanbanColumnId para achar o título exato da coluna
+   
     if (ticket.kanbanColumnId) {
       const col = allCols.find((c: any) => String(c.id) === String(ticket.kanbanColumnId));
       if (col && col.title) return col.title;
     }
-    // Fallback: procura pela coluna com o ticketStatus igual no board específico
+   
     if (ticket.boardId) {
       const boardCols = kanbanStore.boards?.find((b: any) => b.id === ticket.boardId)?.columns || [];
       const col = boardCols.find((c: any) => c.ticketStatus?.toLowerCase() === ticket.status?.toLowerCase());
       if (col && col.title) return col.title;
     }
-    // Fallback pelo active board
+   
     const activeCols = kanbanStore.columns || [];
     const activeCol = activeCols.find((c: any) => c.ticketStatus?.toLowerCase() === ticket.status?.toLowerCase());
     if (activeCol && activeCol.title) return activeCol.title;
 
-    // Fallback geral nas colunas
+   
     const col = allCols.find((c: any) => c.ticketStatus?.toLowerCase() === ticket.status?.toLowerCase());
     if (col && col.title) return col.title;
 
@@ -336,7 +335,7 @@ const formatDate = (date: string | Date | undefined): string => {
     padding: 8px 0;
 }
 
-/* Garante que o corpo da tabela use o espaço total para centrar o Empty State */
+
 :deep(.el-table__body-wrapper) {
     height: 100%;
     overflow-y: auto;
@@ -350,13 +349,13 @@ const formatDate = (date: string | Date | undefined): string => {
     justify-content: center;
 }
 
-/* Destaque visual na coluna de numeração lateral */
+
 :deep(.el-table__row td:first-child) {
     background-color: #fcfcfd;
     border-right: 1px solid #f1f5f9;
 }
 
-/* Padronização dos botões de paginação (Azul igual ao Customer) */
+
 :deep(.el-pagination.is-background .el-pager li.is-active) {
     background-color: #2563eb !important;
 }

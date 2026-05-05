@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-3xl">
-    <!-- Header -->
+    
     <div class="mb-8">
       <div class="flex items-center gap-4 mb-2">
         <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <!-- Stats -->
+    
     <div class="grid grid-cols-3 gap-4 mb-8">
       <div class="bg-gradient-to-br from-slate-50 to-white rounded-2xl p-5 border border-slate-200/60">
         <div class="text-3xl font-black text-slate-800">{{ roles.length }}</div>
@@ -29,12 +29,12 @@
       </div>
     </div>
 
-    <!-- Loading -->
+    
     <div v-if="loading" class="flex items-center justify-center py-16">
       <div class="w-8 h-8 border-3 border-violet-200 border-t-violet-600 rounded-full animate-spin"></div>
     </div>
 
-    <!-- Empty State -->
+    
     <div v-else-if="roles.length === 0" class="bg-white rounded-3xl border-2 border-dashed border-slate-200 p-12 text-center">
       <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
         <span class="text-violet-600 text-4xl">🎭</span>
@@ -47,7 +47,7 @@
       </el-button>
     </div>
 
-    <!-- Roles List -->
+    
     <div v-else class="space-y-3">
       <div class="flex items-center justify-between mb-4">
         <p class="text-sm font-semibold text-slate-600">{{ roles.length }} cargo(s) encontrado(s)</p>
@@ -62,10 +62,10 @@
           class="group flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200 hover:border-violet-300 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-200"
           :class="role.name.toLowerCase() === 'admin' ? 'bg-red-50/50 border-red-200' : ''"
         >
-          <!-- Color Indicator -->
+          
           <div class="w-4 h-4 rounded-full shadow-sm" :style="{ backgroundColor: role.color }"></div>
           
-          <!-- Info -->
+          
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <h3 class="font-bold text-slate-800 truncate">{{ role.name }}</h3>
@@ -78,7 +78,7 @@
             </div>
           </div>
 
-          <!-- Actions -->
+          
           <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <el-button 
               v-if="role.isAdmin !== true"
@@ -103,7 +103,7 @@
       </TransitionGroup>
     </div>
 
-    <!-- Modal -->
+    
     <el-dialog v-model="dialogVisible" :title="isEditing ? 'Editar Cargo' : 'Criar Novo Cargo'" width="450px" class="settings-dialog">
       <div class="py-4">
         <el-form :model="form" label-position="top" class="space-y-5">

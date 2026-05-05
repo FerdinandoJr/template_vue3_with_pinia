@@ -156,8 +156,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const textColor = ref('#000000')
 const highlightColor = ref('')
-
-// Paletas de cores
+
 const textPalette = [
   '#000000', '#475569', '#ef4444', '#f97316', '#eab308', 
   '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'

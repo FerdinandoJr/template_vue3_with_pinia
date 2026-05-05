@@ -296,15 +296,15 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true;
       try {
-        // Debug
+       
         console.log('Tentando login com:', form.email, form.password);
         
-        // Chamada ao backend real
+       
         const response = await authServices.login(form.email, form.password);
         
         console.log('Response login:', response);
         
-        // Salva os dados na store
+       
         authStore.login(response.user, response.token);
         
         console.log('Store login - token:', response.token ? 'sim' : 'nao');
@@ -312,7 +312,7 @@ const handleLogin = async () => {
 
         ElMessage.success('Login realizado com sucesso!');
         
-        // Redireciona para o dashboard
+       
         console.log('Navegando para /');
         router.push('/');
 
@@ -356,7 +356,7 @@ const handleRegister = async () => {
         name: registerForm.name.trim(),
         email: registerForm.email.trim().toLowerCase(),
         password: registerForm.password,
-        role: registerForm.role,
+        roleId: registerForm.role,
       });
       
       if (response.token) {
@@ -409,7 +409,7 @@ const handleRegister = async () => {
 </script>
 
 <style>
-/* Refinamentos visuais para os inputs do Element Plus ficarem com aspecto Premium */
+
 .custom-login-input .el-input__wrapper {
   height: 52px !important;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;

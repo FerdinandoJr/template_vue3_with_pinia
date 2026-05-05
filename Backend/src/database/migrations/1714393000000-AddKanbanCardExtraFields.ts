@@ -4,7 +4,7 @@ export class AddKanbanCardExtraFields1714393000000 {
   name = 'AddKanbanCardExtraFields1714393000000';
 
   async up(queryRunner: QueryRunner): Promise<void> {
-    // priority
+   
     await queryRunner.addColumn(
       'kanban_cards',
       new TableColumn({
@@ -15,7 +15,7 @@ export class AddKanbanCardExtraFields1714393000000 {
       }),
     );
 
-    // type
+   
     await queryRunner.addColumn(
       'kanban_cards',
       new TableColumn({
@@ -26,7 +26,7 @@ export class AddKanbanCardExtraFields1714393000000 {
       }),
     );
 
-    // customerId
+   
     await queryRunner.addColumn(
       'kanban_cards',
       new TableColumn({
@@ -36,7 +36,7 @@ export class AddKanbanCardExtraFields1714393000000 {
       }),
     );
 
-    // assignees
+   
     await queryRunner.addColumn(
       'kanban_cards',
       new TableColumn({
@@ -46,7 +46,7 @@ export class AddKanbanCardExtraFields1714393000000 {
       }),
     );
 
-    // estimatedHours
+   
     await queryRunner.addColumn(
       'kanban_cards',
       new TableColumn({
@@ -58,7 +58,7 @@ export class AddKanbanCardExtraFields1714393000000 {
       }),
     );
 
-    // tags
+   
     await queryRunner.addColumn(
       'kanban_cards',
       new TableColumn({
@@ -68,7 +68,7 @@ export class AddKanbanCardExtraFields1714393000000 {
       }),
     );
 
-    // checklist
+   
     await queryRunner.addColumn(
       'kanban_cards',
       new TableColumn({
