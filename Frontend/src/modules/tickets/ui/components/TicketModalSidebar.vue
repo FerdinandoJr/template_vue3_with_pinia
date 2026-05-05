@@ -26,7 +26,7 @@
       </div>
 
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm"
-        :class="{'ring-1 ring-red-500 border-red-500 bg-red-50': formErrors.board }">
+        :class="{ '!ring-1 !ring-red-500 !border-red-500 !bg-red-50': formErrors.board }">
         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
           Quadro Kanban
           <span v-if="formErrors.board" class="text-red-500">* Obrigatório</span>
@@ -38,7 +38,7 @@
       </div>
       
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm"
-        :class="{'ring-1 ring-red-500 border-red-500 bg-red-50': formErrors.status }">
+        :class="{ '!ring-1 !ring-red-500 !border-red-500 !bg-red-50': formErrors.status }">
         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
           Fila / Status
           <span v-if="formErrors.status" class="text-red-500">* Obrigatório</span>
