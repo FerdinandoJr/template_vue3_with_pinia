@@ -36,8 +36,7 @@ export class KanbanService {
       { title: 'A Fazer', order: 1, color: '#f59e0b', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.IN_PROGRESS },
       { title: 'Análise', order: 2, color: '#3b82f6', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.WAITING },
       { title: 'Desenvolvimento', order: 3, color: '#8b5cf6', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.IN_PROGRESS },
-      { title: 'Resolvido', order: 4, color: '#10b981', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.RESOLVED },
-      { title: 'Finalizado', order: 5, color: '#22c55e', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.CLOSED },
+      { title: 'Finalizado', order: 4, color: '#22c55e', boardId: savedBoard.id, tenantId, ticketStatus: TicketStatus.CLOSED },
     ];
 
     for (const colData of defaultColumns) {
@@ -248,7 +247,7 @@ export class KanbanService {
       [TicketStatus.OPEN]: 'Pendente',
       [TicketStatus.IN_PROGRESS]: 'Desenvolvimento',
       [TicketStatus.WAITING]: 'Análise',
-      [TicketStatus.RESOLVED]: 'Resolvido',
+      [TicketStatus.RESOLVED]: 'Finalizado',
       [TicketStatus.CLOSED]: 'Finalizado',
     };
     return mapping[ticketStatus] || 'Pendente';

@@ -254,7 +254,7 @@ const availableColumns = computed(() => {
   if (!kanbanStore.boards || kanbanStore.boards.length === 0) {
     return kanbanStore.columns || [];
   }
-  const board = kanbanStore.boards.find((b: any) => String(b.id) === String(form.boardId));
+  const board = kanbanStore.boards.find((b: any) => String(b.id) === String(form.boardId)) || kanbanStore.boards[0];
   const cols = board ? board.columns : getAllColumns();
   return cols.length > 0 ? cols : getAllColumns();
 });
@@ -306,11 +306,20 @@ watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
     activeTab.value = 'main';
 
     // Always default to 'Pendente' for new tickets, use board logic for editing
-    const defaultStatus = props.ticket
-      ? (canApprove
-        ? (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('fazer'))?.title || kanbanStore.columns?.[1]?.title || kanbanStore.columns?.[0]?.title || 'A Fazer')
-        : (kanbanStore.columns?.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || kanbanStore.columns?.[0]?.title || 'Pendente')
-      : 'Pendente';
+    let defaultStatus = 'Pendente';
+    if (props.ticket && kanbanStore.columns?.length) {
+      const cols = kanbanStore.columns;
+      if (canApprove) {
+        defaultStatus = cols.find((c: any) => c.title.toLowerCase().includes('fazer'))?.title || cols[1]?.title || cols[0]?.title || 'A Fazer';
+      } else {
+        defaultStatus = cols.find((c: any) => c.title.toLowerCase().includes('pendente'))?.title || cols[0]?.title || 'Pendente';
+      }
+    }
+    
+    // Apply default status for new tickets
+    if (!props.ticket) {
+      form.status = defaultStatus;
+    }
 
     if (customerStore.items?.length === 0) {
       await customerStore.fetch();
@@ -322,6 +331,11 @@ watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
 
     if (!kanbanStore.boards || kanbanStore.boards.length === 0) {
       await kanbanStore.fetchKanbanData();
+    }
+
+    // Set defaults for new tickets
+    if (!props.ticket) {
+      form.boardId = kanbanStore.activeBoardId || kanbanStore.boards?.[0]?.id || '';
     }
 
     if (props.ticket) {
@@ -353,7 +367,12 @@ watch(() => props.isOpen, async (isOpen, prevIsOpen) => {
       } else if (props.ticket?.boardId) {
         form.boardId = props.ticket.boardId;
       } else {
-        form.boardId = kanbanStore.activeBoardId || '';
+        form.boardId = kanbanStore.activeBoardId || kanbanStore.boards?.[0]?.id || '';
+      }
+      
+      // Ensure boardId is set if still empty and boards are available
+      if (!form.boardId && kanbanStore.boards?.length > 0) {
+        form.boardId = kanbanStore.boards[0].id;
       }
 
       if (props.isKanban && props.ticket?.columnId) {

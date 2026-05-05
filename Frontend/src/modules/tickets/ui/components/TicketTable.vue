@@ -296,7 +296,7 @@ const getPriorityTextClass = (priority: string) => {
         'open': 'Pendente',
         'in_progress': 'A Fazer',
         'waiting': 'Análise',
-        'resolved': 'Resolvido',
+        'resolved': 'Finalizado',
         'closed': 'Finalizado',
         'pending_approval': 'Aprovação'
     };

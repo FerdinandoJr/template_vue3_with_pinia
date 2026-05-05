@@ -36,8 +36,7 @@ async function createColumns() {
       { title: 'A Fazer', order: 1, color: '#f59e0b', boardId: board.id, tenantId: 'central_atendimento', ticketStatus: 'in_progress' },
       { title: 'Análise', order: 2, color: '#3b82f6', boardId: board.id, tenantId: 'central_atendimento', ticketStatus: 'waiting' },
       { title: 'Desenvolvimento', order: 3, color: '#8b5cf6', boardId: board.id, tenantId: 'central_atendimento', ticketStatus: 'in_progress' },
-      { title: 'Resolvido', order: 4, color: '#10b981', boardId: board.id, tenantId: 'central_atendimento', ticketStatus: 'resolved' },
-      { title: 'Finalizado', order: 5, color: '#22c55e', boardId: board.id, tenantId: 'central_atendimento', ticketStatus: 'closed' },
+      { title: 'Finalizado', order: 4, color: '#22c55e', boardId: board.id, tenantId: 'central_atendimento', ticketStatus: 'closed' },
     ];
 
     for (const colData of columns) {

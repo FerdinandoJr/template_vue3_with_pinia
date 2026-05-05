@@ -60,7 +60,7 @@
               <el-option label="Todos" value="all" />
               <el-option label="Abertos" value="open" />
               <el-option label="Aguardando" value="in_progress" />
-              <el-option label="Resolvidos" value="resolved" />
+              <el-option label="Finalizados" value="resolved" />
               <el-option label="Fechados" value="closed" />
             </el-select>
           </div>

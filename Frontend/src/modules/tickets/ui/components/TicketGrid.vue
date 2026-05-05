@@ -133,9 +133,9 @@ const getStatusLabel = (status: string) => {
         'open': 'Pendente',
         'in_progress': 'Desenvolvimento',
         'waiting': 'Análise',
-        'resolved': 'Resolvido',
+        'resolved': 'Finalizado',
         'done': 'Finalizado',
-        'closed': 'Fechado'
+        'closed': 'Finalizado'
     };
     return map[status] || status;
 };
