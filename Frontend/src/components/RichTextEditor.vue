@@ -1,7 +1,7 @@
 <template>
   <div class="border border-slate-300 rounded-lg bg-white shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all duration-200 flex flex-col">
     
-    <div v-if="editor" class="bg-slate-50/80 border-b border-slate-200 px-3 py-2 flex flex-wrap gap-x-1.5 gap-y-2 items-center rounded-t-lg">
+    <div v-if="editor && !props.readonly" class="bg-slate-50/80 border-b border-slate-200 px-3 py-2 flex flex-wrap gap-x-1.5 gap-y-2 items-center rounded-t-lg">
       
       <div class="flex items-center gap-0.5">
         <button type="button" @click.prevent="editor.chain().focus().toggleBold().run()" :class="['p-1.5 rounded transition-colors', editor.isActive('bold') ? 'bg-slate-200 text-slate-900 shadow-inner' : 'text-slate-600 hover:bg-slate-200']" title="Negrito">
@@ -112,8 +112,8 @@
 
     </div>
 
-    <div class="flex-1 bg-white relative cursor-text text-base rounded-b-lg">
-      <editor-content :editor="editor" class="tiptap-editor-wrapper p-5" @click="editor?.commands.focus()" />
+    <div class="flex-1 bg-white relative text-base rounded-b-lg" :class="props.readonly ? 'cursor-default' : 'cursor-text'">
+      <editor-content :editor="editor" class="tiptap-editor-wrapper p-5" @click="!props.readonly && editor?.commands.focus()" />
     </div>
   </div>
 </template>
@@ -149,7 +149,8 @@ import {
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  placeholder: { type: String, default: 'Digite seu texto aqui...' }
+  placeholder: { type: String, default: 'Digite seu texto aqui...' },
+  readonly: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -169,6 +170,7 @@ const highlightPalette = [
 
 const editor = useEditor({
   content: props.modelValue,
+  editable: !props.readonly,
   extensions: [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
@@ -234,6 +236,10 @@ watch(() => props.modelValue, (value) => {
   if (!isSame && editor.value) {
     editor.value.commands.setContent(value, false)
   }
+})
+
+watch(() => props.readonly, (isReadonly) => {
+  editor.value?.setEditable(!isReadonly)
 })
 
 onBeforeUnmount(() => {

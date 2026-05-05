@@ -5,7 +5,8 @@
         <div class="flex-1 overflow-y-auto bg-white">
             <el-table :data="tickets" style="width: 100%;" class="custom-table" highlight-current-row
                 :row-class-name="() => 'cursor-pointer hover:bg-blue-50/50 transition-colors duration-150'"
-                @row-click="(row: any) => $emit('view', row)">
+                @cell-click="handleCellClick">
+            <el-table-column type="index" label="#" width="50" align="center" class-name="font-bold text-slate-400 text-[10px]" />
 
                 <el-table-column type="index" label="#" width="50" align="center"
                     class-name="font-bold text-slate-400 text-[10px]" />
@@ -96,9 +97,9 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="Ações" width="160" align="right">
+                <el-table-column label="Ações" width="160" align="right" :cell-class-name="() => 'actions-cell'">
                     <template #default="scope">
-                        <div class="flex justify-end gap-1.5 pr-2">
+                        <div class="flex justify-end gap-1.5 pr-2" @click.stop>
                             <el-button type="primary" circle plain size="small" @click="$emit('view', scope.row)">
                                 <el-icon>
                                     <View />
@@ -173,6 +174,19 @@ defineEmits<{
     (e: 'update:currentPage', page: number): void;
     (e: 'update:pageSize', size: number): void;
 }>();
+
+const handleCellClick = (row: any, column: any) => {
+    if (column.property === undefined && column.type !== 'index') {
+        return;
+    }
+    if (column.label === 'Ações') {
+        return;
+    }
+    if (column.type === 'index' || !column.property) {
+        return;
+    }
+    emit('view', row);
+};
 
 const kanbanStore = useKanbanStore();
 
@@ -358,5 +372,9 @@ const formatDate = (date: string | Date | undefined): string => {
 
 :deep(.el-pagination.is-background .el-pager li.is-active) {
     background-color: #2563eb !important;
+}
+
+:deep(.actions-cell) {
+    pointer-events: auto;
 }
 </style>

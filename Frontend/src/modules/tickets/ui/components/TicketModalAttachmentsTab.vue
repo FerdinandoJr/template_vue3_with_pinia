@@ -3,12 +3,13 @@
     <div class="max-w-4xl mx-auto w-full">
       <div
         class="border-2 border-dashed border-blue-200 bg-blue-50/50 rounded-2xl p-8 text-center cursor-pointer hover:bg-blue-50 transition-colors mb-6 group"
-        @click="triggerFileUpload" @dragover.prevent @drop.prevent="handleFileDrop">
+        @click="!isViewing && triggerFileUpload()" @dragover.prevent @drop.prevent="!isViewing && handleFileDrop()"
+        :class="{ 'opacity-50 cursor-not-allowed': isViewing }">
         <el-icon class="text-4xl text-blue-400 mb-3 group-hover:scale-110 transition-transform">
           <UploadFilled />
         </el-icon>
-        <h3 class="font-bold text-slate-700 mb-1">Clique para anexar ou arraste arquivos</h3>
-        <input type="file" ref="fileInput" class="hidden" multiple @change="handleFileSelected" />
+        <h3 class="font-bold text-slate-700 mb-1">{{ isViewing ? 'Anexos do ticket' : 'Clique para anexar ou arraste arquivos' }}</h3>
+        <input type="file" ref="fileInput" class="hidden" multiple @change="handleFileSelected" :disabled="isViewing" />
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" v-if="attachments.length > 0">
         <div v-for="(file, idx) in attachments" :key="idx"
@@ -23,7 +24,7 @@
               <p class="text-sm font-bold text-slate-700 truncate">{{ file.name }}</p>
             </div>
           </div>
-          <el-button type="danger" circle plain size="small"
+          <el-button v-if="!isViewing" type="danger" circle plain size="small"
             class="opacity-0 group-hover:opacity-100 transition-opacity" @click="$emit('remove-attachment', idx)">
             <el-icon><Delete /></el-icon>
           </el-button>
@@ -39,6 +40,7 @@ import { UploadFilled, Document, Delete } from '@element-plus/icons-vue';
 
 const props = defineProps<{
   attachments: any[];
+  isViewing?: boolean;
 }>();
 
 const emit = defineEmits(['add-files', 'remove-attachment']);

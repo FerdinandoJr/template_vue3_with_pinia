@@ -25,14 +25,15 @@
       <TicketFilters :filters="currentFilters" @update:filters="handleFilter" class="mb-6" />
 
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <TicketTable :tickets="store.items" :total="store.total" :current-page="store.currentPage"
-          :page-size="store.pageSize" @view="openModal" @edit="openModal" @update:current-page="store.setPage"
-          @update:page-size="store.setPageSize" />
+      <TicketTable :tickets="store.items" :total="store.total" :current-page="store.currentPage"
+        :page-size="store.pageSize" @view="(t) => openModal(t, 'view')" @edit="(t) => openModal(t, 'edit')"
+        @delete="deleteTicket" @update:current-page="store.setPage"
+        @update:page-size="store.setPageSize" />
       </div>
     </div>
 
     <TicketModal :is-open="isModalOpen" :ticket="selectedTicket" :initial-data="selectedTicket || {}"
-      @close="closeModal" @save="saveTicket" />
+      :is-viewing="modalMode === 'view'" @close="closeModal" @save="saveTicket" />
   </div>
 </template>
 
@@ -49,6 +50,7 @@ import { useTicketsStore } from '../store/tickets.store';
 import { useKanbanStore } from '@/modules/kanban/ui/store/kanban.store';
 import { kanbanServices } from '@/modules/kanban/data/kanban.services';
 import { useCustomerStore } from '@/modules/customer/ui/store/customer.store';
+import { httpClient } from '@/core/infra/HttpClient';
 import type { ITicket } from '../../domain/entities/Ticket';
 
 const store = useTicketsStore() as any;
@@ -75,10 +77,13 @@ const handleFilter = (filters: any) => {
   store.applyFilters(filters);
 };
 
-const openModal = (ticket?: ITicket) => {
+const openModal = (ticket?: ITicket, mode?: 'view' | 'edit') => {
   selectedTicket.value = ticket ? { ...ticket } : null;
+  modalMode.value = mode || (ticket ? 'view' : 'edit');
   isModalOpen.value = true;
 };
+
+const modalMode = ref<'view' | 'edit'>('edit');
 
 const closeModal = () => {
   isModalOpen.value = false;
@@ -106,6 +111,47 @@ const saveTicket = async (ticketData: any) => {
     ElMessage.error('Erro ao salvar.');
   } finally {
     closeModal();
+  }
+};
+
+const deleteTicket = async (id: string) => {
+  try {
+    await ElMessageBox.confirm('Tem certeza que deseja excluir este ticket?', 'Confirmar exclusão', {
+      confirmButtonText: 'Excluir',
+      cancelButtonText: 'Cancelar',
+      type: 'warning'
+    });
+
+    try {
+      await store.deleteTicket(id);
+    } catch (deleteError: any) {
+      console.error('[deleteTicket] Erro ao excluir ticket no backend:', deleteError);
+      const errorMsg = deleteError?.message || '';
+      if (errorMsg.includes('TicketTag') || errorMsg.includes('does not have delete date columns')) {
+        ElMessage.error('Erro: O servidor não suporta exclusão de tickets com tags. Contate o administrador do sistema.');
+      } else {
+        ElMessage.error('Erro ao excluir ticket: ' + errorMsg.substring(0, 100));
+      }
+      return;
+    }
+
+    try {
+      const cardsResponse: any = await httpClient.get('/kanban/cards');
+      const cards = cardsResponse.data || cardsResponse;
+      const cardToDelete = cards.find((c: any) => c.ticketId === id);
+      if (cardToDelete) {
+        await kanbanServices.deleteCard(cardToDelete.id);
+      }
+    } catch (kanbanError) {
+      console.warn('[deleteTicket] Erro ao excluir card do kanban (não crítico):', kanbanError);
+    }
+
+    await kanbanStore.fetchKanbanData();
+    ElMessage.success('Ticket excluído com sucesso!');
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('[deleteTicket] error:', error);
+    }
   }
 };
 

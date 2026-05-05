@@ -25,7 +25,7 @@
           <p class="font-medium text-sm">Nenhuma nota interna registrada.</p>
         </div>
       </div>
-      <div class="p-3 bg-white border-t border-slate-200">
+      <div class="p-3 bg-white border-t border-slate-200" v-if="!isViewing">
         <div class="flex gap-2 items-end">
           <el-input v-model="newNoteMessage" type="textarea" :rows="2"
             placeholder="Adicionar uma nota de resolução interna..." class="custom-transparent-select"
@@ -46,6 +46,7 @@ import { Notebook, EditPen, Position } from '@element-plus/icons-vue';
 
 const props = defineProps<{
   internalNotes: any[];
+  isViewing?: boolean;
 }>();
 
 const emit = defineEmits(['add-note']);

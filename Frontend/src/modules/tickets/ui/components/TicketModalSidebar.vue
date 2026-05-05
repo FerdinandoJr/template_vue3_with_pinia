@@ -11,31 +11,31 @@
           </div>
         </template>
         <div class="p-4 space-y-4">
-          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm"
-            :class="{ 'ring-1 ring-red-500 border-red-500 bg-red-50': formErrors.customer }">
-            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
-              Cliente / Contato <span v-if="formErrors.customer" class="text-red-500">* Requerido</span>
-            </label>
-            <el-select v-model="form.customerId" placeholder="Selecione o Cliente" filterable allow-create
-              class="w-full enterprise-select" @change="$emit('update-error', 'customer', false)">
-              <template #prefix><el-icon><User /></el-icon></template>
-              <el-option v-for="customer in customers" :key="customer.id" 
-                :label="getCustomerLabel(customer)" 
-                :value="customer.id" />
-            </el-select>
-          </div>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm"
+        :class="{ 'ring-1 ring-red-500 border-red-500 bg-red-50': formErrors.customer }">
+        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
+          Cliente / Contato <span v-if="formErrors.customer" class="text-red-500">* Requerido</span>
+        </label>
+        <el-select v-model="form.customerId" placeholder="Selecione o Cliente" filterable allow-create
+          :disabled="isViewing" class="w-full enterprise-select" @change="$emit('update-error', 'customer', false)">
+          <template #prefix><el-icon><User /></el-icon></template>
+          <el-option v-for="customer in customers" :key="customer.id" 
+            :label="getCustomerLabel(customer)" 
+            :value="customer.id" />
+        </el-select>
+      </div>
 
-          <div>
-            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Quadro Kanban</label>
-            <el-select v-model="form.boardId" class="w-full enterprise-select" @change="$emit('board-change')">
-              <template #prefix><el-icon><DataBoard /></el-icon></template>
-              <el-option v-for="board in boards" :key="board.id" :label="board.title" :value="board.id" />
-            </el-select>
-          </div>
+      <div>
+        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Quadro Kanban</label>
+        <el-select v-model="form.boardId" :disabled="isViewing" class="w-full enterprise-select" @change="$emit('board-change')">
+          <template #prefix><el-icon><DataBoard /></el-icon></template>
+          <el-option v-for="board in boards" :key="board.id" :label="board.title" :value="board.id" />
+        </el-select>
+      </div>
 
       <div>
         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Fila / Status</label>
-        <el-select v-model="form.status" class="w-full enterprise-select" :disabled="!canApprove && isKanban" @change="$emit('status-change', form.status)">
+        <el-select v-model="form.status" class="w-full enterprise-select" :disabled="(!canApprove && isKanban) || isViewing" @change="$emit('status-change', form.status)">
           <template #prefix>
             <div class="w-2 h-2 rounded-full" :class="getStatusColor(form.status)"></div>
           </template>
@@ -48,33 +48,33 @@
         </el-select>
       </div>
 
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
-                Prioridade </label>
-              <el-select v-model="form.priority" class="w-full enterprise-select" @change="$emit('update-error', 'priority', false)">
-                <el-option label="Baixa" value="low"> <span class="font-medium text-slate-500">Baixa</span></el-option>
-                <el-option label="Média" value="medium"> <span class="font-bold text-blue-500">Média</span></el-option>
-                <el-option label="Alta" value="high"> <span class="font-bold text-orange-500">Alta</span></el-option>
-                <el-option label="Urgente" value="urgent"> <span class="font-black text-red-600">Urgente</span></el-option>
-              </el-select>
-            </div>
-            <div>
-              <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
-                Categoria </label>
-              <el-select v-model="form.type" class="w-full enterprise-select" @change="$emit('update-error', 'type', false)">
-                <el-option label="Suporte" value="support" />
-                <el-option label="Bug" value="bug" />
-                <el-option label="Melhoria" value="feature" />
-                <el-option label="Interno" value="internal" />
-              </el-select>
-            </div>
-          </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
+            Prioridade </label>
+          <el-select v-model="form.priority" :disabled="isViewing" class="w-full enterprise-select" @change="$emit('update-error', 'priority', false)">
+            <el-option label="Baixa" value="low"> <span class="font-medium text-slate-500">Baixa</span></el-option>
+            <el-option label="Média" value="medium"> <span class="font-bold text-blue-500">Média</span></el-option>
+            <el-option label="Alta" value="high"> <span class="font-bold text-orange-500">Alta</span></el-option>
+            <el-option label="Urgente" value="urgent"> <span class="font-black text-red-600">Urgente</span></el-option>
+          </el-select>
+        </div>
+        <div>
+          <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
+            Categoria </label>
+          <el-select v-model="form.type" :disabled="isViewing" class="w-full enterprise-select" @change="$emit('update-error', 'type', false)">
+            <el-option label="Suporte" value="support" />
+            <el-option label="Bug" value="bug" />
+            <el-option label="Melhoria" value="feature" />
+            <el-option label="Interno" value="internal" />
+          </el-select>
+        </div>
+      </div>
 
-          <div class="mt-4 pt-4 border-t border-slate-100">
-            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Tempo Estimado (Horas)</label>
-            <el-input-number v-model="form.estimatedHours" :min="0.5" :step="0.5" class="w-full enterprise-input" placeholder="Ex: 2.0" />
-          </div>
+      <div class="mt-4 pt-4 border-t border-slate-100">
+        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Tempo Estimado (Horas)</label>
+        <el-input-number v-model="form.estimatedHours" :disabled="isViewing" :min="0.5" :step="0.5" class="w-full enterprise-input" placeholder="Ex: 2.0" />
+      </div>
 
         </div>
       </el-collapse-item>
@@ -86,19 +86,19 @@
             <el-icon><Avatar /></el-icon> Equipe
           </span>
         </template>
-        <div class="p-4">
-          <el-select v-model="form.assignees" multiple filterable placeholder="Atribuir membros..." class="w-full enterprise-select mb-3">
-            <el-option v-for="user in teamMembers" :key="user.id" :label="user.name" :value="user.id">
-              <div class="flex items-center gap-2 font-medium">
-                <el-avatar :size="20" class="bg-slate-200 text-slate-600 text-[10px]">{{ user.name.charAt(0) }}</el-avatar>
-                <span>{{ user.name }}</span>
-              </div>
-            </el-option>
-          </el-select>
-        </div>
+      <div class="p-4">
+        <el-select v-model="form.assignees" multiple filterable placeholder="Atribuir membros..." :disabled="isViewing" class="w-full enterprise-select mb-3">
+          <el-option v-for="user in teamMembers" :key="user.id" :label="user.name" :value="user.id">
+            <div class="flex items-center gap-2 font-medium">
+              <el-avatar :size="20" class="bg-slate-200 text-slate-600 text-[10px]">{{ user.name.charAt(0) }}</el-avatar>
+              <span>{{ user.name }}</span>
+            </div>
+          </el-option>
+        </el-select>
+      </div>
       </el-collapse-item>
 
-      <TicketTagsSelector v-model:selectedTags="form.tags" :readonly="false" class="px-2" />
+      <TicketTagsSelector v-model:selectedTags="form.tags" :readonly="isViewing" class="px-2" />
     </el-collapse>
   </div>
 </template>
@@ -117,6 +117,7 @@ const props = defineProps<{
   teamMembers: any[];
   canApprove: boolean;
   isKanban: boolean;
+  isViewing?: boolean;
   getStatusColor: (status: string) => string;
   getCustomerLabel: (customer: any) => string;
 }>();

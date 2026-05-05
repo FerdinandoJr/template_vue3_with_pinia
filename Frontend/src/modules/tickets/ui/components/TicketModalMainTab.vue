@@ -7,7 +7,7 @@
           class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
           <el-icon><EditPen /></el-icon> Título Breve <span v-if="formErrors.title" class="text-red-500">* Requerido</span>
         </label>
-        <el-input v-model="form.title" placeholder="Descreva em poucas palavras..."
+        <el-input v-model="form.title" placeholder="Descreva em poucas palavras..." :disabled="isViewing"
           class="!text-lg font-medium enterprise-input" @input="$emit('update-error', 'title', false)" />
       </div>
       <div class="bg-white p-0 rounded-2xl border border-slate-200 shadow-sm flex flex-col"
@@ -19,7 +19,7 @@
           </label>
         </div>
         <div class="p-2 flex-1">
-          <RichTextEditor v-model="form.description"
+          <RichTextEditor v-model="form.description" :readonly="isViewing"
             placeholder="Descreva todos os detalhes, anexe prints e organize em tópicos..."
             @update:modelValue="$emit('update-error', 'description', false)" />
         </div>
@@ -35,6 +35,7 @@ import RichTextEditor from '@/components/RichTextEditor.vue';
 const props = defineProps<{
   form: any;
   formErrors: any;
+  isViewing?: boolean;
 }>();
 
 defineEmits(['update-error']);

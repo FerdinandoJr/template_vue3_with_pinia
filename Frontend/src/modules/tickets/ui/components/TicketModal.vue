@@ -90,7 +90,7 @@
 
         <div class="flex-1 overflow-y-auto custom-scroll p-0 bg-[#f8fafc]">
           <TicketModalMainTab v-show="activeTab === 'main'" :form="form" :formErrors="formErrors"
-            @update-error="handleUpdateError" />
+            :is-viewing="props.isViewing" @update-error="handleUpdateError" />
 
           <TicketModalChatTab v-show="activeTab === 'chat'" :whatsappHistory="form.whatsappHistory"
             :customerName="getCustomerNameById(form.customerId)" />
@@ -105,15 +105,15 @@
                   </el-icon> Tarefas e Sub-itens
                 </h3>
               </div>
-              <TicketChecklist v-model:items="form.checklist" :readonly="false" class="w-full" />
+              <TicketChecklist v-model:items="form.checklist" :readonly="props.isViewing" class="w-full" />
             </div>
           </div>
 
           <TicketModalNotesTab v-show="activeTab === 'notes'" :internalNotes="form.internalNotes"
-            @add-note="addInternalNote" />
+            :is-viewing="props.isViewing" @add-note="addInternalNote" />
 
           <TicketModalAttachmentsTab v-show="activeTab === 'attachments'" :attachments="form.attachments"
-            @add-files="handleFileSelected" @remove-attachment="removeAttachment" />
+            :is-viewing="props.isViewing" @add-files="handleFileSelected" @remove-attachment="removeAttachment" />
         </div>
       </div>
 
@@ -121,12 +121,14 @@
         class="w-full lg:w-[340px] xl:w-[380px] bg-slate-50 border-l border-slate-200 flex flex-col h-[50vh] lg:h-full shrink-0 relative z-20">
         <TicketModalSidebar :form="form" :formErrors="formErrors" :customers="customerStore.items"
           :boards="kanbanStore.boards" :availableColumns="availableColumns" :teamMembers="teamMembers"
-          :canApprove="canApprove" :isKanban="props.isKanban" :getStatusColor="getStatusColor"
-          :getCustomerLabel="getCustomerLabel" @update-error="handleUpdateError" @board-change="onBoardChange"
+          :canApprove="canApprove" :isKanban="props.isKanban" :is-viewing="props.isViewing"
+          :getStatusColor="getStatusColor" :getCustomerLabel="getCustomerLabel"
+          @update-error="handleUpdateError" @board-change="onBoardChange"
           @status-change="onStatusChange" />
 
         <div
-          class="p-4 bg-white border-t border-slate-200 flex flex-col gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-30">
+          class="p-4 bg-white border-t border-slate-200 flex flex-col gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-30"
+          v-if="!props.isViewing">
           <div class="flex flex-col sm:flex-row items-center gap-3 w-full">
             <el-button @click="handleClose" size="large" class="w-full sm:flex-1 !rounded-xl !h-12 !font-bold"> Cancelar
             </el-button>

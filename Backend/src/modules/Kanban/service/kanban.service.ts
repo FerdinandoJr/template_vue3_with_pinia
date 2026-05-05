@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { KanbanColumn, KanbanCard, KanbanBoard } from '../data/kanban.entity';
 import { CreateKanbanColumnDto, CreateKanbanCardDto, CreateKanbanBoardDto, UpdateKanbanBoardDto } from '../dto/create-kanban.dto';
 import { TicketStatus } from '../../Tickets/data/ticket.entity';
+import { Ticket } from '../../Tickets/data/ticket.entity';
 
 @Injectable()
 export class KanbanService {
@@ -190,6 +191,15 @@ export class KanbanService {
   }
 
   async deleteCard(id: string): Promise<void> {
+    const card = await this.cardsRepository.findOne({ where: { id } });
+    if (card?.ticketId) {
+      try {
+        const ticketsRepo = this.cardsRepository.manager.getRepository(Ticket);
+        await ticketsRepo.softDelete(card.ticketId);
+      } catch (e) {
+        this.logger.warn(`Failed to delete associated ticket ${card.ticketId}: ${e.message}`);
+      }
+    }
     await this.cardsRepository.delete({ id });
   }
 
