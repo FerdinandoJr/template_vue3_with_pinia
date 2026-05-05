@@ -195,7 +195,10 @@ export class KanbanService {
     if (card?.ticketId) {
       try {
         const ticketsRepo = this.cardsRepository.manager.getRepository(Ticket);
-        await ticketsRepo.softDelete(card.ticketId);
+        const ticket = await ticketsRepo.findOne({ where: { id: card.ticketId } });
+        if (ticket) {
+          await ticketsRepo.remove(ticket);
+        }
       } catch (e) {
         this.logger.warn(`Failed to delete associated ticket ${card.ticketId}: ${e.message}`);
       }

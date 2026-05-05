@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Ticket } from '../../Tickets/data/ticket.entity';
 
 @Entity('ticket_checklist')
@@ -30,7 +30,4 @@ export class TicketChecklist {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
-
-  @DeleteDateColumn({ type: 'timestamp' })
-  deletedAt: Date;
 }

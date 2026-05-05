@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Ticket } from '../../Tickets/data/ticket.entity';
 
 @Entity('ticket_attachments')
@@ -36,7 +36,4 @@ export class TicketAttachment {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
-
-  @DeleteDateColumn({ type: 'timestamp' })
-  deletedAt: Date;
 }

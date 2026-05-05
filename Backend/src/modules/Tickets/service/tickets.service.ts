@@ -317,20 +317,11 @@ export class TicketsService {
   }
 
   async delete(id: string): Promise<void> {
-    const ticket = await this.findById(id);
+    const ticket = await this.findById(id, true);
     if (!ticket) {
       throw new NotFoundException(`Ticket #${id} não encontrado`);
     }
-    await this.ticketsRepository.softRemove(ticket);
-  }
-
-  async restore(id: string): Promise<Ticket> {
-    const ticket = await this.findById(id, true);
-    if (!ticket || !ticket.deletedAt) {
-      throw new NotFoundException(`Ticket #${id} não encontrado ou não excluído`);
-    }
-    await this.ticketsRepository.restore(id);
-    return this.findById(id);
+    await this.ticketsRepository.remove(ticket);
   }
 
   async assignTicket(ticketId: string, userId: string, assigneeId: string): Promise<Ticket> {
