@@ -213,10 +213,10 @@ const form = reactive<any>({
   whatsappHistory: [],
   startDate: '',
   endDate: '',
-  estimatedHours: 2
+  estimatedHours: 1
 });
 
-const formErrors = reactive({ title: false, description: false, customer: false, priority: false, type: false });
+const formErrors = reactive({ title: false, description: false, customer: false, priority: false, type: false, board: false, status: false });
 
 const handleUpdateError = (field: keyof typeof formErrors, value: boolean) => {
   formErrors[field] = value;
@@ -535,6 +535,8 @@ const validateForm = () => {
   if (!form.customerId) { formErrors.customer = true; isValid = false; }
   if (!form.priority) { formErrors.priority = true; isValid = false; }
   if (!form.type) { formErrors.type = true; isValid = false; }
+  if (!form.boardId) { formErrors.board = true; isValid = false; }
+  if (!form.status) { formErrors.status = true; isValid = false; }
 
   if (!isValid && (formErrors.title || formErrors.description)) activeTab.value = 'main';
   return isValid;

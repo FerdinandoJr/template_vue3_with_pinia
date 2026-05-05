@@ -26,16 +26,22 @@
       </div>
 
       <div>
-        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Quadro Kanban</label>
-        <el-select v-model="form.boardId" :disabled="isViewing" class="w-full enterprise-select" @change="$emit('board-change')">
+        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
+          Quadro Kanban
+          <span v-if="formErrors.board" class="text-red-500 text-[10px]">* Obrigatório</span>
+        </label>
+        <el-select v-model="form.boardId" :disabled="isViewing" class="w-full enterprise-select" :class="{'ring-1 ring-red-500 border-red-500': formErrors.board}" @change="$emit('board-change'); $emit('update-error', 'board', false)">
           <template #prefix><el-icon><DataBoard /></el-icon></template>
           <el-option v-for="board in boards" :key="board.id" :label="board.title" :value="board.id" />
         </el-select>
       </div>
-
+      
       <div>
-        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Fila / Status</label>
-        <el-select v-model="form.status" class="w-full enterprise-select" :disabled="(!canApprove && isKanban) || isViewing" @change="$emit('status-change', form.status)">
+        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 flex justify-between">
+          Fila / Status
+          <span v-if="formErrors.status" class="text-red-500 text-[10px]">* Obrigatório</span>
+        </label>
+        <el-select v-model="form.status" class="w-full enterprise-select" :class="{'ring-1 ring-red-500 border-red-500': formErrors.status}" :disabled="(!canApprove && isKanban) || isViewing" @change="$emit('status-change', form.status); $emit('update-error', 'status', false)">
           <template #prefix>
             <div class="w-2 h-2 rounded-full" :class="getStatusColor(form.status)"></div>
           </template>
